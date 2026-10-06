@@ -1,0 +1,19 @@
+# Build trees
+/build*/
+/out/
+cmake-build-*/
+compile_commands.json
+
+# Run-time artifacts
+*.log
+/ui/.storage.json
+/test-config/
+/tests/out/
+
+# IDE / OS
+.vs/
+.vscode/
+.idea/
+*.user
+Thumbs.db
+.DS_Store

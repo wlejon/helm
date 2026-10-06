@@ -1,0 +1,272 @@
+/**
+ * Helm Desktop Notification Controller
+ * Manages toast notification overlays, notification drawer,
+ * and integration with bro.sys.notifications.
+ */
+
+export class NotificationController {
+  constructor() {
+    this.notifications = [];
+    this.unreadCount = 0;
+    this.isDrawerOpen = false;
+    this.dndEnabled = false;
+    this.nextNotificationId = 1;
+  }
+
+  init() {
+    this.setupListeners();
+    this.bindEvents();
+    this.updateBadge();
+  }
+
+  setupListeners() {
+    if (typeof bro !== 'undefined' && bro.sys?.notifications) {
+      try {
+        if (typeof bro.sys.notifications.listen === 'function') {
+          bro.sys.notifications.listen();
+        }
+
+        const handlePosted = (payload) => {
+          const n = payload?.notification || payload;
+          if (n) {
+            this.handleIncomingNotification({
+              id: n.id || ++this.nextNotificationId,
+              appName: n.appName || 'System',
+              appIcon: n.appIcon || '🔔',
+              summary: n.summary || 'Notification',
+              body: n.body || '',
+              actions: n.actions || [],
+            });
+          }
+        };
+
+        if (typeof bro.sys.notifications.on === 'function') {
+          bro.sys.notifications.on('posted', handlePosted);
+        } else if (typeof bro.sys.on === 'function') {
+          bro.sys.on('notifications:posted', handlePosted);
+          bro.sys.on('notificationPosted', handlePosted);
+        }
+      } catch (err) {
+        console.warn('Failed to initialize bro.sys.notifications:', err);
+      }
+    }
+  }
+
+  bindEvents() {
+    const toggleBtn = document.getElementById('btn-notify-toggle');
+    const clockBtn = document.getElementById('btn-clock');
+    const dndBtn = document.getElementById('btn-dnd-toggle');
+    const clearBtn = document.getElementById('btn-clear-notifications');
+
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleDrawer();
+      });
+    }
+
+    if (clockBtn) {
+      clockBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleDrawer();
+      });
+    }
+
+    if (dndBtn) {
+      dndBtn.addEventListener('click', () => {
+        this.dndEnabled = !this.dndEnabled;
+        dndBtn.textContent = `DND: ${this.dndEnabled ? 'On' : 'Off'}`;
+      });
+    }
+
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        this.clearAll();
+      });
+    }
+
+    document.addEventListener('click', (e) => {
+      if (this.isDrawerOpen) {
+        const drawer = document.getElementById('notify-drawer');
+        const toggle = document.getElementById('btn-notify-toggle');
+        const clock = document.getElementById('btn-clock');
+        if (drawer && !drawer.contains(e.target) && !toggle?.contains(e.target) && !clock?.contains(e.target)) {
+          this.closeDrawer();
+        }
+      }
+    });
+  }
+
+  postNotification(opts) {
+    const notif = {
+      id: opts.id || ++this.nextNotificationId,
+      appName: opts.appName || 'Desktop',
+      appIcon: opts.appIcon || '🔔',
+      summary: opts.summary || 'Alert',
+      body: opts.body || '',
+      actions: opts.actions || [],
+      timestamp: Date.now(),
+    };
+    this.handleIncomingNotification(notif);
+  }
+
+  handleIncomingNotification(notif) {
+    this.notifications.unshift(notif);
+    this.unreadCount++;
+    this.updateBadge();
+    this.renderDrawerList();
+
+    if (!this.dndEnabled) {
+      this.showToast(notif);
+    }
+  }
+
+  showToast(notif) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toastEl = document.createElement('div');
+    toastEl.className = 'toast';
+    toastEl.dataset.id = notif.id;
+
+    const iconEl = document.createElement('div');
+    iconEl.className = 'toast-icon';
+    iconEl.textContent = notif.appIcon || '🔔';
+
+    const contentEl = document.createElement('div');
+    contentEl.className = 'toast-content';
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'toast-title';
+    titleEl.textContent = notif.summary;
+
+    const bodyEl = document.createElement('div');
+    bodyEl.className = 'toast-body';
+    bodyEl.textContent = notif.body;
+
+    contentEl.appendChild(titleEl);
+    if (notif.body) contentEl.appendChild(bodyEl);
+
+    if (Array.isArray(notif.actions) && notif.actions.length > 0) {
+      const actionsEl = document.createElement('div');
+      actionsEl.className = 'toast-actions';
+      for (const act of notif.actions) {
+        const btn = document.createElement('button');
+        btn.className = 'drawer-action-btn';
+        btn.textContent = act.label || act.key;
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (typeof bro !== 'undefined' && bro.sys?.notifications?.invokeAction) {
+            bro.sys.notifications.invokeAction(notif.id, act.key);
+          }
+          this.dismissToast(toastEl);
+        });
+        actionsEl.appendChild(btn);
+      }
+      contentEl.appendChild(actionsEl);
+    }
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'toast-close';
+    closeBtn.textContent = '✕';
+    closeBtn.title = 'Dismiss';
+    closeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.dismissToast(toastEl);
+    });
+
+    toastEl.appendChild(iconEl);
+    toastEl.appendChild(contentEl);
+    toastEl.appendChild(closeBtn);
+
+    container.appendChild(toastEl);
+
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+      this.dismissToast(toastEl);
+    }, 5000);
+  }
+
+  dismissToast(toastEl) {
+    if (!toastEl || !toastEl.parentNode) return;
+    toastEl.style.transition = 'opacity 200ms ease, transform 200ms ease';
+    toastEl.style.opacity = '0';
+    toastEl.style.transform = 'translateY(-10px)';
+    setTimeout(() => {
+      if (toastEl.parentNode) toastEl.parentNode.removeChild(toastEl);
+    }, 220);
+  }
+
+  updateBadge() {
+    const badge = document.getElementById('notify-badge');
+    if (!badge) return;
+    badge.textContent = String(this.unreadCount);
+    if (this.unreadCount > 0) {
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+  }
+
+  renderDrawerList() {
+    const listEl = document.getElementById('notify-history-list');
+    const emptyEl = document.getElementById('notify-empty-state');
+    if (!listEl) return;
+
+    listEl.innerHTML = '';
+
+    if (this.notifications.length === 0) {
+      if (emptyEl) {
+        emptyEl.classList.remove('hidden');
+        listEl.appendChild(emptyEl);
+      }
+      return;
+    }
+
+    for (const notif of this.notifications) {
+      const itemEl = document.createElement('div');
+      itemEl.className = 'drawer-item';
+
+      const titleEl = document.createElement('div');
+      titleEl.className = 'toast-title';
+      titleEl.textContent = `${notif.appIcon || '🔔'} ${notif.summary}`;
+
+      const bodyEl = document.createElement('div');
+      bodyEl.className = 'toast-body';
+      bodyEl.textContent = notif.body;
+
+      itemEl.appendChild(titleEl);
+      if (notif.body) itemEl.appendChild(bodyEl);
+      listEl.appendChild(itemEl);
+    }
+  }
+
+  clearAll() {
+    this.notifications = [];
+    this.unreadCount = 0;
+    this.updateBadge();
+    this.renderDrawerList();
+  }
+
+  openDrawer() {
+    this.isDrawerOpen = true;
+    const drawer = document.getElementById('notify-drawer');
+    if (drawer) drawer.classList.remove('hidden');
+    this.unreadCount = 0;
+    this.updateBadge();
+  }
+
+  closeDrawer() {
+    this.isDrawerOpen = false;
+    const drawer = document.getElementById('notify-drawer');
+    if (drawer) drawer.classList.add('hidden');
+  }
+
+  toggleDrawer() {
+    if (this.isDrawerOpen) {
+      this.closeDrawer();
+    } else {
+      this.openDrawer();
+    }
+  }
+}
