@@ -1,7 +1,6 @@
 {
   "name": "helm",
   "title": "Helm Desktop",
-  "trusted": true,
   "shell": true,
   "width": 1920,
   "height": 1080,

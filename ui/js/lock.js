@@ -15,6 +15,10 @@ export class LockController {
     this.detectUsername();
     this.setupClock();
     this.bindEvents();
+    if (typeof bro !== 'undefined' && bro.seat?.addEventListener) {
+      bro.seat.addEventListener('lock', () => this.lock());
+      bro.seat.addEventListener('unlock', () => this.unlock());
+    }
   }
 
   detectUsername() {
@@ -78,11 +82,18 @@ export class LockController {
       input.focus();
     }
 
-    // Optional notification to session / power system
-    if (typeof bro !== 'undefined' && bro.sys?.power?.request) {
-      try {
-        bro.sys.power.request('lock');
-      } catch (_) {}
+    // Notify session seat & power subsystems
+    if (typeof bro !== 'undefined') {
+      if (bro.seat?.lock) {
+        try {
+          bro.seat.lock();
+        } catch (_) {}
+      }
+      if (bro.sys?.power?.request) {
+        try {
+          bro.sys.power.request('lock');
+        } catch (_) {}
+      }
     }
   }
 
@@ -95,34 +106,37 @@ export class LockController {
     if (screen) screen.classList.add('hidden');
     if (errorEl) errorEl.classList.add('hidden');
     if (input) input.value = '';
+
+    // Notify session seat subsystem
+    if (typeof bro !== 'undefined' && bro.seat?.unlock) {
+      try {
+        bro.seat.unlock();
+      } catch (_) {}
+    }
   }
 
   async verify(password) {
-    const errorEl = document.getElementById('lock-error-msg');
-    const input = document.getElementById('lock-password');
-
-    // In a test environment or if bro.cred is unavailable, allow empty or any password
-    if (typeof bro === 'undefined' || !bro.cred?.verifyPassword) {
-      this.unlock();
-      return;
+    // Fail closed: Never unlock if authentication service is unavailable
+    if (typeof bro === 'undefined' || !bro.cred || typeof bro.cred.authenticate !== 'function') {
+      this.showError('Authentication service unavailable');
+      return false;
     }
 
     try {
-      let ok = false;
-      const verifyFn = bro.cred.verifyPassword || bro.cred.authenticate;
-      if (typeof verifyFn === 'function') {
-        const res = verifyFn(this.username, password);
-        ok = res && typeof res.then === 'function' ? await res : !!res;
-      }
+      const res = bro.cred.authenticate(this.username, password);
+      const ok = res && typeof res.then === 'function' ? await res : !!res;
 
       if (ok) {
         this.unlock();
+        return true;
       } else {
         this.showError('Incorrect password. Please try again.');
+        return false;
       }
     } catch (err) {
       console.warn('Authentication error:', err);
       this.showError('Authentication service error');
+      return false;
     }
   }
 

@@ -68,10 +68,31 @@ assert(window.helm.notify.isDrawerOpen === false, 'Escape closes notification dr
 assert(window.helm.lock.isLocked === false, 'session initially unlocked');
 window.dispatchEvent(new KeyboardEvent('keydown', { key: 'l', ctrlKey: true, altKey: true, bubbles: true }));
 assert(window.helm.lock.isLocked === true, 'Ctrl+Alt+L hotkey locks session');
+const lockScreenEl = document.getElementById('lock-screen');
+assert(lockScreenEl !== null && !lockScreenEl.classList.contains('hidden'), 'lock screen visible in DOM');
 
-// Unlock session
-window.helm.lock.unlock();
-assert(window.helm.lock.isLocked === false, 'session unlocked successfully');
+// Verify wrong password fails closed and keeps session locked
+let verifyRes = await window.helm.lock.verify('wrong_password_attempt');
+assert(verifyRes === false, 'wrong password rejected');
+assert(window.helm.lock.isLocked === true, 'session remains locked after wrong password');
+const errorMsgEl = document.getElementById('lock-error-msg');
+assert(errorMsgEl !== null && !errorMsgEl.classList.contains('hidden'), 'error message shown on failed auth');
+
+// Verify valid authentication unlocks session
+const origAuthenticate = (typeof bro !== 'undefined' && bro.cred) ? bro.cred.authenticate : null;
+try {
+  if (typeof bro !== 'undefined' && bro.cred) {
+    bro.cred.authenticate = async () => true;
+  }
+  verifyRes = await window.helm.lock.verify('correct_password');
+  assert(verifyRes === true, 'valid password accepted');
+  assert(window.helm.lock.isLocked === false, 'session unlocked successfully on valid authentication');
+  assert(lockScreenEl.classList.contains('hidden'), 'lock screen hidden after unlock');
+} finally {
+  if (typeof bro !== 'undefined' && bro.cred && origAuthenticate) {
+    bro.cred.authenticate = origAuthenticate;
+  }
+}
 
 // 5. Verify Notifications
 assert(window.helm.notify !== undefined, 'notification controller initialized');

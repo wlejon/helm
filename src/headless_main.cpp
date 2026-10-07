@@ -6,12 +6,6 @@
 #include <cstdlib>
 
 int main(int argc, char* argv[]) {
-#ifdef _WIN32
-    _putenv_s("BRO_TRUSTED", "1");
-#else
-    setenv("BRO_TRUSTED", "1", 1);
-#endif
-
     bro::util::installCrashHandler();
     bro::engine::HeadlessHooks hooks;
     hooks.programName = "helm-headless";
