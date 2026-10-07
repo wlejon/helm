@@ -5,6 +5,7 @@
  */
 
 import { MediaController } from './media.js';
+import { TaskbarController } from './taskbar.js';
 
 export class PanelController {
   constructor() {
@@ -13,6 +14,7 @@ export class PanelController {
     this.activeAudioDeviceId = null;
     this.isMuted = false;
     this.media = new MediaController();
+    this.taskbar = new TaskbarController();
   }
 
   init() {
@@ -23,6 +25,7 @@ export class PanelController {
     this.setupPower();
     this.setupTray();
     this.media.init();
+    this.taskbar.init();
     this.setupSystemListeners();
   }
 
@@ -90,6 +93,9 @@ export class PanelController {
     if (popupEl) {
       popupEl.classList.remove('hidden');
       this.currentPopup = popupId;
+      if (window.helm && typeof window.helm.setModalActive === 'function') {
+        window.helm.setModalActive('panel', true);
+      }
     }
   }
 
@@ -98,6 +104,9 @@ export class PanelController {
       const popupEl = document.getElementById(this.currentPopup);
       if (popupEl) popupEl.classList.add('hidden');
       this.currentPopup = null;
+      if (window.helm && typeof window.helm.setModalActive === 'function') {
+        window.helm.setModalActive('panel', false);
+      }
     }
   }
 

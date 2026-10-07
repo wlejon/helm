@@ -165,6 +165,35 @@ assert(bro.decor.available === true, 'bro.decor is available');
 const metrics = bro.decor.getDefaultMetrics();
 assert(typeof metrics === 'object' && metrics.captionHeight > 0, 'bro.decor returned frame metrics');
 
+// (f) bro.compositor & Taskbar
+assert(typeof bro.compositor === 'object', 'bro.compositor namespace exists');
+assert(bro.compositor.available === true, 'bro.compositor is available');
+assert(window.helm.taskbar !== undefined, 'helm taskbar controller exists');
+const taskbarContainer = document.getElementById('panel-taskbar');
+assert(taskbarContainer !== null, 'panel-taskbar element rendered');
+
+// Test adding a synthetic window to taskbar
+window.helm.taskbar.addWindow({
+  id: 101,
+  title: 'Test Editor',
+  appId: 'editor',
+  className: 'EditorClass',
+  focused: true,
+  minimized: false
+});
+assert(taskbarContainer.children.length === 1, 'taskbar rendered window pill');
+const taskItem = taskbarContainer.querySelector('.taskbar-item');
+assert(taskItem !== null && taskItem.classList.contains('active'), 'taskbar pill is marked active');
+
+// Test focus change
+window.helm.taskbar.setFocus(999);
+const updatedTaskItem = taskbarContainer.querySelector('.taskbar-item');
+assert(updatedTaskItem !== null && !updatedTaskItem.classList.contains('active'), 'taskbar pill no longer active when focus shifts');
+
+// Test removing window
+window.helm.taskbar.removeWindow(101);
+assert(taskbarContainer.children.length === 0, 'taskbar pill removed');
+
 // Final layout flush
 advanceTime(16);
 flush();

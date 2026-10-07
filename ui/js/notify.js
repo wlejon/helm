@@ -250,6 +250,9 @@ export class NotificationController {
 
   openDrawer() {
     this.isDrawerOpen = true;
+    if (window.helm && typeof window.helm.setModalActive === 'function') {
+      window.helm.setModalActive('notify', true);
+    }
     const drawer = document.getElementById('notify-drawer');
     if (drawer) drawer.classList.remove('hidden');
     this.unreadCount = 0;
@@ -260,6 +263,9 @@ export class NotificationController {
     this.isDrawerOpen = false;
     const drawer = document.getElementById('notify-drawer');
     if (drawer) drawer.classList.add('hidden');
+    if (window.helm && typeof window.helm.setModalActive === 'function') {
+      window.helm.setModalActive('notify', false);
+    }
   }
 
   toggleDrawer() {

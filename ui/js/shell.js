@@ -14,7 +14,20 @@ export class Shell {
     this.launcher = new LauncherController();
     this.notify = new NotificationController();
     this.lock = new LockController();
+    this.activeModals = {};
     this.booted = false;
+  }
+
+  setModalActive(source, active) {
+    if (active) {
+      this.activeModals[source] = true;
+    } else {
+      delete this.activeModals[source];
+    }
+    const isAnyActive = Object.keys(this.activeModals).length > 0;
+    if (typeof bro !== 'undefined' && typeof bro.setModalActive === 'function') {
+      bro.setModalActive(isAnyActive);
+    }
   }
 
   init() {
@@ -26,12 +39,14 @@ export class Shell {
     this.lock.init();
 
     this.registerGlobalHotkeys();
+    this.registerNativeHotkeys();
 
     this.booted = true;
 
     // Attach to global window object for test automation and extensibility
     window.helm = this;
     window.helm.media = this.panel.media;
+    window.helm.taskbar = this.panel.taskbar;
     window.helm.clipboard = this.launcher.clipboard;
     window.helm.ime = (typeof bro !== 'undefined' && bro.ime) ? bro.ime : null;
     window.helm.decor = (typeof bro !== 'undefined' && bro.decor) ? bro.decor : null;
@@ -40,6 +55,31 @@ export class Shell {
     window.dispatchEvent(new CustomEvent('helm:ready', { detail: { shell: this } }));
 
     console.log('Helm: desktop environment ready.');
+  }
+
+  registerNativeHotkeys() {
+    this.nativeHotkeyIds = [];
+    if (typeof bro === 'undefined' || !bro.window?.registerGlobalHotkey) return;
+
+    try {
+      const chords = [
+        { accel: 'CommandOrControl+Space', action: () => this.launcher.toggle() },
+        { accel: 'Alt+Space', action: () => this.launcher.toggle() },
+        { accel: 'CommandOrControl+Shift+N', action: () => this.notify.toggleDrawer() },
+        { accel: 'CommandOrControl+Alt+L', action: () => this.lock.lock() },
+        { accel: 'CommandOrControl+Alt+V', action: () => this.launcher.openClipboard() },
+      ];
+
+      for (const { accel, action } of chords) {
+        const id = bro.window.registerGlobalHotkey(accel, () => {
+          if (this.lock.isLocked) return;
+          action();
+        });
+        if (id) this.nativeHotkeyIds.push(id);
+      }
+    } catch (err) {
+      console.warn('Failed to register native global hotkeys:', err);
+    }
   }
 
   registerGlobalHotkeys() {
@@ -109,6 +149,14 @@ export class Shell {
   }
 
   destroy() {
+    if (this.nativeHotkeyIds && typeof bro !== 'undefined' && bro.window?.unregisterGlobalHotkey) {
+      for (const id of this.nativeHotkeyIds) {
+        try {
+          bro.window.unregisterGlobalHotkey(id);
+        } catch (_) {}
+      }
+      this.nativeHotkeyIds = [];
+    }
     this.panel.destroy();
     this.lock.destroy();
     this.booted = false;

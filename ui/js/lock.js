@@ -71,6 +71,9 @@ export class LockController {
 
   lock() {
     this.isLocked = true;
+    if (window.helm && typeof window.helm.setModalActive === 'function') {
+      window.helm.setModalActive('lock', true);
+    }
     const screen = document.getElementById('lock-screen');
     const input = document.getElementById('lock-password');
     const errorEl = document.getElementById('lock-error-msg');
@@ -82,8 +85,9 @@ export class LockController {
       input.focus();
     }
 
-    // Notify session seat & power subsystems
-    if (typeof bro !== 'undefined') {
+    // Notify session seat & power subsystems (skip in automated test environment to avoid locking user's workstation)
+    const isTestMode = (typeof process !== 'undefined' && process.env?.HELM_TEST);
+    if (!isTestMode && typeof bro !== 'undefined') {
       if (bro.seat?.lock) {
         try {
           bro.seat.lock();
@@ -99,6 +103,9 @@ export class LockController {
 
   unlock() {
     this.isLocked = false;
+    if (window.helm && typeof window.helm.setModalActive === 'function') {
+      window.helm.setModalActive('lock', false);
+    }
     const screen = document.getElementById('lock-screen');
     const input = document.getElementById('lock-password');
     const errorEl = document.getElementById('lock-error-msg');

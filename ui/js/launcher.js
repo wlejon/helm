@@ -63,6 +63,7 @@ export class LauncherController {
           }
         },
       },
+
       {
         id: 'cmd:notifications',
         name: 'Toggle Notifications',
@@ -313,7 +314,12 @@ export class LauncherController {
   launchApp(appId) {
     if (typeof bro !== 'undefined' && bro.apps?.launch) {
       try {
-        bro.apps.launch(appId);
+        const p = bro.apps.launch(appId);
+        if (p && typeof p.catch === 'function') {
+          p.catch((err) => {
+            console.warn(`Failed to launch app ${appId}:`, err);
+          });
+        }
       } catch (err) {
         console.warn(`Failed to launch app ${appId}:`, err);
       }
@@ -322,6 +328,9 @@ export class LauncherController {
 
   openClipboard() {
     this.isOpen = true;
+    if (window.helm && typeof window.helm.setModalActive === 'function') {
+      window.helm.setModalActive('launcher', true);
+    }
     const modal = document.getElementById('launcher-modal');
     const input = document.getElementById('launcher-input');
     if (modal) modal.classList.remove('hidden');
@@ -334,6 +343,9 @@ export class LauncherController {
 
   open() {
     this.isOpen = true;
+    if (window.helm && typeof window.helm.setModalActive === 'function') {
+      window.helm.setModalActive('launcher', true);
+    }
     const modal = document.getElementById('launcher-modal');
     const input = document.getElementById('launcher-input');
     if (modal) modal.classList.remove('hidden');
@@ -348,6 +360,9 @@ export class LauncherController {
     this.isOpen = false;
     const modal = document.getElementById('launcher-modal');
     if (modal) modal.classList.add('hidden');
+    if (window.helm && typeof window.helm.setModalActive === 'function') {
+      window.helm.setModalActive('launcher', false);
+    }
   }
 
   toggle() {

@@ -152,6 +152,80 @@ body.desktop-root {
   color: var(--color-accent-text);
 }
 
+/* Running Applications Taskbar */
+.panel-taskbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-left: var(--space-2);
+  max-width: 520px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.panel-taskbar::-webkit-scrollbar {
+  display: none;
+}
+
+.taskbar-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 26px;
+  padding: 0 var(--space-2);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.taskbar-item:hover {
+  background: var(--color-bg-hover);
+  border-color: var(--color-border-medium);
+  color: var(--color-text-primary);
+}
+
+.taskbar-item.active {
+  background: var(--color-bg-hover);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  font-weight: 500;
+}
+
+.taskbar-item.minimized {
+  opacity: 0.6;
+}
+
+.taskbar-icon {
+  font-size: 13px;
+}
+
+.taskbar-title {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.taskbar-close-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+  border-radius: var(--radius-xs);
+}
+
+.taskbar-close-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--color-danger);
+}
+
 /* Center Clock */
 .clock-btn {
   font-weight: 500;
