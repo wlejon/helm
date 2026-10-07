@@ -81,6 +81,12 @@ int main(int argc, char* argv[]) {
     config.title = "Helm Desktop";
     config.showSplash = false;
     config.isShellApp = true;
+    const char* existingTrusted = std::getenv("BRO_TRUSTED_APP_DIR");
+    std::string trustedDirs = config.appDir;
+    if (existingTrusted && *existingTrusted) {
+        trustedDirs += ":" + std::string(existingTrusted);
+    }
+    ::setenv("BRO_TRUSTED_APP_DIR", trustedDirs.c_str(), 1);
     bro::engine::publishLaunchEnv(config);
 
     try {
