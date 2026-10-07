@@ -80,6 +80,9 @@ add_subdirectory("${BRO_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/bro")
 set(HELM_COMMON_SOURCES
     src/paths.cpp
 )
+if(WIN32)
+    list(APPEND HELM_COMMON_SOURCES src/win_shell_broker.cpp)
+endif()
 
 # Windowed desktop application executable
 add_executable(helm WIN32
@@ -109,8 +112,8 @@ if(MSVC)
     target_link_options(helm-headless PRIVATE /STACK:33554432)
 endif()
 if(WIN32)
-    target_link_libraries(helm PRIVATE ws2_32 advapi32 shell32 ole32)
-    target_link_libraries(helm-headless PRIVATE ws2_32 advapi32 shell32 ole32)
+    target_link_libraries(helm PRIVATE ws2_32 advapi32 shell32 ole32 comctl32)
+    target_link_libraries(helm-headless PRIVATE ws2_32 advapi32 shell32 ole32 comctl32)
 endif()
 
 # Stage ui/ beside the executables in build tree

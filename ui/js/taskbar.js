@@ -14,7 +14,73 @@ export class TaskbarController {
   init() {
     this.container = document.getElementById('panel-taskbar');
     this.setupCompositorListeners();
+    this.setupShellHookListeners();
     this.loadInitialWindows();
+  }
+
+  setupShellHookListeners() {
+    if (typeof bro === 'undefined' || !bro.shellHook?.on) return;
+
+    try {
+      bro.shellHook.on('windowCreated', (payload) => {
+        const win = payload?.window || payload;
+        if (win && (win.id != null || win.hwnd != null)) {
+          this.addWindow({
+            id: win.id ?? win.hwnd,
+            title: win.title || win.className || 'Application',
+            className: win.className,
+            processId: win.processId,
+            minimized: win.minimized,
+            maximized: win.maximized,
+            focused: false
+          });
+        }
+      });
+
+      bro.shellHook.on('windowDestroyed', (payload) => {
+        const id = payload?.id ?? payload?.hwnd ?? payload?.window?.hwnd;
+        if (id != null) {
+          this.removeWindow(id);
+        }
+      });
+
+      bro.shellHook.on('windowActivated', (payload) => {
+        const id = payload?.id ?? payload?.hwnd ?? payload?.window?.hwnd;
+        if (id != null) {
+          this.setFocus(id);
+        }
+      });
+
+      bro.shellHook.on('windowRedraw', (payload) => {
+        const win = payload?.window || payload;
+        if (win && (win.id != null || win.hwnd != null)) {
+          const id = win.id ?? win.hwnd;
+          this.updateWindow({
+            id: id,
+            title: win.title || win.className || 'Application',
+            className: win.className,
+            processId: win.processId,
+            minimized: win.minimized,
+            maximized: win.maximized,
+            focused: id === this.activeWindowId
+          });
+        }
+      });
+
+      bro.shellHook.on('getMinRect', (payload) => {
+        const win = payload?.window || payload;
+        if (win && (win.id != null || win.hwnd != null)) {
+          const id = win.id ?? win.hwnd;
+          const existing = this.windows.get(id);
+          if (existing) {
+            existing.minimized = win.minimized;
+            this.render();
+          }
+        }
+      });
+    } catch (err) {
+      console.warn('Failed to attach shellHook listeners:', err);
+    }
   }
 
   setupCompositorListeners() {
@@ -54,20 +120,43 @@ export class TaskbarController {
   }
 
   loadInitialWindows() {
-    if (typeof bro === 'undefined' || !bro.compositor?.getWindows) return;
-
-    try {
-      const list = bro.compositor.getWindows() || [];
-      for (const w of list) {
-        if (w && w.id != null) {
-          this.windows.set(w.id, w);
-          if (w.focused) this.activeWindowId = w.id;
+    if (typeof bro !== 'undefined' && bro.compositor?.getWindows) {
+      try {
+        const list = bro.compositor.getWindows() || [];
+        for (const w of list) {
+          if (w && w.id != null) {
+            this.windows.set(w.id, w);
+            if (w.focused) this.activeWindowId = w.id;
+          }
         }
+      } catch (err) {
+        console.warn('Failed to query compositor initial windows:', err);
       }
-      this.render();
-    } catch (err) {
-      console.warn('Failed to query initial windows:', err);
     }
+
+    if (this.windows.size === 0 && typeof bro !== 'undefined' && bro.shellHook?.getWindows) {
+      try {
+        const list = bro.shellHook.getWindows() || [];
+        for (const w of list) {
+          if (w && (w.id != null || w.hwnd != null)) {
+            const id = w.id ?? w.hwnd;
+            this.windows.set(id, {
+              id: id,
+              title: w.title || w.className || 'Application',
+              className: w.className,
+              processId: w.processId,
+              minimized: w.minimized,
+              maximized: w.maximized,
+              focused: false
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to query shellHook initial windows:', err);
+      }
+    }
+
+    this.render();
   }
 
   addWindow(win) {
@@ -160,8 +249,17 @@ export class TaskbarController {
       try {
         bro.compositor.focusWindow(id);
         this.setFocus(id);
+        return;
       } catch (err) {
-        console.warn('Failed to focus window:', err);
+        console.warn('Failed to focus window via compositor:', err);
+      }
+    }
+    if (typeof bro !== 'undefined' && bro.shellHook?.focusWindow) {
+      try {
+        bro.shellHook.focusWindow(id);
+        this.setFocus(id);
+      } catch (err) {
+        console.warn('Failed to focus window via shellHook:', err);
       }
     }
   }
@@ -170,8 +268,16 @@ export class TaskbarController {
     if (typeof bro !== 'undefined' && bro.compositor?.closeWindow) {
       try {
         bro.compositor.closeWindow(id);
+        return;
       } catch (err) {
-        console.warn('Failed to close window:', err);
+        console.warn('Failed to close window via compositor:', err);
+      }
+    }
+    if (typeof bro !== 'undefined' && bro.shellHook?.closeWindow) {
+      try {
+        bro.shellHook.closeWindow(id);
+      } catch (err) {
+        console.warn('Failed to close window via shellHook:', err);
       }
     }
   }
