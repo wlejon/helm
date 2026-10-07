@@ -1,108 +1,109 @@
 /* =============================================================================
-   HELM DESIGN SYSTEM TOKENS (Level 5 Cascade, Oklch Color Model)
-   Refined for Native Desktop Operating System Materials & Typography
+   HELM DESIGN SYSTEM TOKENS
+   Workstation Native Desktop Architecture & High-Density Materials
    ============================================================================= */
 
 :root {
-  /* Color Palette — Neutral Dark Foundations */
-  --color-bg-base: oklch(0.12 0.012 260);
-  --color-bg-surface: oklch(0.16 0.018 260 / 0.82);
-  --color-bg-surface-solid: oklch(0.16 0.018 260);
-  --color-bg-elevated: oklch(0.20 0.022 260 / 0.88);
-  --color-bg-elevated-solid: oklch(0.20 0.022 260);
-  --color-bg-hover: oklch(0.26 0.026 260 / 0.65);
-  --color-bg-active: oklch(0.31 0.030 260 / 0.75);
-  --color-bg-input: oklch(0.11 0.012 260 / 0.75);
+  /* Color Palette — Solid Layered Dark Foundations */
+  --color-bg-base:           #0c0e12;
+  --color-bg-surface:        #11151e;
+  --color-bg-surface-solid:  #11151e;
+  --color-bg-elevated:       #161c28;
+  --color-bg-elevated-solid: #161c28;
+  --color-bg-hover:          #1e2638;
+  --color-bg-active:         #26324a;
+  --color-bg-input:          #121620;
 
-  /* Glassmorphism & Materials */
-  --glass-bg: rgba(22, 22, 28, 0.82);
-  --glass-bg-elevated: rgba(28, 28, 36, 0.90);
-  --glass-card: rgba(255, 255, 255, 0.038);
-  --glass-card-hover: rgba(255, 255, 255, 0.065);
-  --glass-border: rgba(255, 255, 255, 0.075);
-  --glass-border-subtle: rgba(255, 255, 255, 0.045);
-  --glass-highlight: inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+  /* Engineered Surface Panels (Solid, high-contrast, zero blur-fallbacks) */
+  --glass-bg:                #141924;
+  --glass-bg-elevated:       #181f2d;
+  --glass-card:              #121622;
+  --glass-card-hover:        #181f2e;
+  --glass-border:            #222b3d;
+  --glass-border-subtle:     #1a2130;
+  --glass-highlight:         none;
 
-  /* Vibrant Accent — Modern System Violet */
-  --color-accent: oklch(0.68 0.22 260);
-  --color-accent-hover: oklch(0.74 0.24 260);
-  --color-accent-active: oklch(0.62 0.20 260);
-  --color-accent-subtle: oklch(0.68 0.22 260 / 0.16);
-  --color-accent-text: oklch(0.98 0.01 260);
+  /* System Accent */
+  --color-accent:            #4f6ee6;
+  --color-accent-hover:      #6380f5;
+  --color-accent-active:     #3e5ac9;
+  --color-accent-subtle:     rgba(79, 110, 230, 0.18);
+  --color-accent-text:       #f0f4ff;
 
   /* Status and Semantic Colors */
-  --color-success: oklch(0.72 0.18 145);
-  --color-success-subtle: oklch(0.72 0.18 145 / 0.18);
-  --color-warning: oklch(0.78 0.16 75);
-  --color-warning-subtle: oklch(0.78 0.16 75 / 0.18);
-  --color-danger: oklch(0.65 0.24 25);
-  --color-danger-subtle: oklch(0.65 0.24 25 / 0.18);
-  --color-info: oklch(0.70 0.17 220);
+  --color-success:           #3eb370;
+  --color-success-subtle:    rgba(62, 179, 112, 0.18);
+  --color-warning:           #e5a93c;
+  --color-warning-subtle:    rgba(229, 169, 60, 0.18);
+  --color-danger:            #e05252;
+  --color-danger-subtle:     rgba(224, 82, 82, 0.18);
+  --color-info:              #4a90e2;
 
   /* Typography Colors */
-  --color-text-primary: rgba(255, 255, 255, 0.95);
-  --color-text-secondary: rgba(255, 255, 255, 0.70);
-  --color-text-muted: rgba(255, 255, 255, 0.46);
-  --color-text-dim: rgba(255, 255, 255, 0.28);
+  --color-text-primary:      #dce2ee;
+  --color-text-secondary:    #9ba7ba;
+  --color-text-muted:        #687487;
+  --color-text-dim:          #485262;
+  --color-text-value:        #cfe0ff;
 
-  /* Borders and Separators */
-  --color-border-subtle: rgba(255, 255, 255, 0.06);
-  --color-border-medium: rgba(255, 255, 255, 0.12);
-  --color-border-focus: oklch(0.68 0.22 260);
+  /* Structural 1px Borders */
+  --color-border-subtle:     #1d2332;
+  --color-border-medium:     #2a3449;
+  --color-border-focus:      #5c9dff;
 
-  /* Typography Font Families (Desktop OS Optimized) */
-  --font-sans: "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, "SF Pro Text", Roboto, "Inter", system-ui, sans-serif;
-  --font-mono: "Cascadia Code", "SF Mono", "JetBrains Mono", Consolas, monospace;
+  /* Typography Font Families */
+  --font-sans:               system-ui, "Segoe UI", -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  --font-mono:               ui-monospace, "SF Mono", Menlo, Consolas, "Cascadia Code", monospace;
 
-  /* Font Sizes */
-  --text-xs: 11px;
-  --text-sm: 12.5px;
-  --text-base: 13.5px;
-  --text-md: 15px;
-  --text-lg: 17px;
-  --text-xl: 20px;
-  --text-2xl: 24px;
-  --text-3xl: 30px;
-  --text-clock: 48px;
+  /* Font Sizes (Workstation Density) */
+  --text-xs:                 11px;
+  --text-sm:                 12px;
+  --text-base:               13px;
+  --text-md:                 14px;
+  --text-lg:                 16px;
+  --text-xl:                 18px;
+  --text-2xl:                22px;
+  --text-3xl:                26px;
+  --text-clock:              40px;
 
-  /* Spacing Scale (Compact Desktop OS Spacing) */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-8: 32px;
+  /* Spacing Scale (Compact Desktop Spacing) */
+  --space-1:                 3px;
+  --space-2:                 6px;
+  --space-3:                 10px;
+  --space-4:                 14px;
+  --space-5:                 18px;
+  --space-6:                 22px;
+  --space-8:                 28px;
 
-  /* Border Radii */
-  --radius-xs: 4px;
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  --radius-full: 9999px;
+  /* Border Radii (Crisp Desktop Tooling, No Bloated Pills) */
+  --radius-xs:               3px;
+  --radius-sm:               4px;
+  --radius-md:               6px;
+  --radius-lg:               8px;
+  --radius-xl:               10px;
+  --radius-full:             9999px;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.24);
-  --shadow-md: 0 4px 16px -2px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
-  --shadow-lg: 0 12px 36px -4px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.06);
-  --shadow-modal: 0 24px 64px -8px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  /* Shadows (Tightly bounded with structural border outlines) */
+  --shadow-sm:               0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md:               0 4px 12px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--color-border-subtle);
+  --shadow-lg:               0 8px 24px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--color-border-medium);
+  --shadow-modal:            0 12px 32px rgba(0, 0, 0, 0.7), 0 0 0 1px var(--color-border-medium);
 
-  /* Glassmorphism & Effects */
-  --backdrop-blur: blur(28px) saturate(180%);
-  --backdrop-blur-heavy: blur(40px) saturate(190%);
+  /* Engine Safety: backdrop-filter is unpainted in bro htmlayout */
+  --backdrop-blur:           none;
+  --backdrop-blur-heavy:     none;
 
-  /* Transitions */
-  --transition-fast: 120ms cubic-bezier(0.16, 1, 0.3, 1);
-  --transition-normal: 200ms cubic-bezier(0.16, 1, 0.3, 1);
-  --transition-bounce: 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* Snappy Transitions */
+  --transition-fast:         80ms ease-out;
+  --transition-normal:       140ms ease-out;
+  --transition-bounce:       180ms ease-out;
 
-  /* Layout Constants */
-  --panel-height: 34px;
-  --panel-z-index: 1000;
-  --popup-z-index: 2000;
-  --toast-z-index: 3000;
-  --drawer-z-index: 4000;
-  --launcher-z-index: 5000;
-  --lock-z-index: 9000;
+  /* Desktop Shell Layout Constants */
+  --panel-height:            28px;
+  --panel-z-index:           1000;
+  --popup-z-index:           2000;
+  --toast-z-index:           3000;
+  --drawer-z-index:          4000;
+  --launcher-z-index:        5000;
+  --lock-z-index:            9000;
 }

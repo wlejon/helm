@@ -1,5 +1,6 @@
 import { ClipboardController } from './clipboard.js';
-import { getIconSvg } from './icons.js';
+import { createIcon } from './icons.js';
+import { h, clear } from './dom.js';
 
 export class LauncherController {
   constructor() {
@@ -232,63 +233,49 @@ export class LauncherController {
     const container = document.getElementById('launcher-results');
     if (!container) return;
 
-    container.innerHTML = '';
+    clear(container);
 
     if (this.filtered.length === 0) {
-      const emptyEl = document.createElement('div');
-      emptyEl.className = 'launcher-empty';
-      emptyEl.textContent = 'No matching applications or commands';
-      container.appendChild(emptyEl);
+      container.appendChild(
+        h('div.launcher-empty', null, 'No matching applications or commands')
+      );
       return;
     }
 
     this.filtered.forEach((item, index) => {
-      const itemEl = document.createElement('div');
-      itemEl.className = `launcher-item ${index === this.selectedIndex ? 'active' : ''}`;
-      itemEl.dataset.index = index;
-
-      const iconEl = document.createElement('span');
-      iconEl.className = 'launcher-item-icon';
+      let iconChild;
       if (item.icon && !item.icon.includes('/') && !item.icon.endsWith('.png') && !item.icon.endsWith('.svg')) {
-        iconEl.innerHTML = getIconSvg(item.icon, 20);
+        iconChild = createIcon(item.icon, 20);
       } else if (item.icon && (item.icon.includes('/') || item.icon.endsWith('.png') || item.icon.endsWith('.svg'))) {
-        const img = document.createElement('img');
-        img.src = item.icon;
-        img.className = 'launcher-icon-img';
+        const img = h('img.launcher-icon-img', { src: item.icon });
+        const wrap = h('span.launcher-item-icon', null, img);
         img.onerror = () => {
-          iconEl.innerHTML = getIconSvg(item.type === 'cmd' ? 'command' : 'app', 20);
+          clear(wrap);
+          wrap.appendChild(createIcon(item.type === 'cmd' ? 'command' : 'app', 20));
         };
-        iconEl.appendChild(img);
+        iconChild = wrap;
       } else {
-        iconEl.innerHTML = getIconSvg(item.type === 'cmd' ? 'command' : 'app', 20);
+        iconChild = createIcon(item.type === 'cmd' ? 'command' : 'app', 20);
       }
 
-      const contentEl = document.createElement('div');
-      contentEl.className = 'launcher-item-content';
+      const iconEl = iconChild.classList && iconChild.classList.contains('launcher-item-icon')
+        ? iconChild
+        : h('span.launcher-item-icon', null, iconChild);
 
-      const titleEl = document.createElement('span');
-      titleEl.className = 'launcher-item-title';
-      titleEl.textContent = item.name;
+      const contentEl = h('div.launcher-item-content', null,
+        h('span.launcher-item-title', null, item.name),
+        item.comment ? h('span.launcher-item-desc', null, item.comment) : null
+      );
 
-      const descEl = document.createElement('span');
-      descEl.className = 'launcher-item-desc';
-      descEl.textContent = item.comment || '';
+      const badgeEl = h('span.launcher-item-badge', null, item.type === 'cmd' ? 'Action' : 'App');
 
-      contentEl.appendChild(titleEl);
-      if (item.comment) contentEl.appendChild(descEl);
-
-      const badgeEl = document.createElement('span');
-      badgeEl.className = 'launcher-item-badge';
-      badgeEl.textContent = item.type === 'cmd' ? 'Action' : 'App';
-
-      itemEl.appendChild(iconEl);
-      itemEl.appendChild(contentEl);
-      itemEl.appendChild(badgeEl);
-
-      itemEl.addEventListener('click', () => {
-        this.selectedIndex = index;
-        this.executeSelected();
-      });
+      const itemEl = h(`div.launcher-item${index === this.selectedIndex ? '.active' : ''}`, {
+        dataset: { index: String(index) },
+        onclick: () => {
+          this.selectedIndex = index;
+          this.executeSelected();
+        },
+      }, iconEl, contentEl, badgeEl);
 
       container.appendChild(itemEl);
     });

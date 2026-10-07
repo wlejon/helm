@@ -4,7 +4,9 @@
  * and specs clipboard copy integration.
  */
 
-import { getIconSvg } from '../../icons.js';
+import { h, clear } from '../../dom.js';
+import { createIcon } from '../../icons.js';
+import { viewHeader, settingsCard } from '../components.js';
 
 export class SystemView {
   constructor(controller) {
@@ -131,61 +133,37 @@ export class SystemView {
   render(container, searchQuery = '') {
     this.container = container;
     this.stopUptime();
-    container.innerHTML = '';
-
-    const header = document.createElement('div');
-    header.className = 'settings-view-header';
-    header.innerHTML = `
-      <div class="view-header-titles">
-        <h2 class="view-title">System & Hardware Information</h2>
-        <p class="view-subtitle">Detailed machine specifications, operating environment, and uptime metrics.</p>
-      </div>
-      <div class="view-header-actions">
-        <button class="btn btn-secondary btn-sm" id="btn-copy-specs">${getIconSvg('copy', 13)} Copy Specs</button>
-      </div>
-    `;
-    container.appendChild(header);
+    clear(container);
 
     const info = this.getSystemInfo();
 
-    const copyBtn = header.querySelector('#btn-copy-specs');
-    if (copyBtn) {
-      copyBtn.addEventListener('click', () => this.copySpecsToClipboard(info, copyBtn));
-    }
+    const copyBtn = h('button.btn.btn-secondary.btn-sm#btn-copy-specs', {
+      onclick: () => this.copySpecsToClipboard(info, copyBtn)
+    }, createIcon('copy', 13), ' Copy Specs');
+
+    const header = h('div.settings-view-header', null,
+      h('div.view-header-titles', null,
+        h('h2.view-title', null, 'System & Hardware Information'),
+        h('p.view-subtitle', null, 'Detailed machine specifications, operating environment, and uptime metrics.')
+      ),
+      h('div.view-header-actions', null, copyBtn)
+    );
+    container.appendChild(header);
 
     // 1. Branding & Overview Card
-    const overviewCard = document.createElement('section');
-    overviewCard.className = 'settings-card system-overview-card';
-    overviewCard.innerHTML = `
-      <div class="system-brand-banner">
-        <div class="system-brand-logo">⎈</div>
-        <div class="system-brand-info">
-          <h3 class="system-brand-title">Helm Desktop Environment</h3>
-          <p class="system-brand-subtitle">${info.version}</p>
-          <span class="badge badge-accent">Production Grade</span>
-        </div>
-      </div>
-    `;
+    const overviewCard = h('section.settings-card.system-overview-card', null,
+      h('div.system-brand-banner', null,
+        h('div.system-brand-logo', null, '⎈'),
+        h('div.system-brand-info', null,
+          h('h3.system-brand-title', null, 'Helm Desktop Environment'),
+          h('p.system-brand-subtitle', null, info.version),
+          h('span.badge.badge-accent', null, 'Production Grade')
+        )
+      )
+    );
     container.appendChild(overviewCard);
 
     // 2. Hardware Specs Grid Card
-    const specsCard = document.createElement('section');
-    specsCard.className = 'settings-card system-specs-card';
-
-    const specsHeader = document.createElement('div');
-    specsHeader.className = 'settings-card-header';
-    specsHeader.innerHTML = `
-      <div class="card-header-icon">${getIconSvg('system', 18)}</div>
-      <div class="card-header-text">
-        <h3 class="card-title">Hardware Specifications</h3>
-        <p class="card-description">Core compute and rendering hardware detected on this workstation.</p>
-      </div>
-    `;
-    specsCard.appendChild(specsHeader);
-
-    const grid = document.createElement('div');
-    grid.className = 'system-specs-grid';
-
     const specItems = [
       { label: 'Operating System', icon: 'window', val: info.os },
       { label: 'Substrate Runtime', icon: 'system', val: info.kernel },
@@ -196,24 +174,29 @@ export class SystemView {
       { label: 'System Uptime', icon: 'uptime', val: this.formatUptime(), isUptime: true },
     ];
 
-    specItems.forEach((item) => {
-      const box = document.createElement('div');
-      box.className = 'system-spec-box';
-      box.innerHTML = `
-        <div class="spec-box-header">
-          <span class="spec-icon">${getIconSvg(item.icon, 14)}</span>
-          <span class="spec-label">${this.escapeHtml(item.label)}</span>
-        </div>
-        <div class="spec-value ${item.isUptime ? 'spec-uptime-value font-mono' : ''}" ${item.isUptime ? 'id="system-uptime-text"' : ''}>
-          ${this.escapeHtml(item.val)}
-        </div>
-      `;
-      grid.appendChild(box);
+    const gridBoxes = specItems.map((item) => {
+      const valProps = {
+        class: `spec-value ${item.isUptime ? 'spec-uptime-value font-mono' : ''}`.trim()
+      };
+      if (item.isUptime) valProps.id = 'system-uptime-text';
+
+      return h('div.system-spec-box', null,
+        h('div.spec-box-header', null,
+          h('span.spec-icon', null, createIcon(item.icon, 14)),
+          h('span.spec-label', null, item.label)
+        ),
+        h('div', valProps, item.val)
+      );
     });
 
-    specsCard.appendChild(grid);
-    container.appendChild(specsCard);
+    const specsCard = settingsCard({
+      title: 'Hardware Specifications',
+      desc: 'Core compute and rendering hardware detected on this workstation.',
+      icon: 'system',
+      className: 'system-specs-card'
+    }, h('div.system-specs-grid', null, ...gridBoxes));
 
+    container.appendChild(specsCard);
     this.startUptime();
   }
 
@@ -276,11 +259,14 @@ export class SystemView {
     }
 
     if (btnEl) {
-      const origHtml = btnEl.innerHTML;
-      btnEl.innerHTML = `${getIconSvg('check', 14)} Copied!`;
+      clear(btnEl);
+      btnEl.appendChild(createIcon('check', 14));
+      btnEl.appendChild(document.createTextNode(' Copied!'));
       btnEl.classList.add('btn-success');
       setTimeout(() => {
-        btnEl.innerHTML = origHtml;
+        clear(btnEl);
+        btnEl.appendChild(createIcon('copy', 13));
+        btnEl.appendChild(document.createTextNode(' Copy Specs'));
         btnEl.classList.remove('btn-success');
       }, 2000);
     }
@@ -296,14 +282,5 @@ export class SystemView {
   destroy() {
     this.stopUptime();
     this.container = null;
-  }
-
-  escapeHtml(str) {
-    if (!str) return '';
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
   }
 }

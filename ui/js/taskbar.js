@@ -4,7 +4,8 @@
  * track focus, bring windows to front, and close windows.
  */
 
-import { getIconSvg } from './icons.js';
+import { createIcon } from './icons.js';
+import { h, clear } from './dom.js';
 
 export class TaskbarController {
   constructor() {
@@ -189,40 +190,26 @@ export class TaskbarController {
 
   render() {
     if (!this.container) return;
-    this.container.innerHTML = '';
+    clear(this.container);
 
     for (const [id, win] of this.windows.entries()) {
       if (win.className === 'Progman' || win.className === 'WorkerW') continue;
 
-      const item = document.createElement('div');
-      item.className = 'taskbar-item' + (win.id === this.activeWindowId ? ' active' : '') + (win.minimized ? ' minimized' : '');
-      item.setAttribute('data-id', String(id));
-      item.title = win.title || win.appId || 'Window';
-
-      const icon = document.createElement('span');
-      icon.className = 'taskbar-icon';
-      icon.innerHTML = getIconSvg(this.resolveIcon(win), 14);
-
-      const title = document.createElement('span');
-      title.className = 'taskbar-title';
-      title.textContent = this.formatTitle(win.title || win.appId || 'Window');
-
-      const closeBtn = document.createElement('button');
-      closeBtn.className = 'taskbar-close-btn';
-      closeBtn.innerHTML = getIconSvg('close', 10);
-      closeBtn.title = 'Close window';
-      closeBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.closeWindow(id);
-      });
-
-      item.appendChild(icon);
-      item.appendChild(title);
-      item.appendChild(closeBtn);
-
-      item.addEventListener('click', () => {
-        this.activateWindow(id);
-      });
+      const item = h(`div.taskbar-item${win.id === this.activeWindowId ? '.active' : ''}${win.minimized ? '.minimized' : ''}`, {
+        dataset: { id: String(id) },
+        title: win.title || win.appId || 'Window',
+        onclick: () => this.activateWindow(id),
+      },
+        h('span.taskbar-icon', null, createIcon(this.resolveIcon(win), 14)),
+        h('span.taskbar-title', null, this.formatTitle(win.title || win.appId || 'Window')),
+        h('button.taskbar-close-btn', {
+          title: 'Close window',
+          onclick: (e) => {
+            e.stopPropagation();
+            this.closeWindow(id);
+          }
+        }, createIcon('close', 10))
+      );
 
       this.container.appendChild(item);
     }

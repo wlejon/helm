@@ -4,7 +4,9 @@
  * and session power actions. Zero mock or fake data.
  */
 
-import { getIconSvg } from '../../icons.js';
+import { h, clear } from '../../dom.js';
+import { createIcon } from '../../icons.js';
+import { viewHeader, emptyState } from '../components.js';
 
 export class PowerView {
   constructor(controller) {
@@ -69,7 +71,6 @@ export class PowerView {
       }
     }
 
-    // Default: system on AC power without a battery
     return {
       hasBattery: false,
       isAC: true,
@@ -90,134 +91,127 @@ export class PowerView {
 
   render(container, searchQuery = '') {
     this.container = container;
-    container.innerHTML = '';
+    clear(container);
 
-    const header = document.createElement('div');
-    header.className = 'settings-view-header';
-    header.innerHTML = `
-      <div class="view-header-titles">
-        <h2 class="view-title">Power & Battery</h2>
-        <p class="view-subtitle">Inspect battery telemetry, configure display/system sleep timeouts, and choose power performance profiles.</p>
-      </div>
-    `;
-    container.appendChild(header);
+    container.appendChild(
+      viewHeader('Power & Battery', 'Inspect battery telemetry, configure display/system sleep timeouts, and choose power performance profiles.')
+    );
 
     const powerData = this.getPowerState();
 
     // 1. Power Source & Battery Card
-    const batteryCard = this.renderBatteryCard(powerData);
-    container.appendChild(batteryCard);
+    container.appendChild(this.renderBatteryCard(powerData));
 
     // 2. Power Profiles Selector Card
-    const profileCard = this.renderProfileCard();
-    container.appendChild(profileCard);
+    container.appendChild(this.renderProfileCard());
 
     // 3. Sleep & Inactivity Timeouts Card
-    const sleepCard = this.renderSleepCard();
-    container.appendChild(sleepCard);
+    container.appendChild(this.renderSleepCard());
 
     // 4. Power Actions Grid Card
-    const actionsCard = this.renderActionsCard();
-    container.appendChild(actionsCard);
+    container.appendChild(this.renderActionsCard());
   }
 
   renderBatteryCard(data) {
-    const card = document.createElement('section');
-    card.className = 'settings-card power-battery-card';
+    const iconName = data.hasBattery
+      ? (data.isAC ? 'batteryCharging' : 'battery')
+      : 'desktopAc';
 
-    const header = document.createElement('div');
-    header.className = 'settings-card-header';
-    header.innerHTML = `
-      <div class="card-header-icon">${data.hasBattery ? (data.isAC ? getIconSvg('batteryCharging', 18) : getIconSvg('battery', 18)) : getIconSvg('desktopAc', 18)}</div>
-      <div class="card-header-text">
-        <h3 class="card-title">${data.hasBattery ? 'Battery Status & Health' : 'Power Source'}</h3>
-        <p class="card-description">${data.hasBattery ? (data.isAC ? 'Connected to AC power' : 'Running on internal battery') : 'Connected to AC mains wall power. No rechargeable battery installed.'}</p>
-      </div>
-      <span class="badge ${data.hasBattery ? (data.percent > 20 ? 'badge-success' : 'badge-danger') : 'badge-success'}">
-        ${data.hasBattery ? `${data.percent}% Capacity` : 'AC Connected'}
-      </span>
-    `;
-    card.appendChild(header);
+    const titleText = data.hasBattery ? 'Battery Status & Health' : 'Power Source';
+    const descText = data.hasBattery
+      ? (data.isAC ? 'Connected to AC power' : 'Running on internal battery')
+      : 'Connected to AC mains wall power. No rechargeable battery installed.';
+
+    const badgeClass = data.hasBattery
+      ? (data.percent > 20 ? 'badge-success' : 'badge-danger')
+      : 'badge-success';
+
+    const badgeText = data.hasBattery ? `${data.percent}% Capacity` : 'AC Connected';
+
+    const header = h('div.settings-card-header', null,
+      h('div.card-header-icon', null, createIcon(iconName, 18)),
+      h('div.card-header-text', null,
+        h('h3.card-title', null, titleText),
+        h('p.card-description', null, descText)
+      ),
+      h(`span.badge.${badgeClass}`, null, badgeText)
+    );
 
     if (!data.hasBattery) {
-      const empty = document.createElement('div');
-      empty.className = 'settings-empty-state';
-      empty.innerHTML = `
-        <div class="empty-state-icon">${getIconSvg('desktopAc', 28)}</div>
-        <div class="empty-state-title">Desktop AC Power</div>
-        <div class="empty-state-desc">This computer is operating directly on continuous AC mains power. Battery health and discharge timers do not apply.</div>
-      `;
-      card.appendChild(empty);
-      return card;
+      return h('section.settings-card.power-battery-card', null,
+        header,
+        emptyState(
+          'Desktop AC Power',
+          'This computer is operating directly on continuous AC mains power. Battery health and discharge timers do not apply.',
+          'desktopAc'
+        )
+      );
     }
 
-    const metricsGrid = document.createElement('div');
-    metricsGrid.className = 'power-metrics-grid';
+    const subEstimateText = data.isAC
+      ? (data.percent >= 99 ? 'Fully Charged' : (data.timeToFullMin ? `Estimated ${data.timeToFullMin}m until fully charged` : 'Charging'))
+      : (data.timeToEmptyMin ? `Estimated ${Math.floor(data.timeToEmptyMin / 60)}h ${data.timeToEmptyMin % 60}m remaining` : 'Discharging');
 
-    // Battery gauge visualization
-    const gaugeBox = document.createElement('div');
-    gaugeBox.className = 'power-gauge-box';
-    gaugeBox.innerHTML = `
-      <div class="battery-visual-shell">
-        <div class="battery-terminal"></div>
-        <div class="battery-visual-level" style="width: ${data.percent}%;"></div>
-        <span class="battery-visual-text">${data.percent}%</span>
-      </div>
-      <div class="battery-sub-estimate">
-        ${data.isAC ? (data.percent >= 99 ? 'Fully Charged' : (data.timeToFullMin ? `Estimated ${data.timeToFullMin}m until fully charged` : 'Charging')) : (data.timeToEmptyMin ? `Estimated ${Math.floor(data.timeToEmptyMin / 60)}h ${data.timeToEmptyMin % 60}m remaining` : 'Discharging')}
-      </div>
-    `;
-    metricsGrid.appendChild(gaugeBox);
+    const gaugeBox = h('div.power-gauge-box', null,
+      h('div.battery-visual-shell', null,
+        h('div.battery-terminal'),
+        h('div.battery-visual-level', { style: { width: `${data.percent}%` } }),
+        h('span.battery-visual-text', null, `${data.percent}%`)
+      ),
+      h('div.battery-sub-estimate', null, subEstimateText)
+    );
 
-    // Hardware specifications
-    const detailsBox = document.createElement('div');
-    detailsBox.className = 'power-details-box';
-    detailsBox.innerHTML = `
-      ${data.healthPercent != null ? `
-        <div class="power-metric-item">
-          <span class="metric-label">Health</span>
-          <span class="metric-val text-success">${data.healthPercent}%</span>
-        </div>
-      ` : ''}
-      ${data.energyWh != null ? `
-        <div class="power-metric-item">
-          <span class="metric-label">Current Charge</span>
-          <span class="metric-val font-mono">${data.energyWh} Wh</span>
-        </div>
-      ` : ''}
-      ${data.designWh != null ? `
-        <div class="power-metric-item">
-          <span class="metric-label">Design Capacity</span>
-          <span class="metric-val font-mono">${data.designWh} Wh</span>
-        </div>
-      ` : ''}
-      ${data.technology ? `
-        <div class="power-metric-item">
-          <span class="metric-label">Chemistry</span>
-          <span class="metric-val">${this.escapeHtml(data.technology)}</span>
-        </div>
-      ` : ''}
-    `;
-    metricsGrid.appendChild(detailsBox);
+    const detailsKids = [];
+    if (data.healthPercent != null) {
+      detailsKids.push(
+        h('div.power-metric-item', null,
+          h('span.metric-label', null, 'Health'),
+          h('span.metric-val.text-success', null, `${data.healthPercent}%`)
+        )
+      );
+    }
+    if (data.energyWh != null) {
+      detailsKids.push(
+        h('div.power-metric-item', null,
+          h('span.metric-label', null, 'Current Charge'),
+          h('span.metric-val.font-mono', null, `${data.energyWh} Wh`)
+        )
+      );
+    }
+    if (data.designWh != null) {
+      detailsKids.push(
+        h('div.power-metric-item', null,
+          h('span.metric-label', null, 'Design Capacity'),
+          h('span.metric-val.font-mono', null, `${data.designWh} Wh`)
+        )
+      );
+    }
+    if (data.technology) {
+      detailsKids.push(
+        h('div.power-metric-item', null,
+          h('span.metric-label', null, 'Chemistry'),
+          h('span.metric-val', null, data.technology)
+        )
+      );
+    }
 
-    card.appendChild(metricsGrid);
-    return card;
+    return h('section.settings-card.power-battery-card', null,
+      header,
+      h('div.power-metrics-grid', null,
+        gaugeBox,
+        h('div.power-details-box', null, ...detailsKids)
+      )
+    );
   }
 
   renderProfileCard() {
-    const card = document.createElement('section');
-    card.className = 'settings-card power-profiles-card';
-
-    const header = document.createElement('div');
-    header.className = 'settings-card-header';
-    header.innerHTML = `
-      <div class="card-header-icon">${getIconSvg('power', 18)}</div>
-      <div class="card-header-text">
-        <h3 class="card-title">Power & Performance Profiles</h3>
-        <p class="card-description">Tune system scheduling between peak responsiveness and power conservation.</p>
-      </div>
-    `;
-    card.appendChild(header);
+    const header = h('div.settings-card-header', null,
+      h('div.card-header-icon', null, createIcon('power', 18)),
+      h('div.card-header-text', null,
+        h('h3.card-title', null, 'Power & Performance Profiles'),
+        h('p.card-description', null, 'Tune system scheduling between peak responsiveness and power conservation.')
+      )
+    );
 
     const profiles = [
       { id: 'performance', name: 'High Performance', desc: 'Maximum clock rates and responsiveness; higher energy draw.', icon: 'performance' },
@@ -225,109 +219,99 @@ export class PowerView {
       { id: 'powersaver', name: 'Power Saver', desc: 'Lowers clock speeds and extends runtime; reduces fan noise.', icon: 'eco' },
     ];
 
-    const group = document.createElement('div');
-    group.className = 'profiles-button-group';
-
-    profiles.forEach((p) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = `profile-select-btn ${this.activeProfile === p.id ? 'active' : ''}`;
-      btn.innerHTML = `
-        <span class="profile-icon">${getIconSvg(p.icon, 16)}</span>
-        <div class="profile-meta">
-          <span class="profile-name">${p.name}</span>
-          <span class="profile-desc">${p.desc}</span>
-        </div>
-      `;
-      btn.addEventListener('click', () => {
-        this.activeProfile = p.id;
-        if (typeof bro !== 'undefined' && bro.sys?.power?.setProfile) {
-          try { bro.sys.power.setProfile(p.id); } catch (_) {}
+    const buttons = profiles.map((p) => {
+      const isActive = this.activeProfile === p.id;
+      return h(`button.profile-select-btn${isActive ? '.active' : ''}`, {
+        type: 'button',
+        onclick: () => {
+          this.activeProfile = p.id;
+          if (typeof bro !== 'undefined' && bro.sys?.power?.setProfile) {
+            try { bro.sys.power.setProfile(p.id); } catch (_) {}
+          }
+          this.render(this.container, this.controller.searchQuery);
         }
-        this.render(this.container, this.controller.searchQuery);
-      });
-      group.appendChild(btn);
+      },
+        h('span.profile-icon', null, createIcon(p.icon, 16)),
+        h('div.profile-meta', null,
+          h('span.profile-name', null, p.name),
+          h('span.profile-desc', null, p.desc)
+        )
+      );
     });
 
-    card.appendChild(group);
-    return card;
+    return h('section.settings-card.power-profiles-card', null,
+      header,
+      h('div.profiles-button-group', null, ...buttons)
+    );
   }
 
   renderSleepCard() {
-    const card = document.createElement('section');
-    card.className = 'settings-card power-sleep-card';
-
-    const header = document.createElement('div');
-    header.className = 'settings-card-header';
-    header.innerHTML = `
-      <div class="card-header-icon">${getIconSvg('sleep', 18)}</div>
-      <div class="card-header-text">
-        <h3 class="card-title">Screen & Sleep Timeouts</h3>
-        <p class="card-description">Specify inactivity intervals before display sleep or standby.</p>
-      </div>
-    `;
-    card.appendChild(header);
-
-    const form = document.createElement('div');
-    form.className = 'sleep-timeouts-form';
+    const header = h('div.settings-card-header', null,
+      h('div.card-header-icon', null, createIcon('sleep', 18)),
+      h('div.card-header-text', null,
+        h('h3.card-title', null, 'Screen & Sleep Timeouts'),
+        h('p.card-description', null, 'Specify inactivity intervals before display sleep or standby.')
+      )
+    );
 
     // 1. Display timeout slider
-    const dispRow = document.createElement('div');
-    dispRow.className = 'slider-control-row';
-    dispRow.innerHTML = `
-      <div class="slider-info">
-        <span class="slider-title">Turn off display after</span>
-        <span class="slider-value-tag font-mono" id="disp-timeout-val">${this.displaySleepTimeoutMin} minutes</span>
-      </div>
-      <input type="range" class="slider" min="1" max="120" step="5" value="${this.displaySleepTimeoutMin}" id="disp-timeout-slider">
-    `;
-    const dispSlider = dispRow.querySelector('#disp-timeout-slider');
-    const dispVal = dispRow.querySelector('#disp-timeout-val');
-    dispSlider.addEventListener('input', (e) => {
-      this.displaySleepTimeoutMin = parseInt(e.target.value, 10);
-      dispVal.textContent = `${this.displaySleepTimeoutMin} minutes`;
+    const dispVal = h('span.slider-value-tag.font-mono#disp-timeout-val', null, `${this.displaySleepTimeoutMin} minutes`);
+    const dispSlider = h('input.slider#disp-timeout-slider', {
+      type: 'range',
+      min: '1',
+      max: '120',
+      step: '5',
+      value: String(this.displaySleepTimeoutMin),
+      oninput: (e) => {
+        this.displaySleepTimeoutMin = parseInt(e.target.value, 10);
+        dispVal.textContent = `${this.displaySleepTimeoutMin} minutes`;
+      }
     });
-    form.appendChild(dispRow);
+
+    const dispRow = h('div.slider-control-row', null,
+      h('div.slider-info', null,
+        h('span.slider-title', null, 'Turn off display after'),
+        dispVal
+      ),
+      dispSlider
+    );
 
     // 2. System sleep slider
-    const sysRow = document.createElement('div');
-    sysRow.className = 'slider-control-row';
-    sysRow.innerHTML = `
-      <div class="slider-info">
-        <span class="slider-title">Put computer to sleep after</span>
-        <span class="slider-value-tag font-mono" id="sys-timeout-val">${this.systemSleepTimeoutMin} minutes</span>
-      </div>
-      <input type="range" class="slider" min="5" max="180" step="5" value="${this.systemSleepTimeoutMin}" id="sys-timeout-slider">
-    `;
-    const sysSlider = sysRow.querySelector('#sys-timeout-slider');
-    const sysVal = sysRow.querySelector('#sys-timeout-val');
-    sysSlider.addEventListener('input', (e) => {
-      this.systemSleepTimeoutMin = parseInt(e.target.value, 10);
-      sysVal.textContent = `${this.systemSleepTimeoutMin} minutes`;
+    const sysVal = h('span.slider-value-tag.font-mono#sys-timeout-val', null, `${this.systemSleepTimeoutMin} minutes`);
+    const sysSlider = h('input.slider#sys-timeout-slider', {
+      type: 'range',
+      min: '5',
+      max: '180',
+      step: '5',
+      value: String(this.systemSleepTimeoutMin),
+      oninput: (e) => {
+        this.systemSleepTimeoutMin = parseInt(e.target.value, 10);
+        sysVal.textContent = `${this.systemSleepTimeoutMin} minutes`;
+      }
     });
-    form.appendChild(sysRow);
 
-    card.appendChild(form);
-    return card;
+    const sysRow = h('div.slider-control-row', null,
+      h('div.slider-info', null,
+        h('span.slider-title', null, 'Put computer to sleep after'),
+        sysVal
+      ),
+      sysSlider
+    );
+
+    return h('section.settings-card.power-sleep-card', null,
+      header,
+      h('div.sleep-timeouts-form', null, dispRow, sysRow)
+    );
   }
 
   renderActionsCard() {
-    const card = document.createElement('section');
-    card.className = 'settings-card power-actions-card';
-
-    const header = document.createElement('div');
-    header.className = 'settings-card-header';
-    header.innerHTML = `
-      <div class="card-header-icon">${getIconSvg('power', 18)}</div>
-      <div class="card-header-text">
-        <h3 class="card-title">Power Actions</h3>
-        <p class="card-description">Immediate power operations and session state controls.</p>
-      </div>
-    `;
-    card.appendChild(header);
-
-    const grid = document.createElement('div');
-    grid.className = 'power-actions-grid';
+    const header = h('div.settings-card-header', null,
+      h('div.card-header-icon', null, createIcon('power', 18)),
+      h('div.card-header-text', null,
+        h('h3.card-title', null, 'Power Actions'),
+        h('p.card-description', null, 'Immediate power operations and session state controls.')
+      )
+    );
 
     const actions = [
       { id: 'lock', label: 'Lock Session', icon: 'lock', action: () => window.helm?.lock?.lock() },
@@ -336,17 +320,20 @@ export class PowerView {
       { id: 'shutdown', label: 'Shut Down', icon: 'shutdown', action: () => this.requestPowerAction('shutdown'), danger: true },
     ];
 
-    actions.forEach((act) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = `btn ${act.danger ? 'btn-danger' : 'btn-secondary'} btn-power-action`;
-      btn.innerHTML = `<span>${getIconSvg(act.icon, 14)}</span> <span>${act.label}</span>`;
-      btn.addEventListener('click', act.action);
-      grid.appendChild(btn);
+    const buttons = actions.map((act) => {
+      return h(`button.btn.${act.danger ? 'btn-danger' : 'btn-secondary'}.btn-power-action`, {
+        type: 'button',
+        onclick: act.action
+      },
+        h('span', null, createIcon(act.icon, 14)),
+        h('span', null, ` ${act.label}`)
+      );
     });
 
-    card.appendChild(grid);
-    return card;
+    return h('section.settings-card.power-actions-card', null,
+      header,
+      h('div.power-actions-grid', null, ...buttons)
+    );
   }
 
   requestPowerAction(action) {
@@ -359,14 +346,5 @@ export class PowerView {
 
   destroy() {
     this.container = null;
-  }
-
-  escapeHtml(str) {
-    if (!str) return '';
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
   }
 }

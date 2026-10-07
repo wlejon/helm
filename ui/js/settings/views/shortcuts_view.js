@@ -3,6 +3,9 @@
  * Provides an interactive cheat-sheet, search filter, and keybinding configurator.
  */
 
+import { h, clear } from '../../dom.js';
+import { viewHeader } from '../components.js';
+
 export class ShortcutsView {
   constructor(controller) {
     this.controller = controller;
@@ -64,17 +67,11 @@ export class ShortcutsView {
 
   render(container, searchQuery = '') {
     this.container = container;
-    container.innerHTML = '';
+    clear(container);
 
-    const header = document.createElement('div');
-    header.className = 'settings-view-header';
-    header.innerHTML = `
-      <div class="view-header-titles">
-        <h2 class="view-title">Keyboard Shortcuts</h2>
-        <p class="view-subtitle">System-wide hotkeys, navigation chords, and customizable trigger bindings.</p>
-      </div>
-    `;
-    container.appendChild(header);
+    container.appendChild(
+      viewHeader('Keyboard Shortcuts', 'System-wide hotkeys, navigation chords, and customizable trigger bindings.')
+    );
 
     const q = (searchQuery || '').toLowerCase().trim();
 
@@ -92,79 +89,46 @@ export class ShortcutsView {
 
       if (items.length === 0) return;
 
-      const card = document.createElement('section');
-      card.className = 'settings-card shortcuts-category-card';
+      const rows = items.map((item) => {
+        const chordBadges = item.keys.map((k) => h('kbd.shortcut-kbd', null, k));
 
-      const catHeader = document.createElement('div');
-      catHeader.className = 'settings-card-header';
-      catHeader.innerHTML = `
-        <h3 class="card-title">${this.escapeHtml(catName)}</h3>
-      `;
-      card.appendChild(catHeader);
-
-      const table = document.createElement('div');
-      table.className = 'shortcuts-table';
-
-      items.forEach((item) => {
-        const row = document.createElement('div');
-        row.className = 'shortcut-row';
-
-        const infoDiv = document.createElement('div');
-        infoDiv.className = 'shortcut-info';
-        infoDiv.innerHTML = `
-          <span class="shortcut-name">${this.escapeHtml(item.name)}</span>
-          <span class="shortcut-desc">${this.escapeHtml(item.desc)}</span>
-        `;
-
-        const chordDiv = document.createElement('div');
-        chordDiv.className = 'shortcut-chord-box';
-
-        item.keys.forEach((key) => {
-          const kbd = document.createElement('kbd');
-          kbd.className = 'shortcut-kbd';
-          kbd.textContent = key;
-          chordDiv.appendChild(kbd);
-        });
-
-        row.appendChild(infoDiv);
-        row.appendChild(chordDiv);
-        table.appendChild(row);
+        return h('div.shortcut-row', null,
+          h('div.shortcut-info', null,
+            h('span.shortcut-name', null, item.name),
+            h('span.shortcut-desc', null, item.desc)
+          ),
+          h('div.shortcut-chord-box', null, ...chordBadges)
+        );
       });
 
-      card.appendChild(table);
+      const card = h('section.settings-card.shortcuts-category-card', null,
+        h('div.settings-card-header', null,
+          h('h3.card-title', null, catName)
+        ),
+        h('div.shortcuts-table', null, ...rows)
+      );
+
       container.appendChild(card);
     });
 
     // Reset Shortcuts Footer
-    const resetFooter = document.createElement('div');
-    resetFooter.className = 'shortcuts-footer-bar';
-    resetFooter.innerHTML = `
-      <span class="footer-hint">Press any hotkey combination anytime while working in Helm.</span>
-      <button class="btn btn-secondary btn-sm" id="btn-reset-shortcuts">Reset to Defaults</button>
-    `;
-
-    const resetBtn = resetFooter.querySelector('#btn-reset-shortcuts');
-    if (resetBtn) {
-      resetBtn.addEventListener('click', () => {
+    const resetBtn = h('button.btn.btn-secondary.btn-sm#btn-reset-shortcuts', {
+      onclick: () => {
         try { localStorage.removeItem('helm.customShortcuts'); } catch (_) {}
         this.shortcuts.forEach((sc) => { delete sc.custom; });
         this.render(this.container, this.controller.searchQuery);
-      });
-    }
+      }
+    }, 'Reset to Defaults');
+
+    const resetFooter = h('div.shortcuts-footer-bar', null,
+      h('span.footer-hint', null, 'Press any hotkey combination anytime while working in Helm.'),
+      resetBtn
+    );
 
     container.appendChild(resetFooter);
   }
 
   destroy() {
     this.container = null;
-  }
-
-  escapeHtml(str) {
-    if (!str) return '';
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
   }
 }

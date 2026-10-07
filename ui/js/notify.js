@@ -4,7 +4,8 @@
  * and integration with bro.sys.notifications.
  */
 
-import { getIconSvg } from './icons.js';
+import { createIcon } from './icons.js';
+import { h, clear } from './dom.js';
 
 export class NotificationController {
   constructor() {
@@ -127,59 +128,48 @@ export class NotificationController {
     const container = document.getElementById('toast-container');
     if (!container) return;
 
-    const toastEl = document.createElement('div');
-    toastEl.className = 'toast';
-    toastEl.dataset.id = notif.id;
+    const iconEl = h('div.toast-icon', null, createIcon('bell', 16));
 
-    const iconEl = document.createElement('div');
-    iconEl.className = 'toast-icon';
-    iconEl.innerHTML = getIconSvg('bell', 16);
-
-    const contentEl = document.createElement('div');
-    contentEl.className = 'toast-content';
-
-    const titleEl = document.createElement('div');
-    titleEl.className = 'toast-title';
-    titleEl.textContent = notif.summary;
-
-    const bodyEl = document.createElement('div');
-    bodyEl.className = 'toast-body';
-    bodyEl.textContent = notif.body;
-
-    contentEl.appendChild(titleEl);
-    if (notif.body) contentEl.appendChild(bodyEl);
-
-    if (Array.isArray(notif.actions) && notif.actions.length > 0) {
-      const actionsEl = document.createElement('div');
-      actionsEl.className = 'toast-actions';
-      for (const act of notif.actions) {
-        const btn = document.createElement('button');
-        btn.className = 'drawer-action-btn';
-        btn.textContent = act.label || act.key;
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          if (typeof bro !== 'undefined' && bro.sys?.notifications?.invokeAction) {
-            bro.sys.notifications.invokeAction(notif.id, act.key);
-          }
-          this.dismissToast(toastEl);
-        });
-        actionsEl.appendChild(btn);
-      }
-      contentEl.appendChild(actionsEl);
+    const contentChildren = [
+      h('div.toast-title', null, notif.summary)
+    ];
+    if (notif.body) {
+      contentChildren.push(h('div.toast-body', null, notif.body));
     }
 
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'toast-close';
-    closeBtn.innerHTML = getIconSvg('close', 12);
-    closeBtn.title = 'Dismiss';
-    closeBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      this.dismissToast(toastEl);
-    });
+    let toastEl;
 
-    toastEl.appendChild(iconEl);
-    toastEl.appendChild(contentEl);
-    toastEl.appendChild(closeBtn);
+    if (Array.isArray(notif.actions) && notif.actions.length > 0) {
+      const actionsEl = h('div.toast-actions');
+      for (const act of notif.actions) {
+        actionsEl.appendChild(
+          h('button.drawer-action-btn', {
+            onclick: (e) => {
+              e.stopPropagation();
+              if (typeof bro !== 'undefined' && bro.sys?.notifications?.invokeAction) {
+                bro.sys.notifications.invokeAction(notif.id, act.key);
+              }
+              this.dismissToast(toastEl);
+            }
+          }, act.label || act.key)
+        );
+      }
+      contentChildren.push(actionsEl);
+    }
+
+    const contentEl = h('div.toast-content', null, ...contentChildren);
+
+    const closeBtn = h('button.toast-close', {
+      title: 'Dismiss',
+      onclick: (e) => {
+        e.stopPropagation();
+        this.dismissToast(toastEl);
+      }
+    }, createIcon('close', 12));
+
+    toastEl = h('div.toast', {
+      dataset: { id: String(notif.id) }
+    }, iconEl, contentEl, closeBtn);
 
     container.appendChild(toastEl);
 
@@ -215,7 +205,7 @@ export class NotificationController {
     const emptyEl = document.getElementById('notify-empty-state');
     if (!listEl) return;
 
-    listEl.innerHTML = '';
+    clear(listEl);
 
     if (this.notifications.length === 0) {
       if (emptyEl) {
@@ -226,19 +216,17 @@ export class NotificationController {
     }
 
     for (const notif of this.notifications) {
-      const itemEl = document.createElement('div');
-      itemEl.className = 'drawer-item';
+      const titleEl = h('div.toast-title', null,
+        h('span.drawer-item-icon', null, createIcon('bell', 14)),
+        ' ' + notif.summary
+      );
 
-      const titleEl = document.createElement('div');
-      titleEl.className = 'toast-title';
-      titleEl.innerHTML = `<span class="drawer-item-icon">${getIconSvg('bell', 14)}</span> ${notif.summary}`;
+      const itemKids = [titleEl];
+      if (notif.body) {
+        itemKids.push(h('div.toast-body', null, notif.body));
+      }
 
-      const bodyEl = document.createElement('div');
-      bodyEl.className = 'toast-body';
-      bodyEl.textContent = notif.body;
-
-      itemEl.appendChild(titleEl);
-      if (notif.body) itemEl.appendChild(bodyEl);
+      const itemEl = h('div.drawer-item', null, ...itemKids);
       listEl.appendChild(itemEl);
     }
   }

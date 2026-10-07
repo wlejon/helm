@@ -4,7 +4,9 @@
  * Strictly zero mock or fake data.
  */
 
-import { getIconSvg } from '../../icons.js';
+import { h, clear } from '../../dom.js';
+import { createIcon } from '../../icons.js';
+import { viewHeader, emptyState } from '../components.js';
 
 export class AudioView {
   constructor(controller) {
@@ -181,16 +183,12 @@ export class AudioView {
   render(container, searchQuery = '') {
     this.container = container;
     this.stopMeter();
-    container.innerHTML = '';
+    clear(container);
 
-    const header = document.createElement('div');
-    header.className = 'settings-view-header';
-    header.innerHTML = `
-      <div class="view-header-titles">
-        <h2 class="view-title">Audio Studio</h2>
-        <p class="view-subtitle">Manage system audio hardware, master levels, input gain, and application stream routing.</p>
-      </div>
-    `;
+    const header = viewHeader(
+      'Audio Studio',
+      'Manage system audio hardware, master levels, input gain, and application stream routing.'
+    );
     container.appendChild(header);
 
     const outputs = this.getOutputDevices();
@@ -213,92 +211,66 @@ export class AudioView {
   }
 
   renderOutputsSection(outputs) {
-    const card = document.createElement('section');
-    card.className = 'settings-card audio-outputs-card';
-
-    const header = document.createElement('div');
-    header.className = 'settings-card-header';
-    header.innerHTML = `
-      <div class="card-header-icon">${getIconSvg('audio', 18)}</div>
-      <div class="card-header-text">
-        <h3 class="card-title">Sound Output Devices</h3>
-        <p class="card-description">Choose where audio plays and adjust master volume & balance.</p>
-      </div>
-    `;
-    card.appendChild(header);
+    const card = h('section.settings-card.audio-outputs-card', null,
+      h('div.settings-card-header', null,
+        h('div.card-header-icon', null, createIcon('audio', 18)),
+        h('div.card-header-text', null,
+          h('h3.card-title', null, 'Sound Output Devices'),
+          h('p.card-description', null, 'Choose where audio plays and adjust master volume & balance.')
+        )
+      )
+    );
 
     if (outputs.length === 0) {
-      const empty = document.createElement('div');
-      empty.className = 'settings-empty-state';
-      empty.innerHTML = `
-        <div class="empty-state-icon">${getIconSvg('volumeMute', 28)}</div>
-        <div class="empty-state-title">No Audio Output Devices Found</div>
-        <div class="empty-state-desc">No speakers, headphones, or HDMI sound endpoints are currently detected.</div>
-      `;
-      card.appendChild(empty);
+      card.appendChild(emptyState(
+        'No Audio Output Devices Found',
+        'No speakers, headphones, or HDMI sound endpoints are currently detected.',
+        'volumeMute'
+      ));
       return card;
     }
 
-    const list = document.createElement('div');
-    list.className = 'audio-device-list';
+    const list = h('div.audio-device-list');
 
     outputs.forEach((device) => {
       const isDefault = !!device.isDefault;
-      const deviceRow = document.createElement('div');
-      deviceRow.className = `audio-device-item ${isDefault ? 'is-default' : ''}`;
-      deviceRow.dataset.deviceId = device.id;
 
-      const topRow = document.createElement('div');
-      topRow.className = 'device-item-header';
-
-      const infoDiv = document.createElement('div');
-      infoDiv.className = 'device-info';
-      infoDiv.innerHTML = `
-        <span class="device-name">${this.escapeHtml(device.name)}</span>
-        ${isDefault ? '<span class="badge badge-accent">Default Output</span>' : ''}
-      `;
-
-      const actionsDiv = document.createElement('div');
-      actionsDiv.className = 'device-actions';
+      // Header row with info and actions
+      const actionsDiv = h('div.device-actions');
 
       if (!isDefault) {
-        const setDefaultBtn = document.createElement('button');
-        setDefaultBtn.type = 'button';
-        setDefaultBtn.className = 'btn btn-secondary btn-sm';
-        setDefaultBtn.textContent = 'Set as Default';
-        setDefaultBtn.addEventListener('click', () => this.setDefaultOutput(device));
-        actionsDiv.appendChild(setDefaultBtn);
+        actionsDiv.appendChild(
+          h('button.btn.btn-secondary.btn-sm', {
+            type: 'button',
+            onclick: () => this.setDefaultOutput(device),
+          }, 'Set as Default')
+        );
       }
 
-      const muteBtn = document.createElement('button');
-      muteBtn.type = 'button';
-      muteBtn.className = `btn btn-sm ${device.isMuted ? 'btn-danger' : 'btn-ghost'}`;
-      muteBtn.innerHTML = device.isMuted ? `${getIconSvg('volumeMute', 14)} Unmute` : `${getIconSvg('speaker', 14)} Mute`;
-      muteBtn.addEventListener('click', () => this.toggleOutputMute(device, muteBtn, slider));
+      const muteBtn = h('button.btn.btn-sm', {
+        type: 'button',
+        onclick: () => this.toggleOutputMute(device, muteBtn),
+      });
+      this.setButtonMuteState(muteBtn, device.isMuted, false);
       actionsDiv.appendChild(muteBtn);
 
-      topRow.appendChild(infoDiv);
-      topRow.appendChild(actionsDiv);
-      deviceRow.appendChild(topRow);
+      const topRow = h('div.device-item-header', null,
+        h('div.device-info', null,
+          h('span.device-name', null, device.name),
+          isDefault ? h('span.badge.badge-accent', null, 'Default Output') : null
+        ),
+        actionsDiv
+      );
 
-      // Volume Slider Row
-      const volRow = document.createElement('div');
-      volRow.className = 'audio-control-row';
+      // Volume slider row
+      const slider = h('input.slider.volume-slider', {
+        type: 'range',
+        min: '0',
+        max: '100',
+        value: Math.round(device.volume * 100),
+      });
 
-      const volLabel = document.createElement('span');
-      volLabel.className = 'control-label';
-      volLabel.textContent = 'Volume';
-
-      const slider = document.createElement('input');
-      slider.type = 'range';
-      slider.min = '0';
-      slider.max = '100';
-      slider.value = Math.round(device.volume * 100);
-      slider.className = 'slider volume-slider';
-
-      const valBadge = document.createElement('span');
-      valBadge.className = 'slider-value-badge';
-      valBadge.textContent = `${slider.value}%`;
+      const valBadge = h('span.slider-value-badge', null, `${slider.value}%`);
 
       slider.addEventListener('input', (e) => {
         const val = parseInt(e.target.value, 10);
@@ -306,46 +278,30 @@ export class AudioView {
         this.setOutputVolume(device, val / 100.0);
         if (device.isMuted && val > 0) {
           device.isMuted = false;
-          muteBtn.innerHTML = `${getIconSvg('speaker', 14)} Mute`;
-          muteBtn.className = 'btn btn-sm btn-ghost';
+          this.setButtonMuteState(muteBtn, false, false);
         }
       });
 
-      volRow.appendChild(volLabel);
-      volRow.appendChild(slider);
-      volRow.appendChild(valBadge);
-      deviceRow.appendChild(volRow);
+      const volRow = h('div.audio-control-row', null,
+        h('span.control-label', null, 'Volume'),
+        slider,
+        valBadge
+      );
 
       // Stereo Balance Slider
-      const balRow = document.createElement('div');
-      balRow.className = 'audio-control-row balance-row';
+      const balSlider = h('input.slider.balance-slider', {
+        type: 'range',
+        min: '-50',
+        max: '50',
+        value: this.channelBalances[device.id] || 0,
+      });
 
-      const balLabel = document.createElement('span');
-      balLabel.className = 'control-label';
-      balLabel.textContent = 'Balance';
-
-      const balLeft = document.createElement('span');
-      balLeft.className = 'balance-tag';
-      balLeft.textContent = 'L';
-
-      const balSlider = document.createElement('input');
-      balSlider.type = 'range';
-      balSlider.min = '-50';
-      balSlider.max = '50';
-      balSlider.value = this.channelBalances[device.id] || '0';
-      balSlider.className = 'slider balance-slider';
-
-      const balRight = document.createElement('span');
-      balRight.className = 'balance-tag';
-      balRight.textContent = 'R';
-
-      const balBadge = document.createElement('span');
-      balBadge.className = 'slider-value-badge balance-badge';
       const updateBalText = (v) => {
         if (v === 0) return 'Center';
         return v < 0 ? `L ${Math.abs(v * 2)}%` : `R ${v * 2}%`;
       };
-      balBadge.textContent = updateBalText(parseInt(balSlider.value, 10));
+
+      const balBadge = h('span.slider-value-badge.balance-badge', null, updateBalText(parseInt(balSlider.value, 10)));
 
       balSlider.addEventListener('input', (e) => {
         const v = parseInt(e.target.value, 10);
@@ -353,12 +309,17 @@ export class AudioView {
         balBadge.textContent = updateBalText(v);
       });
 
-      balRow.appendChild(balLabel);
-      balRow.appendChild(balLeft);
-      balRow.appendChild(balSlider);
-      balRow.appendChild(balRight);
-      balRow.appendChild(balBadge);
-      deviceRow.appendChild(balRow);
+      const balRow = h('div.audio-control-row.balance-row', null,
+        h('span.control-label', null, 'Balance'),
+        h('span.balance-tag', null, 'L'),
+        balSlider,
+        h('span.balance-tag', null, 'R'),
+        balBadge
+      );
+
+      const deviceRow = h(`div.audio-device-item${isDefault ? '.is-default' : ''}`, {
+        dataset: { deviceId: device.id },
+      }, topRow, volRow, balRow);
 
       list.appendChild(deviceRow);
     });
@@ -368,92 +329,65 @@ export class AudioView {
   }
 
   renderInputsSection(inputs) {
-    const card = document.createElement('section');
-    card.className = 'settings-card audio-inputs-card';
-
-    const header = document.createElement('div');
-    header.className = 'settings-card-header';
-    header.innerHTML = `
-      <div class="card-header-icon">${getIconSvg('mic', 18)}</div>
-      <div class="card-header-text">
-        <h3 class="card-title">Sound Input & Microphones</h3>
-        <p class="card-description">Configure recording devices, input gain, and test microphone levels.</p>
-      </div>
-    `;
-    card.appendChild(header);
+    const card = h('section.settings-card.audio-inputs-card', null,
+      h('div.settings-card-header', null,
+        h('div.card-header-icon', null, createIcon('mic', 18)),
+        h('div.card-header-text', null,
+          h('h3.card-title', null, 'Sound Input & Microphones'),
+          h('p.card-description', null, 'Configure recording devices, input gain, and test microphone levels.')
+        )
+      )
+    );
 
     if (inputs.length === 0) {
-      const empty = document.createElement('div');
-      empty.className = 'settings-empty-state';
-      empty.innerHTML = `
-        <div class="empty-state-icon">${getIconSvg('micMute', 28)}</div>
-        <div class="empty-state-title">No Audio Input Devices Found</div>
-        <div class="empty-state-desc">No microphones or line-in recording endpoints are currently detected.</div>
-      `;
-      card.appendChild(empty);
+      card.appendChild(emptyState(
+        'No Audio Input Devices Found',
+        'No microphones or line-in recording endpoints are currently detected.',
+        'micMute'
+      ));
       return card;
     }
 
-    const list = document.createElement('div');
-    list.className = 'audio-device-list';
+    const list = h('div.audio-device-list');
 
     inputs.forEach((device) => {
       const isDefault = !!device.isDefault;
-      const deviceRow = document.createElement('div');
-      deviceRow.className = `audio-device-item ${isDefault ? 'is-default' : ''}`;
-      deviceRow.dataset.deviceId = device.id;
 
-      const topRow = document.createElement('div');
-      topRow.className = 'device-item-header';
-
-      const infoDiv = document.createElement('div');
-      infoDiv.className = 'device-info';
-      infoDiv.innerHTML = `
-        <span class="device-name">${this.escapeHtml(device.name)}</span>
-        ${isDefault ? '<span class="badge badge-accent">Default Input</span>' : ''}
-      `;
-
-      const actionsDiv = document.createElement('div');
-      actionsDiv.className = 'device-actions';
+      const actionsDiv = h('div.device-actions');
 
       if (!isDefault) {
-        const setDefaultBtn = document.createElement('button');
-        setDefaultBtn.type = 'button';
-        setDefaultBtn.className = 'btn btn-secondary btn-sm';
-        setDefaultBtn.textContent = 'Set as Default';
-        setDefaultBtn.addEventListener('click', () => this.setDefaultInput(device));
-        actionsDiv.appendChild(setDefaultBtn);
+        actionsDiv.appendChild(
+          h('button.btn.btn-secondary.btn-sm', {
+            type: 'button',
+            onclick: () => this.setDefaultInput(device),
+          }, 'Set as Default')
+        );
       }
 
-      const muteBtn = document.createElement('button');
-      muteBtn.type = 'button';
-      muteBtn.className = `btn btn-sm ${device.isMuted ? 'btn-danger' : 'btn-ghost'}`;
-      muteBtn.innerHTML = device.isMuted ? `${getIconSvg('micMute', 14)} Unmute` : `${getIconSvg('mic', 14)} Mute`;
-      muteBtn.addEventListener('click', () => this.toggleInputMute(device, muteBtn));
+      const muteBtn = h('button.btn.btn-sm', {
+        type: 'button',
+        onclick: () => this.toggleInputMute(device, muteBtn),
+      });
+      this.setButtonMuteState(muteBtn, device.isMuted, true);
       actionsDiv.appendChild(muteBtn);
 
-      topRow.appendChild(infoDiv);
-      topRow.appendChild(actionsDiv);
-      deviceRow.appendChild(topRow);
+      const topRow = h('div.device-item-header', null,
+        h('div.device-info', null,
+          h('span.device-name', null, device.name),
+          isDefault ? h('span.badge.badge-accent', null, 'Default Input') : null
+        ),
+        actionsDiv
+      );
 
       // Gain Slider Row
-      const gainRow = document.createElement('div');
-      gainRow.className = 'audio-control-row';
+      const slider = h('input.slider.volume-slider', {
+        type: 'range',
+        min: '0',
+        max: '100',
+        value: Math.round(device.volume * 100),
+      });
 
-      const gainLabel = document.createElement('span');
-      gainLabel.className = 'control-label';
-      gainLabel.textContent = 'Input Gain';
-
-      const slider = document.createElement('input');
-      slider.type = 'range';
-      slider.min = '0';
-      slider.max = '100';
-      slider.value = Math.round(device.volume * 100);
-      slider.className = 'slider volume-slider';
-
-      const valBadge = document.createElement('span');
-      valBadge.className = 'slider-value-badge';
-      valBadge.textContent = `${slider.value}%`;
+      const valBadge = h('span.slider-value-badge', null, `${slider.value}%`);
 
       slider.addEventListener('input', (e) => {
         const val = parseInt(e.target.value, 10);
@@ -461,10 +395,15 @@ export class AudioView {
         this.setInputVolume(device, val / 100.0);
       });
 
-      gainRow.appendChild(gainLabel);
-      gainRow.appendChild(slider);
-      gainRow.appendChild(valBadge);
-      deviceRow.appendChild(gainRow);
+      const gainRow = h('div.audio-control-row', null,
+        h('span.control-label', null, 'Input Gain'),
+        slider,
+        valBadge
+      );
+
+      const deviceRow = h(`div.audio-device-item${isDefault ? '.is-default' : ''}`, {
+        dataset: { deviceId: device.id },
+      }, topRow, gainRow);
 
       list.appendChild(deviceRow);
     });
@@ -472,122 +411,102 @@ export class AudioView {
     card.appendChild(list);
 
     // Live Audio Level Meter
-    const meterBox = document.createElement('div');
-    meterBox.className = 'audio-meter-box';
-    meterBox.innerHTML = `
-      <div class="meter-header">
-        <span class="meter-title">Live Microphone Level</span>
-        <span class="meter-db-value" id="audio-meter-db">Idle</span>
-      </div>
-      <div class="meter-track">
-        <div class="meter-bar" id="audio-meter-bar" style="width: 0%;"></div>
-        <div class="meter-peak" id="audio-meter-peak" style="left: 0%;"></div>
-      </div>
-      <div class="meter-scale">
-        <span>-48 dB</span>
-        <span>-36 dB</span>
-        <span>-24 dB</span>
-        <span>-12 dB</span>
-        <span>-6 dB</span>
-        <span class="meter-clip">0 dB</span>
-      </div>
-    `;
+    const meterBox = h('div.audio-meter-box', null,
+      h('div.meter-header', null,
+        h('span.meter-title', null, 'Live Microphone Level'),
+        h('span.meter-db-value#audio-meter-db', null, 'Idle')
+      ),
+      h('div.meter-track', null,
+        h('div.meter-bar#audio-meter-bar', { style: 'width: 0%;' }),
+        h('div.meter-peak#audio-meter-peak', { style: 'left: 0%;' })
+      ),
+      h('div.meter-scale', null,
+        h('span', null, '-48 dB'),
+        h('span', null, '-36 dB'),
+        h('span', null, '-24 dB'),
+        h('span', null, '-12 dB'),
+        h('span', null, '-6 dB'),
+        h('span.meter-clip', null, '0 dB')
+      )
+    );
     card.appendChild(meterBox);
 
     return card;
   }
 
   renderStreamsSection(streams, outputs) {
-    const card = document.createElement('section');
-    card.className = 'settings-card audio-streams-card';
-
-    const header = document.createElement('div');
-    header.className = 'settings-card-header';
-    header.innerHTML = `
-      <div class="card-header-icon">${getIconSvg('sliders', 18)}</div>
-      <div class="card-header-text">
-        <h3 class="card-title">Application Volume & Routing</h3>
-        <p class="card-description">Control individual app volume and redirect playback streams to any output device.</p>
-      </div>
-    `;
-    card.appendChild(header);
+    const card = h('section.settings-card.audio-streams-card', null,
+      h('div.settings-card-header', null,
+        h('div.card-header-icon', null, createIcon('sliders', 18)),
+        h('div.card-header-text', null,
+          h('h3.card-title', null, 'Application Volume & Routing'),
+          h('p.card-description', null, 'Control individual app volume and redirect playback streams to any output device.')
+        )
+      )
+    );
 
     if (streams.length === 0) {
-      const empty = document.createElement('div');
-      empty.className = 'settings-empty-state';
-      empty.innerHTML = `
-        <div class="empty-state-icon">${getIconSvg('headphones', 28)}</div>
-        <div class="empty-state-title">No Audio Streams Active</div>
-        <div class="empty-state-desc">No applications are currently playing audio through the sound graph.</div>
-      `;
-      card.appendChild(empty);
+      card.appendChild(emptyState(
+        'No Audio Streams Active',
+        'No applications are currently playing audio through the sound graph.',
+        'headphones'
+      ));
       return card;
     }
 
-    const list = document.createElement('div');
-    list.className = 'app-stream-list';
+    const list = h('div.app-stream-list');
 
     streams.forEach((stream) => {
-      const item = document.createElement('div');
-      item.className = 'app-stream-item';
-      item.dataset.streamId = stream.id;
-
       // Header: App icon + App Name
-      const headerRow = document.createElement('div');
-      headerRow.className = 'stream-item-header';
+      const iconNode = typeof stream.icon === 'string' && stream.icon.length > 2
+        ? createIcon(stream.icon, 16)
+        : h('span', null, stream.icon || '♪');
 
-      const appTitle = document.createElement('div');
-      appTitle.className = 'stream-app-title';
-      appTitle.innerHTML = `
-        <span class="stream-app-icon">${stream.icon}</span>
-        <span class="stream-app-name">${this.escapeHtml(stream.name)}</span>
-      `;
+      const appTitle = h('div.stream-app-title', null,
+        h('span.stream-app-icon', null, iconNode),
+        h('span.stream-app-name', null, stream.name)
+      );
 
       // Target sink selector dropdown
-      const selectSink = document.createElement('select');
-      selectSink.className = 'select-input select-sink-input';
+      const selectSink = h('select.select-input.select-sink-input', {
+        onchange: (e) => {
+          this.moveStream(stream.id, e.target.value);
+        },
+      });
+
       outputs.forEach((sink) => {
-        const opt = document.createElement('option');
-        opt.value = sink.id;
-        opt.textContent = `Output: ${sink.name.substring(0, 30)}${sink.name.length > 30 ? '...' : ''}`;
-        if (sink.id === stream.sinkId) opt.selected = true;
-        selectSink.appendChild(opt);
+        const nameText = sink.name.length > 30 ? sink.name.substring(0, 30) + '...' : sink.name;
+        selectSink.appendChild(
+          h('option', {
+            value: sink.id,
+            selected: sink.id === stream.sinkId,
+          }, `Output: ${nameText}`)
+        );
       });
 
-      selectSink.addEventListener('change', (e) => {
-        const targetSinkId = e.target.value;
-        this.moveStream(stream.id, targetSinkId);
-      });
-
-      headerRow.appendChild(appTitle);
-      headerRow.appendChild(selectSink);
-      item.appendChild(headerRow);
+      const headerRow = h('div.stream-item-header', null,
+        appTitle,
+        selectSink
+      );
 
       // Volume & Mute Row
-      const controlRow = document.createElement('div');
-      controlRow.className = 'audio-control-row stream-control-row';
+      const muteBtn = h('button.btn.btn-sm', {
+        type: 'button',
+      });
+      this.setStreamMuteButtonState(muteBtn, stream.isMuted);
 
-      const muteBtn = document.createElement('button');
-      muteBtn.type = 'button';
-      muteBtn.className = `btn btn-sm ${stream.isMuted ? 'btn-danger' : 'btn-ghost'}`;
-      muteBtn.innerHTML = stream.isMuted ? getIconSvg('volumeMute', 14) : getIconSvg('speaker', 14);
-      muteBtn.title = stream.isMuted ? 'Unmute stream' : 'Mute stream';
+      const slider = h('input.slider.volume-slider', {
+        type: 'range',
+        min: '0',
+        max: '100',
+        value: Math.round(stream.volume * 100),
+      });
 
-      const slider = document.createElement('input');
-      slider.type = 'range';
-      slider.min = '0';
-      slider.max = '100';
-      slider.value = Math.round(stream.volume * 100);
-      slider.className = 'slider volume-slider';
-
-      const valBadge = document.createElement('span');
-      valBadge.className = 'slider-value-badge';
-      valBadge.textContent = `${slider.value}%`;
+      const valBadge = h('span.slider-value-badge', null, `${slider.value}%`);
 
       muteBtn.addEventListener('click', () => {
         stream.isMuted = !stream.isMuted;
-        muteBtn.innerHTML = stream.isMuted ? getIconSvg('volumeMute', 14) : getIconSvg('speaker', 14);
-        muteBtn.className = `btn btn-sm ${stream.isMuted ? 'btn-danger' : 'btn-ghost'}`;
+        this.setStreamMuteButtonState(muteBtn, stream.isMuted);
         this.setStreamMute(stream.id, stream.isMuted);
       });
 
@@ -597,22 +516,41 @@ export class AudioView {
         this.setStreamVolume(stream.id, val / 100.0);
         if (stream.isMuted && val > 0) {
           stream.isMuted = false;
-          muteBtn.innerHTML = getIconSvg('speaker', 14);
-          muteBtn.className = 'btn btn-sm btn-ghost';
+          this.setStreamMuteButtonState(muteBtn, false);
           this.setStreamMute(stream.id, false);
         }
       });
 
-      controlRow.appendChild(muteBtn);
-      controlRow.appendChild(slider);
-      controlRow.appendChild(valBadge);
-      item.appendChild(controlRow);
+      const controlRow = h('div.audio-control-row.stream-control-row', null,
+        muteBtn,
+        slider,
+        valBadge
+      );
+
+      const item = h('div.app-stream-item', {
+        dataset: { streamId: stream.id },
+      }, headerRow, controlRow);
 
       list.appendChild(item);
     });
 
     card.appendChild(list);
     return card;
+  }
+
+  setButtonMuteState(btn, isMuted, isInput = false) {
+    clear(btn);
+    btn.className = `btn btn-sm ${isMuted ? 'btn-danger' : 'btn-ghost'}`;
+    const iconName = isInput ? (isMuted ? 'micMute' : 'mic') : (isMuted ? 'volumeMute' : 'speaker');
+    btn.appendChild(createIcon(iconName, 14));
+    btn.appendChild(document.createTextNode(isMuted ? ' Unmute' : ' Mute'));
+  }
+
+  setStreamMuteButtonState(btn, isMuted) {
+    clear(btn);
+    btn.className = `btn btn-sm ${isMuted ? 'btn-danger' : 'btn-ghost'}`;
+    btn.title = isMuted ? 'Unmute stream' : 'Mute stream';
+    btn.appendChild(createIcon(isMuted ? 'volumeMute' : 'speaker', 14));
   }
 
   /* -------------------------------------------------------------------------
@@ -663,10 +601,9 @@ export class AudioView {
     }
   }
 
-  toggleOutputMute(device, muteBtn, slider) {
+  toggleOutputMute(device, muteBtn) {
     device.isMuted = !device.isMuted;
-    muteBtn.innerHTML = device.isMuted ? `${getIconSvg('volumeMute', 14)} Unmute` : `${getIconSvg('speaker', 14)} Mute`;
-    muteBtn.className = `btn btn-sm ${device.isMuted ? 'btn-danger' : 'btn-ghost'}`;
+    this.setButtonMuteState(muteBtn, device.isMuted, false);
 
     if (typeof bro !== 'undefined') {
       if (bro.pulse?.setSinkMute) {
@@ -679,8 +616,7 @@ export class AudioView {
 
   toggleInputMute(device, muteBtn) {
     device.isMuted = !device.isMuted;
-    muteBtn.innerHTML = device.isMuted ? `${getIconSvg('micMute', 14)} Unmute` : `${getIconSvg('mic', 14)} Mute`;
-    muteBtn.className = `btn btn-sm ${device.isMuted ? 'btn-danger' : 'btn-ghost'}`;
+    this.setButtonMuteState(muteBtn, device.isMuted, true);
 
     if (typeof bro !== 'undefined') {
       if (bro.pulse?.setSourceMute) {
@@ -715,7 +651,6 @@ export class AudioView {
 
   startLiveMeter() {
     this.stopMeter();
-    // Query genuine meter readings if provided by host
     const barEl = document.getElementById('audio-meter-bar');
     const peakEl = document.getElementById('audio-meter-peak');
     const dbEl = document.getElementById('audio-meter-db');
@@ -735,7 +670,6 @@ export class AudioView {
         } catch (_) {}
       }, 100);
     } else {
-      // Idle state
       barEl.style.width = '0%';
       peakEl.style.left = '0%';
       dbEl.textContent = 'Idle';
@@ -752,14 +686,5 @@ export class AudioView {
   destroy() {
     this.stopMeter();
     this.container = null;
-  }
-
-  escapeHtml(str) {
-    if (!str) return '';
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
   }
 }

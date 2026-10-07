@@ -4,7 +4,9 @@
  * DPI scaling, orientation rotation, and safe test-then-revert configuration.
  */
 
-import { getIconSvg } from '../../icons.js';
+import { h, clear } from '../../dom.js';
+import { createIcon } from '../../icons.js';
+import { viewHeader } from '../components.js';
 
 export class DisplayView {
   constructor(controller) {
@@ -58,33 +60,32 @@ export class DisplayView {
             isActive: d.isActive !== false,
             geometry: d.geometry || { x: 0, y: 0, width: 1920, height: 1080 },
             orientation: d.orientation || 'normal',
-            scaleFactor: d.scaleFactor || (d.scale?.factor) || 1.0,
+            scaleFactor: typeof d.scaleFactor === 'number' ? d.scaleFactor : 1.0,
             currentMode: d.currentMode || { width: 1920, height: 1080, refreshRate: 60 },
-            availableModes: d.availableModes || [
+            availableModes: Array.isArray(d.availableModes) ? d.availableModes : [
               { width: 3840, height: 2160, refreshRate: 60 },
               { width: 2560, height: 1440, refreshRate: 144 },
-              { width: 2560, height: 1440, refreshRate: 60 },
-              { width: 1920, height: 1080, refreshRate: 144 },
+              { width: 1920, height: 1080, refreshRate: 165 },
               { width: 1920, height: 1080, refreshRate: 60 },
               { width: 1280, height: 720, refreshRate: 60 },
             ],
           }));
 
-          if (!this.selectedDisplayId || !this.displays.some((d) => d.id === this.selectedDisplayId)) {
-            const primary = this.displays.find((d) => d.isPrimary) || this.displays[0];
-            this.selectedDisplayId = primary.id;
+          if (!this.selectedDisplayId && this.displays.length > 0) {
+            this.selectedDisplayId = this.displays[0].id;
           }
           return;
         }
       } catch (err) {
-        console.warn('Displays: error getting snapshot:', err);
+        console.warn('Displays: getSnapshot failed:', err);
       }
     }
 
-    // Genuine single monitor fallback matching active screen
+    // Fallback: Query browser window metrics
     const curW = window.screen.width || 1920;
     const curH = window.screen.height || 1080;
     const dpr = window.devicePixelRatio || 1.0;
+
     this.displays = [
       {
         id: 'primary',
@@ -113,80 +114,63 @@ export class DisplayView {
   render(container, searchQuery = '') {
     this.container = container;
     this.loadDisplays();
-    container.innerHTML = '';
+    clear(container);
 
-    const header = document.createElement('div');
-    header.className = 'settings-view-header';
-    header.innerHTML = `
-      <div class="view-header-titles">
-        <h2 class="view-title">Displays & Monitors</h2>
-        <p class="view-subtitle">Rearrange multi-monitor layouts, adjust resolution, refresh rates, and DPI scaling.</p>
-      </div>
-    `;
-    container.appendChild(header);
+    const viewWrapper = h('div.settings-view-display');
+
+    viewWrapper.appendChild(
+      viewHeader('Displays & Monitors', 'Rearrange multi-monitor layouts, adjust resolution, refresh rates, and DPI scaling.')
+    );
 
     // Revert Countdown Banner (if active)
     if (this.countdownSeconds > 0) {
-      const banner = this.renderCountdownBanner();
-      container.appendChild(banner);
+      viewWrapper.appendChild(this.renderCountdownBanner());
     }
 
     // 1. Visual Arrangement Canvas Card
-    const canvasCard = this.renderArrangementCanvas();
-    container.appendChild(canvasCard);
+    viewWrapper.appendChild(this.renderArrangementCanvas());
 
     // 2. Selected Monitor Settings Controls Card
     const selectedDisplay = this.displays.find((d) => d.id === this.selectedDisplayId) || this.displays[0];
     if (selectedDisplay) {
-      const detailsCard = this.renderDisplayDetails(selectedDisplay);
-      container.appendChild(detailsCard);
+      viewWrapper.appendChild(this.renderDisplayDetails(selectedDisplay));
     }
+
+    container.appendChild(viewWrapper);
   }
 
   renderCountdownBanner() {
-    const banner = document.createElement('div');
-    banner.className = 'display-revert-banner';
-    banner.innerHTML = `
-      <div class="banner-content">
-        <span class="banner-icon">${getIconSvg('system', 16)}</span>
-        <span class="banner-text">Testing display configuration. Reverting in <strong>${this.countdownSeconds}s</strong>...</span>
-      </div>
-      <div class="banner-actions">
-        <button class="btn btn-secondary btn-sm" id="btn-revert-config">Revert Now</button>
-        <button class="btn btn-accent btn-sm" id="btn-confirm-config">Keep Changes</button>
-      </div>
-    `;
-
-    setTimeout(() => {
-      const confirmBtn = banner.querySelector('#btn-confirm-config');
-      const revertBtn = banner.querySelector('#btn-revert-config');
-      if (confirmBtn) confirmBtn.addEventListener('click', () => this.confirmConfig());
-      if (revertBtn) revertBtn.addEventListener('click', () => this.revertConfig());
-    }, 0);
-
-    return banner;
+    return h('div.display-revert-banner', null,
+      h('div.banner-content', null,
+        h('span.banner-icon', null, createIcon('system', 16)),
+        h('span.banner-text', null,
+          'Testing display configuration. Reverting in ',
+          h('strong', null, `${this.countdownSeconds}s`),
+          '...'
+        )
+      ),
+      h('div.banner-actions', null,
+        h('button.btn.btn-secondary.btn-sm#btn-revert-config', {
+          onclick: () => this.revertConfig()
+        }, 'Revert Now'),
+        h('button.btn.btn-accent.btn-sm#btn-confirm-config', {
+          onclick: () => this.confirmConfig()
+        }, 'Keep Changes')
+      )
+    );
   }
 
   renderArrangementCanvas() {
-    const card = document.createElement('section');
-    card.className = 'settings-card display-canvas-card';
+    const header = h('div.settings-card-header', null,
+      h('div.card-header-icon', null, createIcon('display', 18)),
+      h('div.card-header-text', null,
+        h('h3.card-title', null, 'Display Arrangement'),
+        h('p.card-description', null, 'Drag monitors to align them with your physical desktop layout.')
+      )
+    );
 
-    const header = document.createElement('div');
-    header.className = 'settings-card-header';
-    header.innerHTML = `
-      <div class="card-header-icon">${getIconSvg('display', 18)}</div>
-      <div class="card-header-text">
-        <h3 class="card-title">Display Arrangement</h3>
-        <p class="card-description">Drag monitors to align them with your physical desktop layout.</p>
-      </div>
-    `;
-    card.appendChild(header);
+    const canvasArea = h('div.display-canvas-viewport#display-arrangement-canvas');
 
-    const canvasArea = document.createElement('div');
-    canvasArea.className = 'display-canvas-viewport';
-    canvasArea.id = 'display-arrangement-canvas';
-
-    // Calculate canvas scale factor to fit all monitors into ~600x260px area
     const minX = Math.min(...this.displays.map((d) => d.geometry.x));
     const maxX = Math.max(...this.displays.map((d) => d.geometry.x + d.geometry.width));
     const minY = Math.min(...this.displays.map((d) => d.geometry.y));
@@ -202,43 +186,40 @@ export class DisplayView {
     const offsetY = (canvasH - totalHeight * scaleFactor) / 2 - minY * scaleFactor;
 
     this.displays.forEach((display, index) => {
-      const box = document.createElement('div');
       const isSelected = display.id === this.selectedDisplayId;
-      box.className = `display-monitor-box ${isSelected ? 'selected' : ''} ${display.isPrimary ? 'primary' : ''}`;
-      box.dataset.displayId = display.id;
-
-      const w = Math.max(80, Math.round(display.geometry.width * scaleFactor));
-      const h = Math.max(60, Math.round(display.geometry.height * scaleFactor));
+      const boxW = Math.max(80, Math.round(display.geometry.width * scaleFactor));
+      const boxH = Math.max(60, Math.round(display.geometry.height * scaleFactor));
       const x = Math.round(display.geometry.x * scaleFactor + offsetX);
       const y = Math.round(display.geometry.y * scaleFactor + offsetY);
 
-      box.style.width = `${w}px`;
-      box.style.height = `${h}px`;
-      box.style.left = `${x}px`;
-      box.style.top = `${y}px`;
+      const box = h(`div.display-monitor-box${isSelected ? '.selected' : ''}${display.isPrimary ? '.primary' : ''}`, {
+        dataset: { displayId: display.id },
+        style: {
+          width: `${boxW}px`,
+          height: `${boxH}px`,
+          left: `${x}px`,
+          top: `${y}px`,
+        },
+        onclick: (e) => {
+          e.stopPropagation();
+          this.selectedDisplayId = display.id;
+          this.render(this.container, this.controller.searchQuery);
+        }
+      },
+        h('div.monitor-box-badge', null, String(index + 1)),
+        h('div.monitor-box-title', null, display.name),
+        h('div.monitor-box-res', null, `${display.geometry.width}×${display.geometry.height}`),
+        display.isPrimary ? h('span.monitor-primary-tag', null, 'Primary') : null
+      );
 
-      box.innerHTML = `
-        <div class="monitor-box-badge">${index + 1}</div>
-        <div class="monitor-box-title">${this.escapeHtml(display.name)}</div>
-        <div class="monitor-box-res">${display.geometry.width}×${display.geometry.height}</div>
-        ${display.isPrimary ? '<span class="monitor-primary-tag">Primary</span>' : ''}
-      `;
-
-      // Click to select
-      box.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.selectedDisplayId = display.id;
-        this.render(this.container, this.controller.searchQuery);
-      });
-
-      // Drag to arrange
       this.attachDragHandlers(box, display, scaleFactor);
-
       canvasArea.appendChild(box);
     });
 
-    card.appendChild(canvasArea);
-    return card;
+    return h('section.settings-card.display-canvas-card', null,
+      header,
+      canvasArea
+    );
   }
 
   attachDragHandlers(box, display, scale) {
@@ -274,7 +255,6 @@ export class DisplayView {
         window.removeEventListener('mousemove', onMouseMove);
         window.removeEventListener('mouseup', onMouseUp);
 
-        // Update relative coordinates
         const dx = ev.clientX - startX;
         const dy = ev.clientY - startY;
         display.geometry.x = Math.max(0, Math.round(display.geometry.x + dx / scale));
@@ -292,33 +272,27 @@ export class DisplayView {
   }
 
   renderDisplayDetails(display) {
-    const card = document.createElement('section');
-    card.className = 'settings-card display-details-card';
-
-    const header = document.createElement('div');
-    header.className = 'settings-card-header';
-    header.innerHTML = `
-      <div class="card-header-icon">${getIconSvg('sliders', 18)}</div>
-      <div class="card-header-text">
-        <h3 class="card-title">${this.escapeHtml(display.name)} Settings</h3>
-        <p class="card-description">Adjust resolution, orientation, refresh rate, and scaling for this monitor.</p>
-      </div>
-    `;
-    card.appendChild(header);
-
-    const form = document.createElement('div');
-    form.className = 'display-form-grid';
+    const header = h('div.settings-card-header', null,
+      h('div.card-header-icon', null, createIcon('sliders', 18)),
+      h('div.card-header-text', null,
+        h('h3.card-title', null, `${display.name} Settings`),
+        h('p.card-description', null, 'Adjust resolution, orientation, refresh rate, and scaling for this monitor.')
+      )
+    );
 
     // 1. Resolution Dropdown
-    const resGroup = document.createElement('div');
-    resGroup.className = 'form-group';
-    resGroup.innerHTML = `<label class="form-label">Resolution</label>`;
-
-    const resSelect = document.createElement('select');
-    resSelect.className = 'select-input';
+    const resSelect = h('select.select-input', {
+      onchange: (e) => {
+        const [w, h] = e.target.value.split('x').map(Number);
+        this.recordChange(display.id, { width: w, height: h });
+        display.currentMode.width = w;
+        display.currentMode.height = h;
+        display.geometry.width = w;
+        display.geometry.height = h;
+      }
+    });
 
     const modes = display.availableModes || [];
-    // Group unique resolutions
     const uniqueResMap = new Map();
     modes.forEach((m) => {
       const key = `${m.width}x${m.height}`;
@@ -326,62 +300,47 @@ export class DisplayView {
     });
 
     uniqueResMap.forEach((m, key) => {
-      const opt = document.createElement('option');
-      opt.value = key;
-      opt.textContent = `${m.width} × ${m.height}${m.width === display.currentMode.width && m.height === display.currentMode.height ? ' (Current)' : ''}`;
-      if (m.width === display.currentMode.width && m.height === display.currentMode.height) {
-        opt.selected = true;
-      }
-      resSelect.appendChild(opt);
+      const isCur = m.width === display.currentMode.width && m.height === display.currentMode.height;
+      resSelect.appendChild(
+        h('option', { value: key, selected: isCur }, `${m.width} × ${m.height}${isCur ? ' (Current)' : ''}`)
+      );
     });
 
-    resSelect.addEventListener('change', (e) => {
-      const [w, h] = e.target.value.split('x').map(Number);
-      this.recordChange(display.id, { width: w, height: h });
-      display.currentMode.width = w;
-      display.currentMode.height = h;
-      display.geometry.width = w;
-      display.geometry.height = h;
-    });
-
-    resGroup.appendChild(resSelect);
-    form.appendChild(resGroup);
+    const resGroup = h('div.form-group', null,
+      h('label.form-label', null, 'Resolution'),
+      resSelect
+    );
 
     // 2. Refresh Rate Selector
-    const refreshGroup = document.createElement('div');
-    refreshGroup.className = 'form-group';
-    refreshGroup.innerHTML = `<label class="form-label">Refresh Rate</label>`;
-
-    const refreshSelect = document.createElement('select');
-    refreshSelect.className = 'select-input';
+    const currentRate = Math.round(display.currentMode.refreshRate || 60);
+    const refreshSelect = h('select.select-input', {
+      onchange: (e) => {
+        const rate = parseFloat(e.target.value);
+        this.recordChange(display.id, { refreshRate: rate });
+        display.currentMode.refreshRate = rate;
+      }
+    });
 
     const availableRates = [60, 75, 120, 144, 165, 240];
-    const currentRate = Math.round(display.currentMode.refreshRate || 60);
-
     availableRates.forEach((rate) => {
-      const opt = document.createElement('option');
-      opt.value = rate;
-      opt.textContent = `${rate} Hz`;
-      if (rate === currentRate) opt.selected = true;
-      refreshSelect.appendChild(opt);
+      refreshSelect.appendChild(
+        h('option', { value: String(rate), selected: rate === currentRate }, `${rate} Hz`)
+      );
     });
 
-    refreshSelect.addEventListener('change', (e) => {
-      const rate = parseFloat(e.target.value);
-      this.recordChange(display.id, { refreshRate: rate });
-      display.currentMode.refreshRate = rate;
-    });
-
-    refreshGroup.appendChild(refreshSelect);
-    form.appendChild(refreshGroup);
+    const refreshGroup = h('div.form-group', null,
+      h('label.form-label', null, 'Refresh Rate'),
+      refreshSelect
+    );
 
     // 3. DPI Scaling (100%, 125%, 150%, 200%)
-    const scaleGroup = document.createElement('div');
-    scaleGroup.className = 'form-group';
-    scaleGroup.innerHTML = `<label class="form-label">Scale (DPI)</label>`;
-
-    const scaleSelect = document.createElement('select');
-    scaleSelect.className = 'select-input';
+    const scaleSelect = h('select.select-input', {
+      onchange: (e) => {
+        const factor = parseFloat(e.target.value);
+        this.recordChange(display.id, { scale: factor });
+        display.scaleFactor = factor;
+      }
+    });
 
     const scales = [
       { factor: 1.0, label: '100% (Standard)' },
@@ -392,31 +351,25 @@ export class DisplayView {
     ];
 
     scales.forEach((s) => {
-      const opt = document.createElement('option');
-      opt.value = s.factor;
-      opt.textContent = s.label;
-      if (Math.abs(s.factor - (display.scaleFactor || 1.0)) < 0.05) {
-        opt.selected = true;
-      }
-      scaleSelect.appendChild(opt);
+      const isCur = Math.abs(s.factor - (display.scaleFactor || 1.0)) < 0.05;
+      scaleSelect.appendChild(
+        h('option', { value: String(s.factor), selected: isCur }, s.label)
+      );
     });
 
-    scaleSelect.addEventListener('change', (e) => {
-      const factor = parseFloat(e.target.value);
-      this.recordChange(display.id, { scale: factor });
-      display.scaleFactor = factor;
-    });
-
-    scaleGroup.appendChild(scaleSelect);
-    form.appendChild(scaleGroup);
+    const scaleGroup = h('div.form-group', null,
+      h('label.form-label', null, 'Scale (DPI)'),
+      scaleSelect
+    );
 
     // 4. Orientation
-    const orientGroup = document.createElement('div');
-    orientGroup.className = 'form-group';
-    orientGroup.innerHTML = `<label class="form-label">Orientation</label>`;
-
-    const orientSelect = document.createElement('select');
-    orientSelect.className = 'select-input';
+    const orientSelect = h('select.select-input', {
+      onchange: (e) => {
+        const orient = e.target.value;
+        this.recordChange(display.id, { orientation: orient });
+        display.orientation = orient;
+      }
+    });
 
     const orientations = [
       { id: 'normal', label: 'Landscape' },
@@ -426,65 +379,52 @@ export class DisplayView {
     ];
 
     orientations.forEach((o) => {
-      const opt = document.createElement('option');
-      opt.value = o.id;
-      opt.textContent = o.label;
-      if (display.orientation === o.id) opt.selected = true;
-      orientSelect.appendChild(opt);
+      orientSelect.appendChild(
+        h('option', { value: o.id, selected: display.orientation === o.id }, o.label)
+      );
     });
 
-    orientSelect.addEventListener('change', (e) => {
-      const orient = e.target.value;
-      this.recordChange(display.id, { orientation: orient });
-      display.orientation = orient;
-    });
+    const orientGroup = h('div.form-group', null,
+      h('label.form-label', null, 'Orientation'),
+      orientSelect
+    );
 
-    orientGroup.appendChild(orientSelect);
-    form.appendChild(orientGroup);
-
-    card.appendChild(form);
+    const form = h('div.display-form-grid', null, resGroup, refreshGroup, scaleGroup, orientGroup);
 
     // 5. Primary Display Toggle & Apply Action Bar
-    const footer = document.createElement('div');
-    footer.className = 'display-action-bar';
-
-    const primaryCheckLabel = document.createElement('label');
-    primaryCheckLabel.className = 'toggle-checkbox-label';
-
-    const primaryCheckbox = document.createElement('input');
-    primaryCheckbox.type = 'checkbox';
-    primaryCheckbox.checked = !!display.isPrimary;
-    primaryCheckbox.disabled = !!display.isPrimary; // Cannot uncheck primary if already primary
-
-    primaryCheckbox.addEventListener('change', (e) => {
-      if (e.target.checked) {
-        this.displays.forEach((d) => { d.isPrimary = (d.id === display.id); });
-        this.recordChange(display.id, { isPrimary: true });
-        this.render(this.container, this.controller.searchQuery);
+    const primaryCheckbox = h('input', {
+      type: 'checkbox',
+      checked: !!display.isPrimary,
+      disabled: !!display.isPrimary,
+      onchange: (e) => {
+        if (e.target.checked) {
+          this.displays.forEach((d) => { d.isPrimary = (d.id === display.id); });
+          this.recordChange(display.id, { isPrimary: true });
+          this.render(this.container, this.controller.searchQuery);
+        }
       }
     });
 
-    primaryCheckLabel.appendChild(primaryCheckbox);
-    const primarySpan = document.createElement('span');
-    primarySpan.textContent = ' Make this my primary display';
-    primaryCheckLabel.appendChild(primarySpan);
+    const primaryCheckLabel = h('label.toggle-checkbox-label', null,
+      primaryCheckbox,
+      h('span', null, ' Make this my primary display')
+    );
 
-    const btnGroup = document.createElement('div');
-    btnGroup.className = 'btn-group';
+    const applyBtn = h('button.btn.btn-accent', {
+      type: 'button',
+      onclick: () => this.applyDisplayConfig(display.id)
+    }, 'Apply Changes');
 
-    const applyBtn = document.createElement('button');
-    applyBtn.type = 'button';
-    applyBtn.className = 'btn btn-accent';
-    applyBtn.textContent = 'Apply Changes';
-    applyBtn.addEventListener('click', () => this.applyDisplayConfig(display.id));
+    const footer = h('div.display-action-bar', null,
+      primaryCheckLabel,
+      h('div.btn-group', null, applyBtn)
+    );
 
-    btnGroup.appendChild(applyBtn);
-
-    footer.appendChild(primaryCheckLabel);
-    footer.appendChild(btnGroup);
-    card.appendChild(footer);
-
-    return card;
+    return h('section.settings-card.display-details-card', null,
+      header,
+      form,
+      footer
+    );
   }
 
   recordChange(displayId, delta) {
@@ -497,7 +437,6 @@ export class DisplayView {
   async applyDisplayConfig(displayId) {
     const config = Object.assign({ displayId }, this.pendingChanges[displayId] || {});
 
-    // Try bro.displays.testConfig or applyConfig
     if (typeof bro !== 'undefined' && bro.displays) {
       try {
         if (typeof bro.displays.testConfig === 'function') {
@@ -584,14 +523,5 @@ export class DisplayView {
       this.countdownTimer = null;
     }
     this.container = null;
-  }
-
-  escapeHtml(str) {
-    if (!str) return '';
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
   }
 }

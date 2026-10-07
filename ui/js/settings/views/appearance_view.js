@@ -4,7 +4,9 @@
  * and dynamic accent color swatches updating CSS custom property tokens in real-time.
  */
 
-import { getIconSvg } from '../../icons.js';
+import { h, clear } from '../../dom.js';
+import { createIcon } from '../../icons.js';
+import { viewHeader } from '../components.js';
 
 export class AppearanceView {
   constructor(controller) {
@@ -89,59 +91,27 @@ export class AppearanceView {
 
   render(container, searchQuery = '') {
     this.container = container;
-    container.innerHTML = '';
+    clear(container);
 
-    const header = document.createElement('div');
-    header.className = 'settings-view-header';
-    header.innerHTML = `
-      <div class="view-header-titles">
-        <h2 class="view-title">Appearance & Desktop</h2>
-        <p class="view-subtitle">Select desktop backgrounds, switch dark/light theme mode, and customize your vibrant system accent color.</p>
-      </div>
-    `;
-    container.appendChild(header);
+    container.appendChild(
+      viewHeader('Appearance & Desktop', 'Desktop background, theme mode, and system accent color.')
+    );
 
     // 1. Wallpaper Gallery Card
-    const wallpaperCard = this.renderWallpaperSection();
-    container.appendChild(wallpaperCard);
+    container.appendChild(this.renderWallpaperSection());
 
     // 2. Theme Mode Switch Card
-    const themeCard = this.renderThemeModeSection();
-    container.appendChild(themeCard);
+    container.appendChild(this.renderThemeModeSection());
 
     // 3. Accent Color Selector Card
-    const accentCard = this.renderAccentColorSection();
-    container.appendChild(accentCard);
+    container.appendChild(this.renderAccentColorSection());
   }
 
   renderWallpaperSection() {
-    const card = document.createElement('section');
-    card.className = 'settings-card appearance-wallpaper-card';
-
-    const header = document.createElement('div');
-    header.className = 'settings-card-header';
-    header.innerHTML = `
-      <div class="card-header-icon">${getIconSvg('image', 18)}</div>
-      <div class="card-header-text">
-        <h3 class="card-title">Desktop Wallpaper</h3>
-        <p class="card-description">Choose a curated desktop background or import custom images.</p>
-      </div>
-      <div class="card-header-actions">
-        <button class="btn btn-secondary btn-sm" id="btn-custom-wallpaper">${getIconSvg('image', 13)} Choose Image...</button>
-        <input type="file" id="custom-wallpaper-file-input" accept="image/*" class="hidden">
-      </div>
-    `;
-    card.appendChild(header);
-
-    const btnCustom = header.querySelector('#btn-custom-wallpaper');
-    const fileInput = header.querySelector('#custom-wallpaper-file-input');
-
-    if (btnCustom && fileInput) {
-      btnCustom.addEventListener('click', () => {
-        this.openCustomWallpaperPicker(fileInput);
-      });
-
-      fileInput.addEventListener('change', (e) => {
+    const fileInput = h('input#custom-wallpaper-file-input.hidden', {
+      type: 'file',
+      accept: 'image/*',
+      onchange: (e) => {
         const file = e.target.files?.[0];
         if (file) {
           const reader = new FileReader();
@@ -153,64 +123,63 @@ export class AppearanceView {
           };
           reader.readAsDataURL(file);
         }
-      });
-    }
-
-    const grid = document.createElement('div');
-    grid.className = 'wallpaper-gallery-grid';
-
-    this.wallpapers.forEach((wp) => {
-      const isSelected = this.selectedWallpaperId === wp.id;
-      const tile = document.createElement('div');
-      tile.className = `wallpaper-tile ${isSelected ? 'selected' : ''}`;
-      tile.dataset.wallpaperId = wp.id;
-
-      const preview = document.createElement('div');
-      preview.className = 'wallpaper-tile-preview';
-      preview.style.background = wp.background;
-
-      if (isSelected) {
-        const checkBadge = document.createElement('div');
-        checkBadge.className = 'wallpaper-check-badge';
-        checkBadge.innerHTML = getIconSvg('check', 12);
-        preview.appendChild(checkBadge);
       }
-
-      const info = document.createElement('div');
-      info.className = 'wallpaper-tile-info';
-      info.innerHTML = `
-        <span class="wallpaper-tile-name">${this.escapeHtml(wp.name)}</span>
-      `;
-
-      tile.appendChild(preview);
-      tile.appendChild(info);
-
-      tile.addEventListener('click', () => {
-        this.applyWallpaper(wp);
-        this.render(this.container, this.controller.searchQuery);
-      });
-
-      grid.appendChild(tile);
     });
 
-    card.appendChild(grid);
-    return card;
+    const btnCustom = h('button.btn.btn-secondary.btn-sm#btn-custom-wallpaper', {
+      onclick: () => this.openCustomWallpaperPicker(fileInput)
+    }, createIcon('image', 13), ' Choose Image...');
+
+    const header = h('div.settings-card-header', null,
+      h('span.card-header-icon', null, createIcon('image', 18)),
+      h('div.card-header-text', null,
+        h('h3.card-title', null, 'Desktop Wallpaper'),
+        h('span.card-description', null, 'Choose a curated desktop background or import custom images.')
+      ),
+      h('div.card-header-actions', null, btnCustom, fileInput)
+    );
+
+    const tiles = this.wallpapers.map((wp) => {
+      const isSelected = this.selectedWallpaperId === wp.id;
+
+      const previewKids = [];
+      if (isSelected) {
+        previewKids.push(
+          h('div.wallpaper-check-badge', null, createIcon('check', 12))
+        );
+      }
+
+      const preview = h('div.wallpaper-tile-preview', {
+        style: { background: wp.background }
+      }, ...previewKids);
+
+      const info = h('div.wallpaper-tile-info', null,
+        h('span.wallpaper-tile-name', null, wp.name)
+      );
+
+      return h(`div.wallpaper-tile${isSelected ? '.selected' : ''}`, {
+        dataset: { wallpaperId: wp.id },
+        onclick: () => {
+          this.applyWallpaper(wp);
+          this.render(this.container, this.controller.searchQuery);
+        }
+      }, preview, info);
+    });
+
+    return h('section.settings-card.appearance-wallpaper-card', null,
+      header,
+      h('div.wallpaper-gallery-grid', null, ...tiles)
+    );
   }
 
   renderThemeModeSection() {
-    const card = document.createElement('section');
-    card.className = 'settings-card appearance-theme-card';
-
-    const header = document.createElement('div');
-    header.className = 'settings-card-header';
-    header.innerHTML = `
-      <div class="card-header-icon">${getIconSvg('appearance', 18)}</div>
-      <div class="card-header-text">
-        <h3 class="card-title">Color Theme Mode</h3>
-        <p class="card-description">Select your preferred desktop appearance tone.</p>
-      </div>
-    `;
-    card.appendChild(header);
+    const header = h('div.settings-card-header', null,
+      h('span.card-header-icon', null, createIcon('appearance', 18)),
+      h('div.card-header-text', null,
+        h('h3.card-title', null, 'Color Theme Mode'),
+        h('span.card-description', null, 'Select your preferred desktop appearance tone.')
+      )
+    );
 
     const modes = [
       { id: 'dark', label: 'Dark Mode', icon: 'moon', desc: 'Subtle dark acrylic surfaces with optimal night contrast' },
@@ -218,75 +187,62 @@ export class AppearanceView {
       { id: 'auto', label: 'Auto (System)', icon: 'autoTheme', desc: 'Automatically aligns with day and night cycles' },
     ];
 
-    const group = document.createElement('div');
-    group.className = 'theme-modes-grid';
-
-    modes.forEach((m) => {
+    const tiles = modes.map((m) => {
       const isSelected = this.themeMode === m.id;
-      const tile = document.createElement('div');
-      tile.className = `theme-mode-tile ${isSelected ? 'selected' : ''}`;
-      tile.innerHTML = `
-        <span class="mode-tile-icon">${getIconSvg(m.icon, 20)}</span>
-        <span class="mode-tile-title">${m.label}</span>
-        <span class="mode-tile-desc">${m.desc}</span>
-        ${isSelected ? '<span class="badge badge-accent">Active</span>' : ''}
-      `;
 
-      tile.addEventListener('click', () => {
-        this.setThemeMode(m.id);
-        this.render(this.container, this.controller.searchQuery);
-      });
-
-      group.appendChild(tile);
+      return h(`div.theme-mode-tile${isSelected ? '.selected' : ''}`, {
+        onclick: () => {
+          this.setThemeMode(m.id);
+          this.render(this.container, this.controller.searchQuery);
+        }
+      },
+        h('span.mode-tile-icon', null, createIcon(m.icon, 20)),
+        h('span.mode-tile-title', null, m.label),
+        h('span.mode-tile-desc', null, m.desc),
+        isSelected ? h('span.badge.badge-accent', null, 'Active') : null
+      );
     });
 
-    card.appendChild(group);
-    return card;
+    return h('section.settings-card.appearance-theme-card', null,
+      header,
+      h('div.theme-modes-grid', null, ...tiles)
+    );
   }
 
   renderAccentColorSection() {
-    const card = document.createElement('section');
-    card.className = 'settings-card appearance-accent-card';
+    const header = h('div.settings-card-header', null,
+      h('span.card-header-icon', null, createIcon('appearance', 18)),
+      h('div.card-header-text', null,
+        h('h3.card-title', null, 'System Accent Color'),
+        h('span.card-description', null, 'Customizes buttons, focus rings, sliders, and highlights across Helm.')
+      )
+    );
 
-    const header = document.createElement('div');
-    header.className = 'settings-card-header';
-    header.innerHTML = `
-      <div class="card-header-icon">${getIconSvg('appearance', 18)}</div>
-      <div class="card-header-text">
-        <h3 class="card-title">System Accent Color</h3>
-        <p class="card-description">Customizes buttons, focus rings, sliders, and highlights across Helm.</p>
-      </div>
-    `;
-    card.appendChild(header);
-
-    const swatchesGrid = document.createElement('div');
-    swatchesGrid.className = 'accent-swatches-grid';
-
-    this.accentColors.forEach((accent) => {
+    const swatches = this.accentColors.map((accent) => {
       const isSelected = this.activeAccent === accent.id;
-      const swatch = document.createElement('button');
-      swatch.type = 'button';
-      swatch.className = `accent-swatch ${isSelected ? 'selected' : ''}`;
-      swatch.title = accent.label;
-      swatch.style.backgroundColor = accent.oklch;
 
+      const swatchKids = [];
       if (isSelected) {
-        const mark = document.createElement('span');
-        mark.className = 'swatch-checkmark';
-        mark.innerHTML = getIconSvg('check', 12);
-        swatch.appendChild(mark);
+        swatchKids.push(
+          h('span.swatch-checkmark', null, createIcon('check', 12))
+        );
       }
 
-      swatch.addEventListener('click', () => {
-        this.setAccent(accent);
-        this.render(this.container, this.controller.searchQuery);
-      });
-
-      swatchesGrid.appendChild(swatch);
+      return h(`button.accent-swatch${isSelected ? '.selected.active' : ''}`, {
+        type: 'button',
+        title: accent.label,
+        style: { backgroundColor: accent.oklch },
+        onclick: () => {
+          this.setAccent(accent);
+          this.render(this.container, this.controller.searchQuery);
+        }
+      }, ...swatchKids);
     });
 
-    card.appendChild(swatchesGrid);
-    return card;
+    return h('section.settings-card.appearance-accent-card', null,
+      header,
+      h('div.accent-swatches-grid', null, ...swatches)
+    );
   }
 
   /* -------------------------------------------------------------------------
@@ -361,14 +317,5 @@ export class AppearanceView {
 
   destroy() {
     this.container = null;
-  }
-
-  escapeHtml(str) {
-    if (!str) return '';
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
   }
 }

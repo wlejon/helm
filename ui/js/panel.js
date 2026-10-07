@@ -6,9 +6,15 @@
 
 import { MediaController } from './media.js';
 import { TaskbarController } from './taskbar.js';
-import { getIconSvg } from './icons.js';
+import { createIcon } from './icons.js';
+import { h, clear } from './dom.js';
 
 export class PanelController {
+  setIcon(el, iconName, size = 14) {
+    if (!el) return;
+    clear(el);
+    el.appendChild(createIcon(iconName, size));
+  }
   constructor() {
     this.clockInterval = null;
     this.currentPopup = null;
@@ -158,7 +164,7 @@ export class PanelController {
             const pct = Math.round((defaultSink.volume ?? 0.8) * 100);
 
             if (textEl) textEl.textContent = `${pct}%`;
-            if (iconEl) iconEl.innerHTML = getIconSvg(this.isMuted ? 'volumeMute' : (pct === 0 ? 'volumeMute' : 'speaker'), 14);
+            if (iconEl) this.setIcon(iconEl, this.isMuted ? 'volumeMute' : (pct === 0 ? 'volumeMute' : 'speaker'), 14);
             if (slider) slider.value = pct;
             if (muteBtn) muteBtn.textContent = this.isMuted ? 'Unmute' : 'Mute';
             if (devInfo) devInfo.textContent = defaultSink.description || defaultSink.name || 'Default Sink';
@@ -180,7 +186,7 @@ export class PanelController {
             const pct = Math.round((outDev.volume || 0.8) * 100);
 
             if (textEl) textEl.textContent = `${pct}%`;
-            if (iconEl) iconEl.innerHTML = getIconSvg(this.isMuted ? 'volumeMute' : (pct === 0 ? 'volumeMute' : 'speaker'), 14);
+            if (iconEl) this.setIcon(iconEl, this.isMuted ? 'volumeMute' : (pct === 0 ? 'volumeMute' : 'speaker'), 14);
             if (slider) slider.value = pct;
             if (muteBtn) muteBtn.textContent = this.isMuted ? 'Unmute' : 'Mute';
             if (devInfo) devInfo.textContent = outDev.description || outDev.deviceName || 'Default Output';
@@ -192,7 +198,7 @@ export class PanelController {
 
     // Default fallback values
     if (textEl) textEl.textContent = '80%';
-    if (iconEl) iconEl.innerHTML = getIconSvg('speaker', 14);
+    if (iconEl) this.setIcon(iconEl, 'speaker', 14);
   }
 
   setAudioVolume(vol) {
@@ -200,7 +206,7 @@ export class PanelController {
     const textEl = document.getElementById('text-volume');
     const iconEl = document.getElementById('icon-volume');
     if (textEl) textEl.textContent = `${pct}%`;
-    if (iconEl) iconEl.innerHTML = getIconSvg(pct === 0 || this.isMuted ? 'volumeMute' : 'speaker', 14);
+    if (iconEl) this.setIcon(iconEl, pct === 0 || this.isMuted ? 'volumeMute' : 'speaker', 14);
 
     if (typeof bro !== 'undefined' && bro.pulse && bro.pulse.available && this.activeAudioDeviceId != null) {
       try {
@@ -221,7 +227,7 @@ export class PanelController {
     const muteBtn = document.getElementById('vol-mute-btn');
     const iconEl = document.getElementById('icon-volume');
     if (muteBtn) muteBtn.textContent = this.isMuted ? 'Unmute' : 'Mute';
-    if (iconEl) iconEl.innerHTML = getIconSvg(this.isMuted ? 'volumeMute' : 'speaker', 14);
+    if (iconEl) this.setIcon(iconEl, this.isMuted ? 'volumeMute' : 'speaker', 14);
 
     if (typeof bro !== 'undefined' && bro.pulse && bro.pulse.available && this.activeAudioDeviceId != null) {
       try {
@@ -257,7 +263,7 @@ export class PanelController {
           const primary = state.devices.find((d) => d.isPrimary) || state.devices[0];
           if (primary) {
             const isWifi = primary.type === 'wifi';
-            if (iconEl) iconEl.innerHTML = getIconSvg(isWifi ? 'wifi' : 'ethernet', 14);
+            if (iconEl) this.setIcon(iconEl, isWifi ? 'wifi' : 'ethernet', 14);
             if (textEl) textEl.textContent = isWifi ? 'Wi-Fi' : 'Ethernet';
             if (detailEl) detailEl.textContent = `${primary.description || primary.interfaceName} (${primary.state})`;
             if (ipEl && primary.ipv4?.addresses?.length > 0) {
@@ -270,7 +276,7 @@ export class PanelController {
     }
 
     if (textEl) textEl.textContent = 'Connected';
-    if (iconEl) iconEl.innerHTML = getIconSvg('wifi', 14);
+    if (iconEl) this.setIcon(iconEl, 'wifi', 14);
   }
 
   /* -------------------------------------------------------------------------
@@ -325,7 +331,7 @@ export class PanelController {
           const pct = state.percent != null ? Math.round(state.percent) : 100;
           const isAC = state.source === 'ac' || state.source === 'linePower';
           if (textEl) textEl.textContent = `${pct}%`;
-          if (iconEl) iconEl.innerHTML = getIconSvg(isAC ? 'plug' : (pct < 20 ? 'battery' : 'battery'), 14);
+          if (iconEl) this.setIcon(iconEl, isAC ? 'plug' : (pct < 20 ? 'battery' : 'battery'), 14);
           if (statusEl) {
             statusEl.textContent = `Battery: ${pct}% (${isAC ? 'AC Connected' : 'On Battery'})`;
           }
@@ -335,7 +341,7 @@ export class PanelController {
     }
 
     if (textEl) textEl.textContent = '100%';
-    if (iconEl) iconEl.innerHTML = getIconSvg('desktopAc', 14);
+    if (iconEl) this.setIcon(iconEl, 'desktopAc', 14);
   }
 
   requestPowerAction(action) {
@@ -373,24 +379,21 @@ export class PanelController {
 
     try {
       const items = bro.sys.tray.getItems() || [];
-      trayContainer.innerHTML = '';
+      clear(trayContainer);
       for (const item of items) {
         if (item.hidden) continue;
-        const itemEl = document.createElement('div');
-        itemEl.className = 'tray-item';
-        if (item.icon && (item.icon.includes('/') || item.icon.endsWith('.png') || item.icon.endsWith('.svg'))) {
-          const img = document.createElement('img');
-          img.src = item.icon;
-          img.className = 'tray-icon-img';
-          itemEl.appendChild(img);
-        } else {
-          itemEl.innerHTML = getIconSvg('pin', 14);
-        }
-        itemEl.addEventListener('click', (e) => {
-          if (typeof bro.sys.tray.activate === 'function') {
-            bro.sys.tray.activate(item.id, e.clientX, e.clientY);
+        const iconChild = item.icon && (item.icon.includes('/') || item.icon.endsWith('.png') || item.icon.endsWith('.svg'))
+          ? h('img.tray-icon-img', { src: item.icon })
+          : createIcon('pin', 14);
+
+        const itemEl = h('div.tray-item', {
+          onclick: (e) => {
+            if (typeof bro.sys.tray.activate === 'function') {
+              bro.sys.tray.activate(item.id, e.clientX, e.clientY);
+            }
           }
-        });
+        }, iconChild);
+
         trayContainer.appendChild(itemEl);
       }
     } catch (_) {}

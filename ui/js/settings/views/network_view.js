@@ -4,7 +4,9 @@
  * and genuine IP/DNS configuration details. Absolutely zero mock or fake data.
  */
 
-import { getIconSvg } from '../../icons.js';
+import { h, clear } from '../../dom.js';
+import { createIcon } from '../../icons.js';
+import { viewHeader, emptyState } from '../components.js';
 
 export class NetworkView {
   constructor(controller) {
@@ -90,199 +92,131 @@ export class NetworkView {
 
   render(container, searchQuery = '') {
     this.container = container;
-    container.innerHTML = '';
+    clear(container);
 
-    const header = document.createElement('div');
-    header.className = 'settings-view-header';
-    header.innerHTML = `
-      <div class="view-header-titles">
-        <h2 class="view-title">Network & Internet</h2>
-        <p class="view-subtitle">Monitor wired Ethernet interfaces, scan nearby Wi-Fi networks, and inspect IP configuration.</p>
-      </div>
-    `;
-    container.appendChild(header);
+    const viewWrapper = h('div.settings-view-network');
+
+    viewWrapper.appendChild(
+      viewHeader('Network & Internet', 'Monitor wired Ethernet interfaces, scan nearby Wi-Fi networks, and inspect IP configuration.')
+    );
 
     const { rawState, ethernetDevices, wifiDevice } = this.getNetworkData();
     const aps = this.getAccessPointsList(wifiDevice?.id);
 
     // 1. Wi-Fi Card
-    const wifiCard = this.renderWifiCard(aps, wifiDevice);
-    container.appendChild(wifiCard);
+    viewWrapper.appendChild(this.renderWifiCard(aps, wifiDevice));
 
     // 2. Ethernet Adapters Card
-    const ethCard = this.renderEthernetCard(ethernetDevices);
-    container.appendChild(ethCard);
+    viewWrapper.appendChild(this.renderEthernetCard(ethernetDevices));
 
     // Modal dialog for Wi-Fi connection if opened
     if (this.activeDialogSSID) {
-      const modal = this.renderPasswordModal(this.activeDialogSSID);
-      container.appendChild(modal);
+      viewWrapper.appendChild(this.renderPasswordModal(this.activeDialogSSID));
     }
+
+    container.appendChild(viewWrapper);
   }
 
   renderWifiCard(accessPoints, wifiDevice) {
-    const card = document.createElement('section');
-    card.className = 'settings-card network-wifi-card';
+    const scanBtn = wifiDevice ? h('button.btn.btn-secondary.btn-sm#btn-scan-wifi', {
+      disabled: this.isScanning,
+      onclick: () => this.triggerWifiScan(wifiDevice?.id)
+    }, this.isScanning ? 'Scanning...' : 'Scan Networks') : null;
 
-    const header = document.createElement('div');
-    header.className = 'settings-card-header';
-    header.innerHTML = `
-      <div class="card-header-icon">${getIconSvg('wifi', 18)}</div>
-      <div class="card-header-text">
-        <h3 class="card-title">Wi-Fi Wireless Networking</h3>
-        <p class="card-description">${wifiDevice ? (wifiDevice.description || wifiDevice.interfaceName || 'Wireless Adapter') : 'Connect to wireless networks and discover nearby access points.'}</p>
-      </div>
-      <div class="card-header-actions">
-        ${wifiDevice ? `
-          <button class="btn btn-secondary btn-sm" id="btn-scan-wifi" ${this.isScanning ? 'disabled' : ''}>
-            ${this.isScanning ? 'Scanning...' : 'Scan Networks'}
-          </button>
-        ` : ''}
-      </div>
-    `;
-    card.appendChild(header);
-
-    const scanBtn = header.querySelector('#btn-scan-wifi');
-    if (scanBtn) {
-      scanBtn.addEventListener('click', () => this.triggerWifiScan(wifiDevice?.id));
-    }
+    const header = h('div.settings-card-header', null,
+      h('div.card-header-icon', null, createIcon('wifi', 18)),
+      h('div.card-header-text', null,
+        h('h3.card-title', null, 'Wi-Fi Wireless Networking'),
+        h('p.card-description', null, wifiDevice ? (wifiDevice.description || wifiDevice.interfaceName || 'Wireless Adapter') : 'Connect to wireless networks and discover nearby access points.')
+      ),
+      h('div.card-header-actions', null, scanBtn)
+    );
 
     if (!wifiDevice) {
-      const empty = document.createElement('div');
-      empty.className = 'settings-empty-state';
-      empty.innerHTML = `
-        <div class="empty-state-icon">${getIconSvg('wifi', 28)}</div>
-        <div class="empty-state-title">No Wi-Fi Adapter Found</div>
-        <div class="empty-state-desc">This system does not have a wireless network interface installed or enabled.</div>
-      `;
-      card.appendChild(empty);
-      return card;
+      return h('section.settings-card.network-wifi-card', null,
+        header,
+        emptyState('No Wi-Fi Adapter Found', 'This system does not have a wireless network interface installed or enabled.', 'wifi')
+      );
     }
 
     if (!this.wifiEnabled) {
-      const disabled = document.createElement('div');
-      disabled.className = 'settings-empty-state';
-      disabled.innerHTML = `
-        <div class="empty-state-icon">${getIconSvg('wifi', 28)}</div>
-        <div class="empty-state-title">Wi-Fi is Disabled</div>
-        <div class="empty-state-desc">Wireless networking is currently turned off.</div>
-      `;
-      card.appendChild(disabled);
-      return card;
+      return h('section.settings-card.network-wifi-card', null,
+        header,
+        emptyState('Wi-Fi is Disabled', 'Wireless networking is currently turned off.', 'wifi')
+      );
     }
 
     if (accessPoints.length === 0) {
-      const empty = document.createElement('div');
-      empty.className = 'settings-empty-state';
-      empty.innerHTML = `
-        <div class="empty-state-icon">${getIconSvg('search', 28)}</div>
-        <div class="empty-state-title">No Wi-Fi Networks in Range</div>
-        <div class="empty-state-desc">Click "Scan Networks" to search for nearby wireless access points.</div>
-      `;
-      card.appendChild(empty);
-      return card;
+      return h('section.settings-card.network-wifi-card', null,
+        header,
+        emptyState('No Wi-Fi Networks in Range', 'Click "Scan Networks" to search for nearby wireless access points.', 'search')
+      );
     }
 
-    const list = document.createElement('div');
-    list.className = 'wifi-networks-list';
+    const items = accessPoints.map((ap) => {
+      const actionBtn = ap.active
+        ? h('button.btn.btn-secondary.btn-sm', {
+            type: 'button',
+            onclick: () => this.disconnectWifi()
+          }, 'Disconnect')
+        : h('button.btn.btn-secondary.btn-sm', {
+            type: 'button',
+            onclick: () => this.promptConnect(ap)
+          }, 'Connect');
 
-    accessPoints.forEach((ap) => {
-      const item = document.createElement('div');
-      item.className = `wifi-network-item ${ap.active ? 'active-connection' : ''}`;
+      const securityBadge = ap.security === 'Open'
+        ? h('span.badge.badge-dim', null, 'Open')
+        : h('span.badge.badge-dim', null, createIcon('wifiLock', 12), ` ${ap.security}`);
 
-      const iconDiv = document.createElement('div');
-      iconDiv.className = 'wifi-signal-icon';
-      iconDiv.innerHTML = this.getSignalSvg(ap.strengthPercent);
-
-      const infoDiv = document.createElement('div');
-      infoDiv.className = 'wifi-item-info';
-      infoDiv.innerHTML = `
-        <div class="wifi-ssid-title">
-          <span>${this.escapeHtml(ap.ssid)}</span>
-          ${ap.active ? '<span class="badge badge-success">Connected</span>' : ''}
-          ${ap.security === 'Open' ? '<span class="badge badge-dim">Open</span>' : '<span class="badge badge-dim">' + getIconSvg('wifiLock', 12) + ' ' + this.escapeHtml(ap.security) + '</span>'}
-        </div>
-        <div class="wifi-signal-text">Signal: ${ap.strengthPercent}%</div>
-      `;
-
-      const actionsDiv = document.createElement('div');
-      actionsDiv.className = 'wifi-item-actions';
-
-      if (ap.active) {
-        const disconnectBtn = document.createElement('button');
-        disconnectBtn.type = 'button';
-        disconnectBtn.className = 'btn btn-secondary btn-sm';
-        disconnectBtn.textContent = 'Disconnect';
-        disconnectBtn.addEventListener('click', () => this.disconnectWifi());
-        actionsDiv.appendChild(disconnectBtn);
-      } else {
-        const connectBtn = document.createElement('button');
-        connectBtn.type = 'button';
-        connectBtn.className = 'btn btn-secondary btn-sm';
-        connectBtn.textContent = 'Connect';
-        connectBtn.addEventListener('click', () => this.promptConnect(ap));
-        actionsDiv.appendChild(connectBtn);
-      }
-
-      item.appendChild(iconDiv);
-      item.appendChild(infoDiv);
-      item.appendChild(actionsDiv);
-      list.appendChild(item);
+      return h(`div.wifi-network-item${ap.active ? '.active-connection' : ''}`, null,
+        h('div.wifi-signal-icon', null, this.renderSignalBars(ap.strengthPercent)),
+        h('div.wifi-item-info', null,
+          h('div.wifi-ssid-title', null,
+            h('span', null, ap.ssid),
+            ap.active ? h('span.badge.badge-success', null, 'Connected') : null,
+            securityBadge
+          ),
+          h('div.wifi-signal-text', null, `Signal: ${ap.strengthPercent}%`)
+        ),
+        h('div.wifi-item-actions', null, actionBtn)
+      );
     });
 
-    card.appendChild(list);
-    return card;
+    return h('section.settings-card.network-wifi-card', null,
+      header,
+      h('div.wifi-networks-list', null, ...items)
+    );
   }
 
   renderEthernetCard(ethernetDevices) {
-    const card = document.createElement('section');
-    card.className = 'settings-card network-ethernet-card';
-
-    const header = document.createElement('div');
-    header.className = 'settings-card-header';
-    header.innerHTML = `
-      <div class="card-header-icon">${getIconSvg('ethernet', 18)}</div>
-      <div class="card-header-text">
-        <h3 class="card-title">Wired Ethernet</h3>
-        <p class="card-description">High-speed wired network adapters and interface configurations.</p>
-      </div>
-    `;
-    card.appendChild(header);
+    const header = h('div.settings-card-header', null,
+      h('div.card-header-icon', null, createIcon('ethernet', 18)),
+      h('div.card-header-text', null,
+        h('h3.card-title', null, 'Wired Ethernet'),
+        h('p.card-description', null, 'High-speed wired network adapters and interface configurations.')
+      )
+    );
 
     if (ethernetDevices.length === 0) {
-      const empty = document.createElement('div');
-      empty.className = 'settings-empty-state';
-      empty.innerHTML = `
-        <div class="empty-state-icon">${getIconSvg('ethernet', 28)}</div>
-        <div class="empty-state-title">No Wired Ethernet Adapters Detected</div>
-        <div class="empty-state-desc">No physical Ethernet interfaces are currently reporting to the network subsystem.</div>
-      `;
-      card.appendChild(empty);
-      return card;
+      return h('section.settings-card.network-ethernet-card', null,
+        header,
+        emptyState('No Wired Ethernet Adapters Detected', 'No physical Ethernet interfaces are currently reporting to the network subsystem.', 'ethernet')
+      );
     }
 
-    ethernetDevices.forEach((eth) => {
-      const adapterSection = document.createElement('div');
-      adapterSection.className = 'ethernet-adapter-section';
-
+    const adapterSections = ethernetDevices.map((eth) => {
       const isConnected = eth.state === 'connected' || eth.state === 'activated';
       const speedStr = eth.speedMbps ? `${eth.speedMbps} Mbps` : '';
 
-      const adapterHeader = document.createElement('div');
-      adapterHeader.className = 'adapter-sub-header';
-      adapterHeader.innerHTML = `
-        <div class="adapter-sub-title">
-          <strong>${this.escapeHtml(eth.description || eth.interfaceName || 'Ethernet Interface')}</strong>
-          <span class="text-muted">(${this.escapeHtml(eth.interfaceName || eth.id)})</span>
-        </div>
-        <span class="badge ${isConnected ? 'badge-success' : 'badge-danger'}">
-          ${isConnected ? ('Connected' + (speedStr ? ' • ' + speedStr : '')) : 'Disconnected'}
-        </span>
-      `;
-      adapterSection.appendChild(adapterHeader);
-
-      const detailsGrid = document.createElement('div');
-      detailsGrid.className = 'network-details-grid';
+      const adapterHeader = h('div.adapter-sub-header', null,
+        h('div.adapter-sub-title', null,
+          h('strong', null, eth.description || eth.interfaceName || 'Ethernet Interface'),
+          h('span.text-muted', null, ` (${eth.interfaceName || eth.id})`)
+        ),
+        h(`span.badge.${isConnected ? 'badge-success' : 'badge-danger'}`, null,
+          isConnected ? ('Connected' + (speedStr ? ' • ' + speedStr : '')) : 'Disconnected'
+        )
+      );
 
       const ipv4Addrs = eth.ipv4?.addresses?.join(', ') || 'Not configured';
       const ipv4Gws = eth.ipv4?.gateways?.join(', ') || 'None';
@@ -300,92 +234,78 @@ export class NetworkView {
         { label: 'Link Speed', value: linkSpeed },
       ];
 
-      properties.forEach((prop) => {
-        const box = document.createElement('div');
-        box.className = 'network-prop-item';
-        box.innerHTML = `
-          <span class="prop-label">${this.escapeHtml(prop.label)}</span>
-          <span class="prop-value font-mono">${this.escapeHtml(prop.value)}</span>
-        `;
-        detailsGrid.appendChild(box);
+      const propBoxes = properties.map((prop) => {
+        return h('div.network-prop-item', null,
+          h('span.prop-label', null, prop.label),
+          h('span.prop-value.font-mono', null, prop.value)
+        );
       });
 
-      adapterSection.appendChild(detailsGrid);
-      card.appendChild(adapterSection);
+      return h('div.ethernet-adapter-section', null,
+        adapterHeader,
+        h('div.network-details-grid', null, ...propBoxes)
+      );
     });
 
-    return card;
+    return h('section.settings-card.network-ethernet-card', null,
+      header,
+      ...adapterSections
+    );
   }
 
   renderPasswordModal(ssid) {
-    const overlay = document.createElement('div');
-    overlay.className = 'settings-submodal-overlay';
+    const input = h('input#wifi-password-input.text-input', {
+      type: 'password',
+      placeholder: 'Enter network password...',
+      autocomplete: 'off'
+    });
 
-    const dialog = document.createElement('div');
-    dialog.className = 'settings-submodal';
-    dialog.innerHTML = `
-      <div class="submodal-header">
-        <h3 class="submodal-title">Connect to "${this.escapeHtml(ssid)}"</h3>
-        <button class="submodal-close-btn" id="btn-cancel-connect">${getIconSvg('close', 14)}</button>
-      </div>
-      <div class="submodal-body">
-        <p class="submodal-desc">This Wi-Fi network requires a security key or password to connect.</p>
-        <div class="form-group">
-          <label class="form-label" for="wifi-password-input">Password</label>
-          <div class="password-input-group">
-            <input type="password" id="wifi-password-input" class="text-input" placeholder="Enter network password..." autocomplete="off">
-            <button type="button" class="btn btn-ghost btn-sm" id="btn-toggle-mask">${getIconSvg('eye', 14)}</button>
-          </div>
-        </div>
-      </div>
-      <div class="submodal-footer">
-        <button class="btn btn-secondary" id="btn-dialog-cancel">Cancel</button>
-        <button class="btn btn-accent" id="btn-dialog-connect">Connect</button>
-      </div>
-    `;
-
-    setTimeout(() => {
-      const input = dialog.querySelector('#wifi-password-input');
-      const toggleMask = dialog.querySelector('#btn-toggle-mask');
-      const cancelBtn = dialog.querySelector('#btn-dialog-cancel');
-      const closeBtn = dialog.querySelector('#btn-cancel-connect');
-      const connectBtn = dialog.querySelector('#btn-dialog-connect');
-
-      if (input) input.focus();
-
-      if (toggleMask && input) {
-        toggleMask.addEventListener('click', () => {
-          input.type = input.type === 'password' ? 'text' : 'password';
-        });
+    const toggleMask = h('button.btn.btn-ghost.btn-sm#btn-toggle-mask', {
+      type: 'button',
+      onclick: () => {
+        input.type = input.type === 'password' ? 'text' : 'password';
       }
+    }, createIcon('eye', 14));
 
-      const closeDialog = () => {
-        this.activeDialogSSID = null;
-        this.render(this.container, this.controller.searchQuery);
-      };
+    const closeDialog = () => {
+      this.activeDialogSSID = null;
+      this.render(this.container, this.controller.searchQuery);
+    };
 
-      if (cancelBtn) cancelBtn.addEventListener('click', closeDialog);
-      if (closeBtn) closeBtn.addEventListener('click', closeDialog);
+    const doConnect = () => {
+      const pwd = input.value;
+      this.activeDialogSSID = null;
+      this.connectToWifi(ssid, pwd);
+    };
 
-      if (connectBtn && input) {
-        connectBtn.addEventListener('click', () => {
-          this.connectToWifi(ssid, input.value);
-          closeDialog();
-        });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') doConnect();
+      else if (e.key === 'Escape') closeDialog();
+    });
 
-        input.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter') {
-            this.connectToWifi(ssid, input.value);
-            closeDialog();
-          } else if (e.key === 'Escape') {
-            closeDialog();
-          }
-        });
-      }
-    }, 0);
+    setTimeout(() => input.focus(), 0);
 
-    overlay.appendChild(dialog);
-    return overlay;
+    const dialog = h('div.settings-submodal', null,
+      h('div.submodal-header', null,
+        h('h3.submodal-title', null, `Connect to "${ssid}"`),
+        h('button.submodal-close-btn#btn-cancel-connect', {
+          onclick: closeDialog
+        }, createIcon('close', 14))
+      ),
+      h('div.submodal-body', null,
+        h('p.submodal-desc', null, 'This Wi-Fi network requires a security key or password to connect.'),
+        h('div.form-group', null,
+          h('label.form-label', { for: 'wifi-password-input' }, 'Password'),
+          h('div.password-input-group', null, input, toggleMask)
+        )
+      ),
+      h('div.submodal-footer', null,
+        h('button.btn.btn-secondary#btn-dialog-cancel', { onclick: closeDialog }, 'Cancel'),
+        h('button.btn.btn-accent#btn-dialog-connect', { onclick: doConnect }, 'Connect')
+      )
+    );
+
+    return h('div.settings-submodal-overlay', null, dialog);
   }
 
   /* -------------------------------------------------------------------------
@@ -445,7 +365,6 @@ export class NetworkView {
       }
     }
 
-    // Refresh genuine network state from system
     this.getNetworkData();
     this.render(this.container, this.controller.searchQuery);
   }
@@ -461,28 +380,17 @@ export class NetworkView {
     this.render(this.container, this.controller.searchQuery);
   }
 
-  getSignalSvg(percent) {
+  renderSignalBars(percent) {
     const bars = percent > 75 ? 4 : (percent > 50 ? 3 : (percent > 25 ? 2 : 1));
-    return `
-      <div class="signal-bars-container" title="${percent}%">
-        <span class="signal-bar ${bars >= 1 ? 'filled' : ''}"></span>
-        <span class="signal-bar ${bars >= 2 ? 'filled' : ''}"></span>
-        <span class="signal-bar ${bars >= 3 ? 'filled' : ''}"></span>
-        <span class="signal-bar ${bars >= 4 ? 'filled' : ''}"></span>
-      </div>
-    `;
+    return h('div.signal-bars-container', { title: `${percent}%` },
+      h(`span.signal-bar${bars >= 1 ? '.filled' : ''}`),
+      h(`span.signal-bar${bars >= 2 ? '.filled' : ''}`),
+      h(`span.signal-bar${bars >= 3 ? '.filled' : ''}`),
+      h(`span.signal-bar${bars >= 4 ? '.filled' : ''}`)
+    );
   }
 
   destroy() {
     this.container = null;
-  }
-
-  escapeHtml(str) {
-    if (!str) return '';
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
   }
 }

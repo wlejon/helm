@@ -10,7 +10,8 @@ import { PowerView } from './views/power_view.js';
 import { AppearanceView } from './views/appearance_view.js';
 import { ShortcutsView } from './views/shortcuts_view.js';
 import { SystemView } from './views/system_view.js';
-import { getIconSvg } from '../icons.js';
+import { createIcon } from '../icons.js';
+import { h, clear } from '../dom.js';
 
 export class SettingsController {
   constructor() {
@@ -92,7 +93,7 @@ export class SettingsController {
 
   renderSidebar() {
     if (!this.sidebarEl) return;
-    this.sidebarEl.innerHTML = '';
+    clear(this.sidebarEl);
 
     const query = this.searchQuery.toLowerCase().trim();
 
@@ -109,25 +110,14 @@ export class SettingsController {
       const isVisible = !query || isCategoryMatch || hasViewMatches;
       if (!isVisible) return;
 
-      const itemBtn = document.createElement('button');
-      itemBtn.type = 'button';
-      itemBtn.className = `settings-nav-item ${cat.id === this.activeCategory ? 'active' : ''}`;
-      itemBtn.dataset.categoryId = cat.id;
-
-      const iconSpan = document.createElement('span');
-      iconSpan.className = 'nav-icon';
-      iconSpan.innerHTML = getIconSvg(cat.icon, 16);
-
-      const labelSpan = document.createElement('span');
-      labelSpan.className = 'nav-label';
-      labelSpan.textContent = cat.label;
-
-      itemBtn.appendChild(iconSpan);
-      itemBtn.appendChild(labelSpan);
-
-      itemBtn.addEventListener('click', () => {
-        this.showCategory(cat.id);
-      });
+      const itemBtn = h(`button.settings-nav-item${cat.id === this.activeCategory ? '.active' : ''}`, {
+        type: 'button',
+        dataset: { categoryId: cat.id },
+        onclick: () => this.showCategory(cat.id),
+      },
+        h('span.nav-icon', null, createIcon(cat.icon, 16)),
+        h('span.nav-label', null, cat.label)
+      );
 
       this.sidebarEl.appendChild(itemBtn);
     });
@@ -151,19 +141,16 @@ export class SettingsController {
 
     // Render active view in viewport
     if (this.contentEl) {
-      this.contentEl.innerHTML = '';
+      clear(this.contentEl);
       const view = this.views[categoryId];
       if (view && typeof view.render === 'function') {
         try {
-          const viewContainer = document.createElement('div');
-          viewContainer.className = `settings-view settings-view-${categoryId}`;
+          const viewContainer = h(`div.settings-view.settings-view-${categoryId}`);
           view.render(viewContainer, this.searchQuery);
           this.contentEl.appendChild(viewContainer);
         } catch (err) {
           console.error(`Settings: error rendering view ${categoryId}:`, err);
-          const errEl = document.createElement('div');
-          errEl.className = 'settings-error';
-          errEl.textContent = `Failed to load ${categoryId} settings.`;
+          const errEl = h('div.settings-error', null, `Failed to load ${categoryId} settings.`);
           this.contentEl.appendChild(errEl);
         }
       }
