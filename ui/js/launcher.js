@@ -1,4 +1,5 @@
 import { ClipboardController } from './clipboard.js';
+import { getIconSvg } from './icons.js';
 
 export class LauncherController {
   constructor() {
@@ -23,7 +24,7 @@ export class LauncherController {
         id: 'cmd:lock',
         name: 'Lock Screen',
         comment: 'Lock the current desktop session',
-        icon: '🔒',
+        icon: 'lock',
         type: 'cmd',
         action: () => window.helm?.lock?.lock(),
       },
@@ -31,7 +32,7 @@ export class LauncherController {
         id: 'cmd:sleep',
         name: 'Sleep / Suspend',
         comment: 'Suspend system to RAM',
-        icon: '💤',
+        icon: 'sleep',
         type: 'cmd',
         action: () => window.helm?.panel?.requestPowerAction('suspend'),
       },
@@ -39,7 +40,7 @@ export class LauncherController {
         id: 'cmd:restart',
         name: 'Restart System',
         comment: 'Reboot the machine',
-        icon: '🔄',
+        icon: 'restart',
         type: 'cmd',
         action: () => window.helm?.panel?.requestPowerAction('reboot'),
       },
@@ -47,7 +48,7 @@ export class LauncherController {
         id: 'cmd:shutdown',
         name: 'Shut Down',
         comment: 'Power off the system',
-        icon: '⏻',
+        icon: 'shutdown',
         type: 'cmd',
         action: () => window.helm?.panel?.requestPowerAction('powerOff'),
       },
@@ -55,7 +56,7 @@ export class LauncherController {
         id: 'cmd:terminal',
         name: 'Terminal',
         comment: 'Open command line terminal',
-        icon: '💻',
+        icon: 'terminal',
         type: 'cmd',
         action: () => {
           if (typeof bro !== 'undefined' && bro.apps?.launch) {
@@ -63,12 +64,11 @@ export class LauncherController {
           }
         },
       },
-
       {
         id: 'cmd:notifications',
         name: 'Toggle Notifications',
         comment: 'Open notification history drawer',
-        icon: '🔔',
+        icon: 'bell',
         type: 'cmd',
         action: () => window.helm?.notify?.toggleDrawer(),
       },
@@ -76,7 +76,7 @@ export class LauncherController {
         id: 'cmd:settings',
         name: 'System Settings',
         comment: 'Configure display, audio, network, and power preferences',
-        icon: '⚙️',
+        icon: 'settings',
         type: 'cmd',
         action: () => window.helm?.settings?.open(),
       },
@@ -84,7 +84,7 @@ export class LauncherController {
         id: 'cmd:clipboard',
         name: 'Clipboard History',
         comment: 'Search and paste recent clipboard items',
-        icon: '📋',
+        icon: 'copy',
         type: 'cmd',
         action: () => this.openClipboard(),
       },
@@ -104,7 +104,7 @@ export class LauncherController {
             name: a.name || a.id,
             comment: a.comment || a.genericName || '',
             exec: a.exec || '',
-            icon: a.icon || '🚀',
+            icon: a.icon || 'app',
             type: 'app',
           });
         }
@@ -116,12 +116,12 @@ export class LauncherController {
     // Default sample applications if none discovered from system
     if (this.apps.length === 0) {
       this.apps = [
-        { id: 'broterm', name: 'Bro Terminal', comment: 'Hardware-accelerated terminal emulator', icon: '💻', type: 'app' },
-        { id: 'files', name: 'File Manager', comment: 'Browse files, folders, and storage', icon: '📁', type: 'app' },
-        { id: 'browser', name: 'Web Browser', comment: 'Browse the World Wide Web', icon: '🌐', type: 'app' },
-        { id: 'settings', name: 'System Settings', comment: 'Display, network, audio, and device settings', icon: '⚙️', type: 'app' },
-        { id: 'editor', name: 'Text Editor', comment: 'Edit code and text documents', icon: '📝', type: 'app' },
-        { id: 'media', name: 'Media Player', comment: 'Play audio and video streams', icon: '🎵', type: 'app' },
+        { id: 'broterm', name: 'Bro Terminal', comment: 'Hardware-accelerated terminal emulator', icon: 'terminal', type: 'app' },
+        { id: 'files', name: 'File Manager', comment: 'Browse files, folders, and storage', icon: 'app', type: 'app' },
+        { id: 'browser', name: 'Web Browser', comment: 'Browse the World Wide Web', icon: 'window', type: 'app' },
+        { id: 'settings', name: 'System Settings', comment: 'Display, network, audio, and device settings', icon: 'settings', type: 'app' },
+        { id: 'editor', name: 'Text Editor', comment: 'Edit code and text documents', icon: 'copy', type: 'app' },
+        { id: 'media', name: 'Media Player', comment: 'Play audio and video streams', icon: 'audio', type: 'app' },
       ];
     }
   }
@@ -170,8 +170,8 @@ export class LauncherController {
         .map((e) => ({
           id: e.id,
           name: e.previewText || `Clip #${e.id}`,
-          comment: `${e.byteSize || 0} bytes • ${e.isPinned ? '📌 Pinned' : 'Recent'}`,
-          icon: '📋',
+          comment: `${e.byteSize || 0} bytes • ${e.isPinned ? 'Pinned' : 'Recent'}`,
+          icon: 'copy',
           type: 'clip',
         }));
       this.selectedIndex = 0;
@@ -249,7 +249,19 @@ export class LauncherController {
 
       const iconEl = document.createElement('span');
       iconEl.className = 'launcher-item-icon';
-      iconEl.textContent = item.icon || (item.type === 'cmd' ? '⚡' : '🚀');
+      if (item.icon && !item.icon.includes('/') && !item.icon.endsWith('.png') && !item.icon.endsWith('.svg')) {
+        iconEl.innerHTML = getIconSvg(item.icon, 20);
+      } else if (item.icon && (item.icon.includes('/') || item.icon.endsWith('.png') || item.icon.endsWith('.svg'))) {
+        const img = document.createElement('img');
+        img.src = item.icon;
+        img.className = 'launcher-icon-img';
+        img.onerror = () => {
+          iconEl.innerHTML = getIconSvg(item.type === 'cmd' ? 'command' : 'app', 20);
+        };
+        iconEl.appendChild(img);
+      } else {
+        iconEl.innerHTML = getIconSvg(item.type === 'cmd' ? 'command' : 'app', 20);
+      }
 
       const contentEl = document.createElement('div');
       contentEl.className = 'launcher-item-content';

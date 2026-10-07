@@ -21,7 +21,9 @@
         <span class="brand-label">Helm</span>
       </button>
       <button class="search-pill-btn" id="btn-launcher-pill" title="Search applications & commands (Ctrl+Space)">
-        <span class="icon">🔍</span>
+        <span class="icon">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 21l-4.35-4.35M19 11a8 8 0 11-16 0 8 8 0 0116 0z"/></svg>
+        </span>
         <span class="search-pill-label">Search apps...</span>
         <kbd class="shortcut-badge">⌃Space</kbd>
       </button>
@@ -36,9 +38,15 @@
     <!-- Center: Clock & Date + Media Player -->
     <div class="panel-section panel-center">
       <div class="panel-media-widget hidden" id="panel-media-widget">
-        <button class="panel-btn" id="media-prev-btn" title="Previous Track">⏮</button>
-        <button class="panel-btn" id="media-play-btn" title="Play/Pause">▶</button>
-        <button class="panel-btn" id="media-next-btn" title="Next Track">⏭</button>
+        <button class="panel-btn" id="media-prev-btn" title="Previous Track">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+        </button>
+        <button class="panel-btn" id="media-play-btn" title="Play/Pause">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <button class="panel-btn" id="media-next-btn" title="Next Track">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+        </button>
         <span class="media-title" id="media-title">No Media</span>
       </div>
       <button class="panel-btn clock-btn" id="btn-clock" title="Toggle calendar & notifications">
@@ -55,28 +63,38 @@
       <!-- Quick Status Indicators -->
       <div class="quick-status-group">
         <button class="panel-btn status-btn" id="btn-quick-net" title="Network settings">
-          <span class="status-icon" id="icon-net">📶</span>
+          <span class="status-icon" id="icon-net">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0114.08 0M1.42 9a16 16 0 0121.16 0M8.53 16.11a6 6 0 016.95 0M12 20h.01"/></svg>
+          </span>
           <span class="status-text" id="text-net">Online</span>
         </button>
         <button class="panel-btn status-btn" id="btn-quick-volume" title="Volume control">
-          <span class="status-icon" id="icon-volume">🔊</span>
+          <span class="status-icon" id="icon-volume">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 010 7.07"/></svg>
+          </span>
           <span class="status-text" id="text-volume">80%</span>
         </button>
         <button class="panel-btn status-btn" id="btn-quick-battery" title="Battery & Power">
-          <span class="status-icon" id="icon-battery">🔋</span>
+          <span class="status-icon" id="icon-battery">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="6" width="18" height="12" rx="2"/><path d="M23 10v4"/></svg>
+          </span>
           <span class="status-text" id="text-battery">100%</span>
         </button>
       </div>
 
       <!-- Notification Toggle -->
       <button class="panel-btn icon-only-btn" id="btn-notify-toggle" title="Notifications">
-        <span class="icon">🔔</span>
+        <span class="icon">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+        </span>
         <span class="badge" id="notify-badge">0</span>
       </button>
 
       <!-- Session / Lock Button -->
       <button class="panel-btn icon-only-btn" id="btn-session-lock" title="Lock screen (Ctrl+Alt+L)">
-        <span class="icon">🔒</span>
+        <span class="icon">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        </span>
       </button>
     </div>
   </header>
@@ -114,10 +132,22 @@
       <div class="popup-body">
         <div class="power-battery-status" id="power-battery-text">Battery: 100% (AC connected)</div>
         <div class="power-actions-grid">
-          <button class="power-action-btn" id="power-btn-lock">🔒 Lock</button>
-          <button class="power-action-btn" id="power-btn-suspend">💤 Sleep</button>
-          <button class="power-action-btn" id="power-btn-restart">🔄 Restart</button>
-          <button class="power-action-btn power-btn-danger" id="power-btn-shutdown">⏻ Shut Down</button>
+          <button class="power-action-btn" id="power-btn-lock">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            Lock
+          </button>
+          <button class="power-action-btn" id="power-btn-suspend">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+            Sleep
+          </button>
+          <button class="power-action-btn" id="power-btn-restart">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3L21.5 8M22 12.5a10 10 0 01-18.8 4.2L2.5 16"/></svg>
+            Restart
+          </button>
+          <button class="power-action-btn power-btn-danger" id="power-btn-shutdown">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 11-12.73 0M12 2v10"/></svg>
+            Shut Down
+          </button>
         </div>
       </div>
     </div>
@@ -147,7 +177,9 @@
     <div class="launcher-backdrop" id="launcher-backdrop"></div>
     <div class="launcher-window">
       <div class="launcher-search-box">
-        <span class="search-icon">🔍</span>
+        <span class="search-icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 21l-4.35-4.35M19 11a8 8 0 11-16 0 8 8 0 0116 0z"/></svg>
+        </span>
         <input type="text" class="launcher-input" id="launcher-input"
                placeholder="Search applications, files, settings..." autocomplete="off" spellcheck="false">
         <kbd class="launcher-esc-badge">ESC</kbd>
@@ -172,13 +204,15 @@
         <div class="lock-clock-date" id="lock-clock-date">Monday, October 6</div>
       </div>
       <div class="lock-auth-box">
-        <div class="lock-avatar">👤</div>
+        <div class="lock-avatar">
+          <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
         <div class="lock-username" id="lock-username">User</div>
         <form class="lock-form" id="lock-form">
           <div class="lock-input-group">
             <input type="password" class="lock-password-input" id="lock-password"
                    placeholder="Enter password..." autocomplete="current-password">
-            <button type="submit" class="lock-submit-btn" id="lock-submit">➔</button>
+            <button type="submit" class="lock-submit-btn" id="lock-submit" aria-label="Unlock"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
           </div>
           <div class="lock-error-msg hidden" id="lock-error-msg">Incorrect password. Please try again.</div>
         </form>
@@ -190,20 +224,28 @@
   <div class="settings-overlay hidden" id="settings-modal" role="dialog" aria-modal="true" aria-label="System Settings">
     <div class="settings-backdrop" id="settings-backdrop"></div>
     <div class="settings-window">
-      <!-- Header -->
+      <!-- Titlebar Window Chrome -->
       <header class="settings-header">
         <div class="settings-header-left">
-          <span class="settings-app-icon">⚙️</span>
+          <div class="window-traffic-lights">
+            <button class="window-ctrl-btn close" id="settings-win-close" title="Close Settings"></button>
+            <button class="window-ctrl-btn minimize" id="settings-win-min" title="Minimize Settings"></button>
+            <button class="window-ctrl-btn expand" id="settings-win-max" title="Expand"></button>
+          </div>
           <span class="settings-app-title">Settings</span>
         </div>
         <div class="settings-header-search">
           <div class="settings-search-box">
-            <span class="settings-search-icon">🔍</span>
+            <span class="settings-search-icon">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 21l-4.35-4.35M19 11a8 8 0 11-16 0 8 8 0 0116 0z"/></svg>
+            </span>
             <input type="text" class="settings-search-field" id="settings-search-input"
-                   placeholder="Search all settings..." autocomplete="off" spellcheck="false">
+                   placeholder="Search settings..." autocomplete="off" spellcheck="false">
           </div>
         </div>
-        <button class="settings-close-button" id="settings-close-btn" title="Close Settings (Esc)">✕</button>
+        <button class="settings-close-button" id="settings-close-btn" title="Close Settings (Esc)">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
       </header>
 
       <!-- Main Body: Sidebar + Viewport -->

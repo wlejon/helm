@@ -4,6 +4,8 @@
  * and genuine IP/DNS configuration details. Absolutely zero mock or fake data.
  */
 
+import { getIconSvg } from '../../icons.js';
+
 export class NetworkView {
   constructor(controller) {
     this.controller = controller;
@@ -125,7 +127,7 @@ export class NetworkView {
     const header = document.createElement('div');
     header.className = 'settings-card-header';
     header.innerHTML = `
-      <div class="card-header-icon">📶</div>
+      <div class="card-header-icon">${getIconSvg('wifi', 18)}</div>
       <div class="card-header-text">
         <h3 class="card-title">Wi-Fi Wireless Networking</h3>
         <p class="card-description">${wifiDevice ? (wifiDevice.description || wifiDevice.interfaceName || 'Wireless Adapter') : 'Connect to wireless networks and discover nearby access points.'}</p>
@@ -133,7 +135,7 @@ export class NetworkView {
       <div class="card-header-actions">
         ${wifiDevice ? `
           <button class="btn btn-secondary btn-sm" id="btn-scan-wifi" ${this.isScanning ? 'disabled' : ''}>
-            ${this.isScanning ? '🔄 Scanning...' : '🔍 Scan Networks'}
+            ${this.isScanning ? 'Scanning...' : 'Scan Networks'}
           </button>
         ` : ''}
       </div>
@@ -149,7 +151,7 @@ export class NetworkView {
       const empty = document.createElement('div');
       empty.className = 'settings-empty-state';
       empty.innerHTML = `
-        <div class="empty-state-icon">📡</div>
+        <div class="empty-state-icon">${getIconSvg('wifi', 28)}</div>
         <div class="empty-state-title">No Wi-Fi Adapter Found</div>
         <div class="empty-state-desc">This system does not have a wireless network interface installed or enabled.</div>
       `;
@@ -161,7 +163,7 @@ export class NetworkView {
       const disabled = document.createElement('div');
       disabled.className = 'settings-empty-state';
       disabled.innerHTML = `
-        <div class="empty-state-icon">🚫</div>
+        <div class="empty-state-icon">${getIconSvg('wifi', 28)}</div>
         <div class="empty-state-title">Wi-Fi is Disabled</div>
         <div class="empty-state-desc">Wireless networking is currently turned off.</div>
       `;
@@ -173,7 +175,7 @@ export class NetworkView {
       const empty = document.createElement('div');
       empty.className = 'settings-empty-state';
       empty.innerHTML = `
-        <div class="empty-state-icon">🔍</div>
+        <div class="empty-state-icon">${getIconSvg('search', 28)}</div>
         <div class="empty-state-title">No Wi-Fi Networks in Range</div>
         <div class="empty-state-desc">Click "Scan Networks" to search for nearby wireless access points.</div>
       `;
@@ -198,7 +200,7 @@ export class NetworkView {
         <div class="wifi-ssid-title">
           <span>${this.escapeHtml(ap.ssid)}</span>
           ${ap.active ? '<span class="badge badge-success">Connected</span>' : ''}
-          ${ap.security === 'Open' ? '<span class="badge badge-dim">Open</span>' : '<span class="badge badge-dim">🔒 ' + this.escapeHtml(ap.security) + '</span>'}
+          ${ap.security === 'Open' ? '<span class="badge badge-dim">Open</span>' : '<span class="badge badge-dim">' + getIconSvg('wifiLock', 12) + ' ' + this.escapeHtml(ap.security) + '</span>'}
         </div>
         <div class="wifi-signal-text">Signal: ${ap.strengthPercent}%</div>
       `;
@@ -239,7 +241,7 @@ export class NetworkView {
     const header = document.createElement('div');
     header.className = 'settings-card-header';
     header.innerHTML = `
-      <div class="card-header-icon">🌐</div>
+      <div class="card-header-icon">${getIconSvg('ethernet', 18)}</div>
       <div class="card-header-text">
         <h3 class="card-title">Wired Ethernet</h3>
         <p class="card-description">High-speed wired network adapters and interface configurations.</p>
@@ -251,7 +253,7 @@ export class NetworkView {
       const empty = document.createElement('div');
       empty.className = 'settings-empty-state';
       empty.innerHTML = `
-        <div class="empty-state-icon">🔌</div>
+        <div class="empty-state-icon">${getIconSvg('ethernet', 28)}</div>
         <div class="empty-state-title">No Wired Ethernet Adapters Detected</div>
         <div class="empty-state-desc">No physical Ethernet interfaces are currently reporting to the network subsystem.</div>
       `;
@@ -324,7 +326,7 @@ export class NetworkView {
     dialog.innerHTML = `
       <div class="submodal-header">
         <h3 class="submodal-title">Connect to "${this.escapeHtml(ssid)}"</h3>
-        <button class="submodal-close-btn" id="btn-cancel-connect">✕</button>
+        <button class="submodal-close-btn" id="btn-cancel-connect">${getIconSvg('close', 14)}</button>
       </div>
       <div class="submodal-body">
         <p class="submodal-desc">This Wi-Fi network requires a security key or password to connect.</p>
@@ -332,7 +334,7 @@ export class NetworkView {
           <label class="form-label" for="wifi-password-input">Password</label>
           <div class="password-input-group">
             <input type="password" id="wifi-password-input" class="text-input" placeholder="Enter network password..." autocomplete="off">
-            <button type="button" class="btn btn-ghost btn-sm" id="btn-toggle-mask">👁️</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="btn-toggle-mask">${getIconSvg('eye', 14)}</button>
           </div>
         </div>
       </div>

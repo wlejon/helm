@@ -10,6 +10,7 @@ import { PowerView } from './views/power_view.js';
 import { AppearanceView } from './views/appearance_view.js';
 import { ShortcutsView } from './views/shortcuts_view.js';
 import { SystemView } from './views/system_view.js';
+import { getIconSvg } from '../icons.js';
 
 export class SettingsController {
   constructor() {
@@ -18,13 +19,13 @@ export class SettingsController {
     this.searchQuery = '';
 
     this.categories = [
-      { id: 'audio', label: 'Audio Studio', icon: '🔊', keywords: ['sound', 'volume', 'microphone', 'sink', 'speaker', 'headphone', 'pulse', 'input', 'output'] },
-      { id: 'display', label: 'Displays & Monitors', icon: '🖥️', keywords: ['screen', 'resolution', 'refresh', 'rate', 'dpi', 'scale', 'monitors', 'layout', 'orientation'] },
-      { id: 'network', label: 'Network & Internet', icon: '📶', keywords: ['wifi', 'ethernet', 'ip', 'mac', 'gateway', 'dns', 'internet', 'connection', 'ssid'] },
-      { id: 'power', label: 'Power & Battery', icon: '🔋', keywords: ['battery', 'charge', 'sleep', 'timeout', 'energy', 'profile', 'suspend', 'shutdown'] },
-      { id: 'appearance', label: 'Appearance & Desktop', icon: '🎨', keywords: ['wallpaper', 'theme', 'dark', 'light', 'accent', 'color', 'background', 'style'] },
-      { id: 'shortcuts', label: 'Keyboard Shortcuts', icon: '⌨️', keywords: ['hotkeys', 'keybindings', 'chords', 'keys', 'launcher', 'clipboard', 'super', 'ctrl'] },
-      { id: 'system', label: 'System Information', icon: 'ℹ️', keywords: ['about', 'hardware', 'cpu', 'gpu', 'memory', 'ram', 'specs', 'os', 'uptime', 'helm'] },
+      { id: 'audio', label: 'Audio Studio', icon: 'audio', keywords: ['sound', 'volume', 'microphone', 'sink', 'speaker', 'headphone', 'pulse', 'input', 'output'] },
+      { id: 'display', label: 'Displays & Monitors', icon: 'display', keywords: ['screen', 'resolution', 'refresh', 'rate', 'dpi', 'scale', 'monitors', 'layout', 'orientation'] },
+      { id: 'network', label: 'Network & Internet', icon: 'network', keywords: ['wifi', 'ethernet', 'ip', 'mac', 'gateway', 'dns', 'internet', 'connection', 'ssid'] },
+      { id: 'power', label: 'Power & Battery', icon: 'power', keywords: ['battery', 'charge', 'sleep', 'timeout', 'energy', 'profile', 'suspend', 'shutdown'] },
+      { id: 'appearance', label: 'Appearance & Desktop', icon: 'appearance', keywords: ['wallpaper', 'theme', 'dark', 'light', 'accent', 'color', 'background', 'style'] },
+      { id: 'shortcuts', label: 'Keyboard Shortcuts', icon: 'shortcuts', keywords: ['hotkeys', 'keybindings', 'chords', 'keys', 'launcher', 'clipboard', 'super', 'ctrl'] },
+      { id: 'system', label: 'System Information', icon: 'system', keywords: ['about', 'hardware', 'cpu', 'gpu', 'memory', 'ram', 'specs', 'os', 'uptime', 'helm'] },
     ];
 
     this.views = {
@@ -64,6 +65,11 @@ export class SettingsController {
   bindEvents() {
     if (this.closeBtn) {
       this.closeBtn.addEventListener('click', () => this.close());
+    }
+
+    const winCloseBtn = document.getElementById('settings-win-close');
+    if (winCloseBtn) {
+      winCloseBtn.addEventListener('click', () => this.close());
     }
 
     if (this.backdropEl) {
@@ -110,7 +116,7 @@ export class SettingsController {
 
       const iconSpan = document.createElement('span');
       iconSpan.className = 'nav-icon';
-      iconSpan.textContent = cat.icon;
+      iconSpan.innerHTML = getIconSvg(cat.icon, 16);
 
       const labelSpan = document.createElement('span');
       labelSpan.className = 'nav-label';

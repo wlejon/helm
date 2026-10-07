@@ -4,6 +4,8 @@
  * Strictly zero mock or fake data.
  */
 
+import { getIconSvg } from '../../icons.js';
+
 export class AudioView {
   constructor(controller) {
     this.controller = controller;
@@ -159,7 +161,7 @@ export class AudioView {
               id: st.id,
               name: st.name || st.appId || `Stream #${st.id}`,
               appId: st.appId || '',
-              icon: st.icon || '🎵',
+              icon: st.icon || 'audio',
               volume: typeof st.volume === 'number' ? st.volume : 0.8,
               isMuted: !!st.isMuted,
               sinkId: st.sinkId != null ? st.sinkId : null,
@@ -217,7 +219,7 @@ export class AudioView {
     const header = document.createElement('div');
     header.className = 'settings-card-header';
     header.innerHTML = `
-      <div class="card-header-icon">🔊</div>
+      <div class="card-header-icon">${getIconSvg('audio', 18)}</div>
       <div class="card-header-text">
         <h3 class="card-title">Sound Output Devices</h3>
         <p class="card-description">Choose where audio plays and adjust master volume & balance.</p>
@@ -229,7 +231,7 @@ export class AudioView {
       const empty = document.createElement('div');
       empty.className = 'settings-empty-state';
       empty.innerHTML = `
-        <div class="empty-state-icon">🔇</div>
+        <div class="empty-state-icon">${getIconSvg('volumeMute', 28)}</div>
         <div class="empty-state-title">No Audio Output Devices Found</div>
         <div class="empty-state-desc">No speakers, headphones, or HDMI sound endpoints are currently detected.</div>
       `;
@@ -271,7 +273,7 @@ export class AudioView {
       const muteBtn = document.createElement('button');
       muteBtn.type = 'button';
       muteBtn.className = `btn btn-sm ${device.isMuted ? 'btn-danger' : 'btn-ghost'}`;
-      muteBtn.textContent = device.isMuted ? '🔇 Unmute' : '🔊 Mute';
+      muteBtn.innerHTML = device.isMuted ? `${getIconSvg('volumeMute', 14)} Unmute` : `${getIconSvg('speaker', 14)} Mute`;
       muteBtn.addEventListener('click', () => this.toggleOutputMute(device, muteBtn, slider));
       actionsDiv.appendChild(muteBtn);
 
@@ -304,7 +306,7 @@ export class AudioView {
         this.setOutputVolume(device, val / 100.0);
         if (device.isMuted && val > 0) {
           device.isMuted = false;
-          muteBtn.textContent = '🔊 Mute';
+          muteBtn.innerHTML = `${getIconSvg('speaker', 14)} Mute`;
           muteBtn.className = 'btn btn-sm btn-ghost';
         }
       });
@@ -372,7 +374,7 @@ export class AudioView {
     const header = document.createElement('div');
     header.className = 'settings-card-header';
     header.innerHTML = `
-      <div class="card-header-icon">🎙️</div>
+      <div class="card-header-icon">${getIconSvg('mic', 18)}</div>
       <div class="card-header-text">
         <h3 class="card-title">Sound Input & Microphones</h3>
         <p class="card-description">Configure recording devices, input gain, and test microphone levels.</p>
@@ -384,7 +386,7 @@ export class AudioView {
       const empty = document.createElement('div');
       empty.className = 'settings-empty-state';
       empty.innerHTML = `
-        <div class="empty-state-icon">🎤</div>
+        <div class="empty-state-icon">${getIconSvg('micMute', 28)}</div>
         <div class="empty-state-title">No Audio Input Devices Found</div>
         <div class="empty-state-desc">No microphones or line-in recording endpoints are currently detected.</div>
       `;
@@ -426,7 +428,7 @@ export class AudioView {
       const muteBtn = document.createElement('button');
       muteBtn.type = 'button';
       muteBtn.className = `btn btn-sm ${device.isMuted ? 'btn-danger' : 'btn-ghost'}`;
-      muteBtn.textContent = device.isMuted ? '🔇 Unmute' : '🎙️ Mute';
+      muteBtn.innerHTML = device.isMuted ? `${getIconSvg('micMute', 14)} Unmute` : `${getIconSvg('mic', 14)} Mute`;
       muteBtn.addEventListener('click', () => this.toggleInputMute(device, muteBtn));
       actionsDiv.appendChild(muteBtn);
 
@@ -502,7 +504,7 @@ export class AudioView {
     const header = document.createElement('div');
     header.className = 'settings-card-header';
     header.innerHTML = `
-      <div class="card-header-icon">🎚️</div>
+      <div class="card-header-icon">${getIconSvg('sliders', 18)}</div>
       <div class="card-header-text">
         <h3 class="card-title">Application Volume & Routing</h3>
         <p class="card-description">Control individual app volume and redirect playback streams to any output device.</p>
@@ -514,7 +516,7 @@ export class AudioView {
       const empty = document.createElement('div');
       empty.className = 'settings-empty-state';
       empty.innerHTML = `
-        <div class="empty-state-icon">🎧</div>
+        <div class="empty-state-icon">${getIconSvg('headphones', 28)}</div>
         <div class="empty-state-title">No Audio Streams Active</div>
         <div class="empty-state-desc">No applications are currently playing audio through the sound graph.</div>
       `;
@@ -568,7 +570,7 @@ export class AudioView {
       const muteBtn = document.createElement('button');
       muteBtn.type = 'button';
       muteBtn.className = `btn btn-sm ${stream.isMuted ? 'btn-danger' : 'btn-ghost'}`;
-      muteBtn.textContent = stream.isMuted ? '🔇' : '🔊';
+      muteBtn.innerHTML = stream.isMuted ? getIconSvg('volumeMute', 14) : getIconSvg('speaker', 14);
       muteBtn.title = stream.isMuted ? 'Unmute stream' : 'Mute stream';
 
       const slider = document.createElement('input');
@@ -584,7 +586,7 @@ export class AudioView {
 
       muteBtn.addEventListener('click', () => {
         stream.isMuted = !stream.isMuted;
-        muteBtn.textContent = stream.isMuted ? '🔇' : '🔊';
+        muteBtn.innerHTML = stream.isMuted ? getIconSvg('volumeMute', 14) : getIconSvg('speaker', 14);
         muteBtn.className = `btn btn-sm ${stream.isMuted ? 'btn-danger' : 'btn-ghost'}`;
         this.setStreamMute(stream.id, stream.isMuted);
       });
@@ -595,7 +597,7 @@ export class AudioView {
         this.setStreamVolume(stream.id, val / 100.0);
         if (stream.isMuted && val > 0) {
           stream.isMuted = false;
-          muteBtn.textContent = '🔊';
+          muteBtn.innerHTML = getIconSvg('speaker', 14);
           muteBtn.className = 'btn btn-sm btn-ghost';
           this.setStreamMute(stream.id, false);
         }
@@ -663,7 +665,7 @@ export class AudioView {
 
   toggleOutputMute(device, muteBtn, slider) {
     device.isMuted = !device.isMuted;
-    muteBtn.textContent = device.isMuted ? '🔇 Unmute' : '🔊 Mute';
+    muteBtn.innerHTML = device.isMuted ? `${getIconSvg('volumeMute', 14)} Unmute` : `${getIconSvg('speaker', 14)} Mute`;
     muteBtn.className = `btn btn-sm ${device.isMuted ? 'btn-danger' : 'btn-ghost'}`;
 
     if (typeof bro !== 'undefined') {
@@ -677,7 +679,7 @@ export class AudioView {
 
   toggleInputMute(device, muteBtn) {
     device.isMuted = !device.isMuted;
-    muteBtn.textContent = device.isMuted ? '🔇 Unmute' : '🎙️ Mute';
+    muteBtn.innerHTML = device.isMuted ? `${getIconSvg('micMute', 14)} Unmute` : `${getIconSvg('mic', 14)} Mute`;
     muteBtn.className = `btn btn-sm ${device.isMuted ? 'btn-danger' : 'btn-ghost'}`;
 
     if (typeof bro !== 'undefined') {

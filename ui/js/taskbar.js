@@ -4,6 +4,8 @@
  * track focus, bring windows to front, and close windows.
  */
 
+import { getIconSvg } from './icons.js';
+
 export class TaskbarController {
   constructor() {
     this.windows = new Map(); // id -> WindowSnapshot
@@ -199,7 +201,7 @@ export class TaskbarController {
 
       const icon = document.createElement('span');
       icon.className = 'taskbar-icon';
-      icon.textContent = this.resolveIcon(win);
+      icon.innerHTML = getIconSvg(this.resolveIcon(win), 14);
 
       const title = document.createElement('span');
       title.className = 'taskbar-title';
@@ -207,7 +209,7 @@ export class TaskbarController {
 
       const closeBtn = document.createElement('button');
       closeBtn.className = 'taskbar-close-btn';
-      closeBtn.textContent = '×';
+      closeBtn.innerHTML = getIconSvg('close', 10);
       closeBtn.title = 'Close window';
       closeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -228,13 +230,13 @@ export class TaskbarController {
 
   resolveIcon(win) {
     const name = (win.appId || win.title || '').toLowerCase();
-    if (name.includes('code') || name.includes('cursor')) return '📝';
-    if (name.includes('terminal') || name.includes('pwsh') || name.includes('cmd') || name.includes('broterm')) return '💻';
-    if (name.includes('chrome') || name.includes('edge') || name.includes('firefox') || name.includes('browser')) return '🌐';
-    if (name.includes('file') || name.includes('explorer')) return '📁';
-    if (name.includes('settings')) return '⚙️';
-    if (name.includes('music') || name.includes('spotify')) return '🎵';
-    return '🪟';
+    if (name.includes('code') || name.includes('cursor')) return 'copy';
+    if (name.includes('terminal') || name.includes('pwsh') || name.includes('cmd') || name.includes('broterm')) return 'terminal';
+    if (name.includes('chrome') || name.includes('edge') || name.includes('firefox') || name.includes('browser')) return 'window';
+    if (name.includes('file') || name.includes('explorer')) return 'app';
+    if (name.includes('settings')) return 'settings';
+    if (name.includes('music') || name.includes('spotify')) return 'audio';
+    return 'window';
   }
 
   formatTitle(title) {

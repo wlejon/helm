@@ -201,7 +201,14 @@ body.desktop-root {
 }
 
 .taskbar-icon {
-  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.taskbar-icon svg {
+  width: 14px;
+  height: 14px;
 }
 
 .taskbar-title {
@@ -214,9 +221,12 @@ body.desktop-root {
   background: none;
   border: none;
   color: var(--color-text-muted);
-  font-size: 14px;
-  line-height: 1;
-  padding: 0 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
   cursor: pointer;
   border-radius: var(--radius-xs);
 }
@@ -516,12 +526,23 @@ body.desktop-root {
 }
 
 .launcher-item-icon {
-  font-size: var(--text-xl);
   width: 32px;
   height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+}
+
+.launcher-item-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.launcher-icon-img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
 }
 
 .launcher-item-content {
@@ -623,7 +644,13 @@ body.desktop-root {
 }
 
 .toast-icon {
-  font-size: var(--text-xl);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  color: var(--color-accent);
 }
 
 .toast-content {
@@ -648,11 +675,18 @@ body.desktop-root {
   border: none;
   color: var(--color-text-muted);
   cursor: pointer;
-  font-size: var(--text-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-xs);
   align-self: flex-start;
+  padding: 0;
 }
 
 .toast-close:hover {
+  background: var(--color-bg-hover);
   color: var(--color-text-primary);
 }
 

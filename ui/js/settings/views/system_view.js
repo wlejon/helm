@@ -4,6 +4,8 @@
  * and specs clipboard copy integration.
  */
 
+import { getIconSvg } from '../../icons.js';
+
 export class SystemView {
   constructor(controller) {
     this.controller = controller;
@@ -139,7 +141,7 @@ export class SystemView {
         <p class="view-subtitle">Detailed machine specifications, operating environment, and uptime metrics.</p>
       </div>
       <div class="view-header-actions">
-        <button class="btn btn-secondary btn-sm" id="btn-copy-specs">📋 Copy Specs</button>
+        <button class="btn btn-secondary btn-sm" id="btn-copy-specs">${getIconSvg('copy', 13)} Copy Specs</button>
       </div>
     `;
     container.appendChild(header);
@@ -173,7 +175,7 @@ export class SystemView {
     const specsHeader = document.createElement('div');
     specsHeader.className = 'settings-card-header';
     specsHeader.innerHTML = `
-      <div class="card-header-icon">💻</div>
+      <div class="card-header-icon">${getIconSvg('system', 18)}</div>
       <div class="card-header-text">
         <h3 class="card-title">Hardware Specifications</h3>
         <p class="card-description">Core compute and rendering hardware detected on this workstation.</p>
@@ -185,13 +187,13 @@ export class SystemView {
     grid.className = 'system-specs-grid';
 
     const specItems = [
-      { label: 'Operating System', icon: '🪟', val: info.os },
-      { label: 'Substrate Runtime', icon: '⚙️', val: info.kernel },
-      { label: 'Processor (CPU)', icon: '⚡', val: info.cpu },
-      { label: 'Graphics Accelerator (GPU)', icon: '🎮', val: info.gpu },
-      { label: 'System Memory (RAM)', icon: '🧠', val: info.memory },
-      { label: 'Active Display Surface', icon: '🖥️', val: info.resolution },
-      { label: 'System Uptime', icon: '⏱️', val: this.formatUptime(), isUptime: true },
+      { label: 'Operating System', icon: 'window', val: info.os },
+      { label: 'Substrate Runtime', icon: 'system', val: info.kernel },
+      { label: 'Processor (CPU)', icon: 'cpu', val: info.cpu },
+      { label: 'Graphics Accelerator (GPU)', icon: 'gpu', val: info.gpu },
+      { label: 'System Memory (RAM)', icon: 'ram', val: info.memory },
+      { label: 'Active Display Surface', icon: 'display', val: info.resolution },
+      { label: 'System Uptime', icon: 'uptime', val: this.formatUptime(), isUptime: true },
     ];
 
     specItems.forEach((item) => {
@@ -199,7 +201,7 @@ export class SystemView {
       box.className = 'system-spec-box';
       box.innerHTML = `
         <div class="spec-box-header">
-          <span class="spec-icon">${item.icon}</span>
+          <span class="spec-icon">${getIconSvg(item.icon, 14)}</span>
           <span class="spec-label">${this.escapeHtml(item.label)}</span>
         </div>
         <div class="spec-value ${item.isUptime ? 'spec-uptime-value font-mono' : ''}" ${item.isUptime ? 'id="system-uptime-text"' : ''}>
@@ -274,11 +276,11 @@ export class SystemView {
     }
 
     if (btnEl) {
-      const origText = btnEl.textContent;
-      btnEl.textContent = '✓ Copied!';
+      const origHtml = btnEl.innerHTML;
+      btnEl.innerHTML = `${getIconSvg('check', 14)} Copied!`;
       btnEl.classList.add('btn-success');
       setTimeout(() => {
-        btnEl.textContent = origText;
+        btnEl.innerHTML = origHtml;
         btnEl.classList.remove('btn-success');
       }, 2000);
     }

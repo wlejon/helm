@@ -4,6 +4,8 @@
  * and session power actions. Zero mock or fake data.
  */
 
+import { getIconSvg } from '../../icons.js';
+
 export class PowerView {
   constructor(controller) {
     this.controller = controller;
@@ -126,7 +128,7 @@ export class PowerView {
     const header = document.createElement('div');
     header.className = 'settings-card-header';
     header.innerHTML = `
-      <div class="card-header-icon">${data.hasBattery ? (data.isAC ? '⚡' : '🔋') : '🔌'}</div>
+      <div class="card-header-icon">${data.hasBattery ? (data.isAC ? getIconSvg('batteryCharging', 18) : getIconSvg('battery', 18)) : getIconSvg('desktopAc', 18)}</div>
       <div class="card-header-text">
         <h3 class="card-title">${data.hasBattery ? 'Battery Status & Health' : 'Power Source'}</h3>
         <p class="card-description">${data.hasBattery ? (data.isAC ? 'Connected to AC power' : 'Running on internal battery') : 'Connected to AC mains wall power. No rechargeable battery installed.'}</p>
@@ -141,7 +143,7 @@ export class PowerView {
       const empty = document.createElement('div');
       empty.className = 'settings-empty-state';
       empty.innerHTML = `
-        <div class="empty-state-icon">🖥️</div>
+        <div class="empty-state-icon">${getIconSvg('desktopAc', 28)}</div>
         <div class="empty-state-title">Desktop AC Power</div>
         <div class="empty-state-desc">This computer is operating directly on continuous AC mains power. Battery health and discharge timers do not apply.</div>
       `;
@@ -209,7 +211,7 @@ export class PowerView {
     const header = document.createElement('div');
     header.className = 'settings-card-header';
     header.innerHTML = `
-      <div class="card-header-icon">⚙️</div>
+      <div class="card-header-icon">${getIconSvg('power', 18)}</div>
       <div class="card-header-text">
         <h3 class="card-title">Power & Performance Profiles</h3>
         <p class="card-description">Tune system scheduling between peak responsiveness and power conservation.</p>
@@ -218,9 +220,9 @@ export class PowerView {
     card.appendChild(header);
 
     const profiles = [
-      { id: 'performance', name: 'High Performance', desc: 'Maximum clock rates and responsiveness; higher energy draw.', icon: '🚀' },
-      { id: 'balanced', name: 'Balanced', desc: 'Dynamically balances performance and efficiency for standard workflows.', icon: '⚖️' },
-      { id: 'powersaver', name: 'Power Saver', desc: 'Lowers clock speeds and extends runtime; reduces fan noise.', icon: '🍃' },
+      { id: 'performance', name: 'High Performance', desc: 'Maximum clock rates and responsiveness; higher energy draw.', icon: 'performance' },
+      { id: 'balanced', name: 'Balanced', desc: 'Dynamically balances performance and efficiency for standard workflows.', icon: 'balanced' },
+      { id: 'powersaver', name: 'Power Saver', desc: 'Lowers clock speeds and extends runtime; reduces fan noise.', icon: 'eco' },
     ];
 
     const group = document.createElement('div');
@@ -231,7 +233,7 @@ export class PowerView {
       btn.type = 'button';
       btn.className = `profile-select-btn ${this.activeProfile === p.id ? 'active' : ''}`;
       btn.innerHTML = `
-        <span class="profile-icon">${p.icon}</span>
+        <span class="profile-icon">${getIconSvg(p.icon, 16)}</span>
         <div class="profile-meta">
           <span class="profile-name">${p.name}</span>
           <span class="profile-desc">${p.desc}</span>
@@ -258,7 +260,7 @@ export class PowerView {
     const header = document.createElement('div');
     header.className = 'settings-card-header';
     header.innerHTML = `
-      <div class="card-header-icon">🌙</div>
+      <div class="card-header-icon">${getIconSvg('sleep', 18)}</div>
       <div class="card-header-text">
         <h3 class="card-title">Screen & Sleep Timeouts</h3>
         <p class="card-description">Specify inactivity intervals before display sleep or standby.</p>
@@ -316,7 +318,7 @@ export class PowerView {
     const header = document.createElement('div');
     header.className = 'settings-card-header';
     header.innerHTML = `
-      <div class="card-header-icon">🔌</div>
+      <div class="card-header-icon">${getIconSvg('power', 18)}</div>
       <div class="card-header-text">
         <h3 class="card-title">Power Actions</h3>
         <p class="card-description">Immediate power operations and session state controls.</p>
@@ -328,17 +330,17 @@ export class PowerView {
     grid.className = 'power-actions-grid';
 
     const actions = [
-      { id: 'lock', label: 'Lock Session', icon: '🔒', action: () => window.helm?.lock?.lock() },
-      { id: 'sleep', label: 'Sleep', icon: '🌙', action: () => this.requestPowerAction('sleep') },
-      { id: 'restart', label: 'Restart Computer', icon: '🔄', action: () => this.requestPowerAction('reboot') },
-      { id: 'shutdown', label: 'Shut Down', icon: '⏻', action: () => this.requestPowerAction('shutdown'), danger: true },
+      { id: 'lock', label: 'Lock Session', icon: 'lock', action: () => window.helm?.lock?.lock() },
+      { id: 'sleep', label: 'Sleep', icon: 'sleep', action: () => this.requestPowerAction('sleep') },
+      { id: 'restart', label: 'Restart Computer', icon: 'restart', action: () => this.requestPowerAction('reboot') },
+      { id: 'shutdown', label: 'Shut Down', icon: 'shutdown', action: () => this.requestPowerAction('shutdown'), danger: true },
     ];
 
     actions.forEach((act) => {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = `btn ${act.danger ? 'btn-danger' : 'btn-secondary'} btn-power-action`;
-      btn.innerHTML = `<span>${act.icon}</span> <span>${act.label}</span>`;
+      btn.innerHTML = `<span>${getIconSvg(act.icon, 14)}</span> <span>${act.label}</span>`;
       btn.addEventListener('click', act.action);
       grid.appendChild(btn);
     });

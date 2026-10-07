@@ -4,6 +4,8 @@
  * DPI scaling, orientation rotation, and safe test-then-revert configuration.
  */
 
+import { getIconSvg } from '../../icons.js';
+
 export class DisplayView {
   constructor(controller) {
     this.controller = controller;
@@ -146,7 +148,7 @@ export class DisplayView {
     banner.className = 'display-revert-banner';
     banner.innerHTML = `
       <div class="banner-content">
-        <span class="banner-icon">⚠️</span>
+        <span class="banner-icon">${getIconSvg('system', 16)}</span>
         <span class="banner-text">Testing display configuration. Reverting in <strong>${this.countdownSeconds}s</strong>...</span>
       </div>
       <div class="banner-actions">
@@ -172,7 +174,7 @@ export class DisplayView {
     const header = document.createElement('div');
     header.className = 'settings-card-header';
     header.innerHTML = `
-      <div class="card-header-icon">🖥️</div>
+      <div class="card-header-icon">${getIconSvg('display', 18)}</div>
       <div class="card-header-text">
         <h3 class="card-title">Display Arrangement</h3>
         <p class="card-description">Drag monitors to align them with your physical desktop layout.</p>
@@ -296,7 +298,7 @@ export class DisplayView {
     const header = document.createElement('div');
     header.className = 'settings-card-header';
     header.innerHTML = `
-      <div class="card-header-icon">⚙️</div>
+      <div class="card-header-icon">${getIconSvg('sliders', 18)}</div>
       <div class="card-header-text">
         <h3 class="card-title">${this.escapeHtml(display.name)} Settings</h3>
         <p class="card-description">Adjust resolution, orientation, refresh rate, and scaling for this monitor.</p>

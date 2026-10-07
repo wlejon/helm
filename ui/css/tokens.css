@@ -1,61 +1,71 @@
 /* =============================================================================
    HELM DESIGN SYSTEM TOKENS (Level 5 Cascade, Oklch Color Model)
+   Refined for Native Desktop Operating System Materials & Typography
    ============================================================================= */
 
 :root {
   /* Color Palette — Neutral Dark Foundations */
-  --color-bg-base: oklch(0.14 0.015 260);
-  --color-bg-surface: oklch(0.18 0.02 260 / 0.85);
-  --color-bg-surface-solid: oklch(0.18 0.02 260);
-  --color-bg-elevated: oklch(0.22 0.025 260 / 0.92);
-  --color-bg-elevated-solid: oklch(0.22 0.025 260);
-  --color-bg-hover: oklch(0.28 0.03 260 / 0.75);
-  --color-bg-active: oklch(0.33 0.035 260 / 0.85);
-  --color-bg-input: oklch(0.12 0.015 260 / 0.85);
+  --color-bg-base: oklch(0.12 0.012 260);
+  --color-bg-surface: oklch(0.16 0.018 260 / 0.82);
+  --color-bg-surface-solid: oklch(0.16 0.018 260);
+  --color-bg-elevated: oklch(0.20 0.022 260 / 0.88);
+  --color-bg-elevated-solid: oklch(0.20 0.022 260);
+  --color-bg-hover: oklch(0.26 0.026 260 / 0.65);
+  --color-bg-active: oklch(0.31 0.030 260 / 0.75);
+  --color-bg-input: oklch(0.11 0.012 260 / 0.75);
 
-  /* Vibrant Accent — Modern Indigo/Violet */
+  /* Glassmorphism & Materials */
+  --glass-bg: rgba(22, 22, 28, 0.82);
+  --glass-bg-elevated: rgba(28, 28, 36, 0.90);
+  --glass-card: rgba(255, 255, 255, 0.038);
+  --glass-card-hover: rgba(255, 255, 255, 0.065);
+  --glass-border: rgba(255, 255, 255, 0.075);
+  --glass-border-subtle: rgba(255, 255, 255, 0.045);
+  --glass-highlight: inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+
+  /* Vibrant Accent — Modern System Violet */
   --color-accent: oklch(0.68 0.22 260);
   --color-accent-hover: oklch(0.74 0.24 260);
   --color-accent-active: oklch(0.62 0.20 260);
-  --color-accent-subtle: oklch(0.68 0.22 260 / 0.18);
+  --color-accent-subtle: oklch(0.68 0.22 260 / 0.16);
   --color-accent-text: oklch(0.98 0.01 260);
 
   /* Status and Semantic Colors */
   --color-success: oklch(0.72 0.18 145);
-  --color-success-subtle: oklch(0.72 0.18 145 / 0.2);
+  --color-success-subtle: oklch(0.72 0.18 145 / 0.18);
   --color-warning: oklch(0.78 0.16 75);
-  --color-warning-subtle: oklch(0.78 0.16 75 / 0.2);
+  --color-warning-subtle: oklch(0.78 0.16 75 / 0.18);
   --color-danger: oklch(0.65 0.24 25);
-  --color-danger-subtle: oklch(0.65 0.24 25 / 0.2);
+  --color-danger-subtle: oklch(0.65 0.24 25 / 0.18);
   --color-info: oklch(0.70 0.17 220);
 
   /* Typography Colors */
-  --color-text-primary: oklch(0.96 0.01 260);
-  --color-text-secondary: oklch(0.76 0.02 260);
-  --color-text-muted: oklch(0.56 0.02 260);
-  --color-text-dim: oklch(0.42 0.015 260);
+  --color-text-primary: rgba(255, 255, 255, 0.95);
+  --color-text-secondary: rgba(255, 255, 255, 0.70);
+  --color-text-muted: rgba(255, 255, 255, 0.46);
+  --color-text-dim: rgba(255, 255, 255, 0.28);
 
   /* Borders and Separators */
-  --color-border-subtle: oklch(0.30 0.02 260 / 0.45);
-  --color-border-medium: oklch(0.38 0.025 260 / 0.6);
+  --color-border-subtle: rgba(255, 255, 255, 0.06);
+  --color-border-medium: rgba(255, 255, 255, 0.12);
   --color-border-focus: oklch(0.68 0.22 260);
 
-  /* Typography Font Families */
-  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Cantarell, "Helvetica Neue", Ubuntu, sans-serif;
-  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", "Fira Code", monospace;
+  /* Typography Font Families (Desktop OS Optimized) */
+  --font-sans: "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, "SF Pro Text", Roboto, "Inter", system-ui, sans-serif;
+  --font-mono: "Cascadia Code", "SF Mono", "JetBrains Mono", Consolas, monospace;
 
   /* Font Sizes */
   --text-xs: 11px;
-  --text-sm: 13px;
-  --text-base: 14px;
-  --text-md: 16px;
-  --text-lg: 18px;
-  --text-xl: 22px;
-  --text-2xl: 28px;
-  --text-3xl: 36px;
-  --text-clock: 52px;
+  --text-sm: 12.5px;
+  --text-base: 13.5px;
+  --text-md: 15px;
+  --text-lg: 17px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 30px;
+  --text-clock: 48px;
 
-  /* Spacing Scale */
+  /* Spacing Scale (Compact Desktop OS Spacing) */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -63,34 +73,32 @@
   --space-5: 20px;
   --space-6: 24px;
   --space-8: 32px;
-  --space-10: 40px;
-  --space-12: 48px;
 
   /* Border Radii */
   --radius-xs: 4px;
   --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 20px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
   --radius-full: 9999px;
 
   /* Shadows */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
-  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.6);
-  --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.7);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.24);
+  --shadow-md: 0 4px 16px -2px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  --shadow-lg: 0 12px 36px -4px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --shadow-modal: 0 24px 64px -8px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.08);
 
   /* Glassmorphism & Effects */
-  --backdrop-blur: blur(24px);
-  --backdrop-blur-heavy: blur(40px);
+  --backdrop-blur: blur(28px) saturate(180%);
+  --backdrop-blur-heavy: blur(40px) saturate(190%);
 
   /* Transitions */
-  --transition-fast: 140ms cubic-bezier(0.16, 1, 0.3, 1);
-  --transition-normal: 240ms cubic-bezier(0.16, 1, 0.3, 1);
-  --transition-bounce: 350ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  --transition-fast: 120ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-normal: 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-bounce: 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* Layout Constants */
-  --panel-height: 40px;
+  --panel-height: 34px;
   --panel-z-index: 1000;
   --popup-z-index: 2000;
   --toast-z-index: 3000;

@@ -4,6 +4,8 @@
  * and integration with bro.sys.notifications.
  */
 
+import { getIconSvg } from './icons.js';
+
 export class NotificationController {
   constructor() {
     this.notifications = [];
@@ -32,7 +34,7 @@ export class NotificationController {
             this.handleIncomingNotification({
               id: n.id || ++this.nextNotificationId,
               appName: n.appName || 'System',
-              appIcon: n.appIcon || '🔔',
+              appIcon: n.appIcon || 'bell',
               summary: n.summary || 'Notification',
               body: n.body || '',
               actions: n.actions || [],
@@ -101,7 +103,7 @@ export class NotificationController {
     const notif = {
       id: opts.id || ++this.nextNotificationId,
       appName: opts.appName || 'Desktop',
-      appIcon: opts.appIcon || '🔔',
+      appIcon: opts.appIcon || 'bell',
       summary: opts.summary || 'Alert',
       body: opts.body || '',
       actions: opts.actions || [],
@@ -131,7 +133,7 @@ export class NotificationController {
 
     const iconEl = document.createElement('div');
     iconEl.className = 'toast-icon';
-    iconEl.textContent = notif.appIcon || '🔔';
+    iconEl.innerHTML = getIconSvg('bell', 16);
 
     const contentEl = document.createElement('div');
     contentEl.className = 'toast-content';
@@ -168,7 +170,7 @@ export class NotificationController {
 
     const closeBtn = document.createElement('button');
     closeBtn.className = 'toast-close';
-    closeBtn.textContent = '✕';
+    closeBtn.innerHTML = getIconSvg('close', 12);
     closeBtn.title = 'Dismiss';
     closeBtn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -229,7 +231,7 @@ export class NotificationController {
 
       const titleEl = document.createElement('div');
       titleEl.className = 'toast-title';
-      titleEl.textContent = `${notif.appIcon || '🔔'} ${notif.summary}`;
+      titleEl.innerHTML = `<span class="drawer-item-icon">${getIconSvg('bell', 14)}</span> ${notif.summary}`;
 
       const bodyEl = document.createElement('div');
       bodyEl.className = 'toast-body';

@@ -4,6 +4,8 @@
  * and dynamic accent color swatches updating CSS custom property tokens in real-time.
  */
 
+import { getIconSvg } from '../../icons.js';
+
 export class AppearanceView {
   constructor(controller) {
     this.controller = controller;
@@ -119,13 +121,13 @@ export class AppearanceView {
     const header = document.createElement('div');
     header.className = 'settings-card-header';
     header.innerHTML = `
-      <div class="card-header-icon">🖼️</div>
+      <div class="card-header-icon">${getIconSvg('image', 18)}</div>
       <div class="card-header-text">
         <h3 class="card-title">Desktop Wallpaper</h3>
         <p class="card-description">Choose a curated desktop background or import custom images.</p>
       </div>
       <div class="card-header-actions">
-        <button class="btn btn-secondary btn-sm" id="btn-custom-wallpaper">📁 Choose Image...</button>
+        <button class="btn btn-secondary btn-sm" id="btn-custom-wallpaper">${getIconSvg('image', 13)} Choose Image...</button>
         <input type="file" id="custom-wallpaper-file-input" accept="image/*" class="hidden">
       </div>
     `;
@@ -170,7 +172,7 @@ export class AppearanceView {
       if (isSelected) {
         const checkBadge = document.createElement('div');
         checkBadge.className = 'wallpaper-check-badge';
-        checkBadge.textContent = '✓';
+        checkBadge.innerHTML = getIconSvg('check', 12);
         preview.appendChild(checkBadge);
       }
 
@@ -202,7 +204,7 @@ export class AppearanceView {
     const header = document.createElement('div');
     header.className = 'settings-card-header';
     header.innerHTML = `
-      <div class="card-header-icon">🌓</div>
+      <div class="card-header-icon">${getIconSvg('appearance', 18)}</div>
       <div class="card-header-text">
         <h3 class="card-title">Color Theme Mode</h3>
         <p class="card-description">Select your preferred desktop appearance tone.</p>
@@ -211,9 +213,9 @@ export class AppearanceView {
     card.appendChild(header);
 
     const modes = [
-      { id: 'dark', label: 'Dark Mode', icon: '🌙', desc: 'Subtle dark acrylic surfaces with optimal night contrast' },
-      { id: 'light', label: 'Light Mode', icon: '☀️', desc: 'Crisp bright paper tones with high sunlight legibility' },
-      { id: 'auto', label: 'Auto (System)', icon: '🌓', desc: 'Automatically aligns with day and night cycles' },
+      { id: 'dark', label: 'Dark Mode', icon: 'moon', desc: 'Subtle dark acrylic surfaces with optimal night contrast' },
+      { id: 'light', label: 'Light Mode', icon: 'sun', desc: 'Crisp bright paper tones with high sunlight legibility' },
+      { id: 'auto', label: 'Auto (System)', icon: 'autoTheme', desc: 'Automatically aligns with day and night cycles' },
     ];
 
     const group = document.createElement('div');
@@ -224,7 +226,7 @@ export class AppearanceView {
       const tile = document.createElement('div');
       tile.className = `theme-mode-tile ${isSelected ? 'selected' : ''}`;
       tile.innerHTML = `
-        <span class="mode-tile-icon">${m.icon}</span>
+        <span class="mode-tile-icon">${getIconSvg(m.icon, 20)}</span>
         <span class="mode-tile-title">${m.label}</span>
         <span class="mode-tile-desc">${m.desc}</span>
         ${isSelected ? '<span class="badge badge-accent">Active</span>' : ''}
@@ -249,7 +251,7 @@ export class AppearanceView {
     const header = document.createElement('div');
     header.className = 'settings-card-header';
     header.innerHTML = `
-      <div class="card-header-icon">🎨</div>
+      <div class="card-header-icon">${getIconSvg('appearance', 18)}</div>
       <div class="card-header-text">
         <h3 class="card-title">System Accent Color</h3>
         <p class="card-description">Customizes buttons, focus rings, sliders, and highlights across Helm.</p>
@@ -271,7 +273,7 @@ export class AppearanceView {
       if (isSelected) {
         const mark = document.createElement('span');
         mark.className = 'swatch-checkmark';
-        mark.textContent = '✓';
+        mark.innerHTML = getIconSvg('check', 12);
         swatch.appendChild(mark);
       }
 
