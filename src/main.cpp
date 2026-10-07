@@ -82,7 +82,7 @@ int main(int argc, char* argv[]) {
                                  : bro::engine::DisplayMode::Windowed;
     config.settingsPath = cfgDir + "/helm_settings.json";
     config.showSplash = false;
-    config.watchSources = false;
+    config.watchSources = true;
     config.isShellApp = true;
     if (noGpu) config.graphics.useGPU = false;
 
