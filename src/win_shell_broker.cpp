@@ -568,7 +568,10 @@ void WinShellBroker::installHostBindings(bro::engine::Engine& /*engine*/) {
 
     ev::Persistent compP(ev::getProperty(broP.get(), "compositor"));
     if (ev::isObject(compP.get())) {
-        compP.set(ev::setProperty(compP.get(), "setModalActive", fnModal.get()));
+        ev::catchThrow([&]() {
+            compP.set(ev::setProperty(compP.get(), "setModalActive", fnModal.get()));
+            return ev::undefined();
+        });
     }
 
     // 2. bro.shellHook namespace
@@ -674,7 +677,10 @@ void WinShellBroker::installHostBindings(bro::engine::Engine& /*engine*/) {
 
     broP.set(ev::setProperty(broP.get(), "shellHook", hookObj.get()));
     if (ev::isObject(compP.get())) {
-        compP.set(ev::setProperty(compP.get(), "shellHook", hookObj.get()));
+        ev::catchThrow([&]() {
+            compP.set(ev::setProperty(compP.get(), "shellHook", hookObj.get()));
+            return ev::undefined();
+        });
     }
 
     LOG_INFO("WinShellBroker: installed bro.shellHook and modal bindings onto Bronze JS host");

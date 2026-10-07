@@ -1,6 +1,7 @@
 /**
  * Comprehensive Audio Control Studio View
- * Manages output sinks, input sources, live audio VU meters, and per-app stream routing.
+ * Manages genuine output sinks, input sources, real audio level meters, and per-app stream routing.
+ * Strictly zero mock or fake data.
  */
 
 export class AudioView {
@@ -10,7 +11,7 @@ export class AudioView {
     this.meterInterval = null;
     this.activeOutputId = null;
     this.activeInputId = null;
-    this.channelBalances = {}; // sinkId -> balance (-100 to +100)
+    this.channelBalances = {}; // sinkId -> balance (-50 to +50)
   }
 
   init() {
@@ -32,7 +33,7 @@ export class AudioView {
       } catch (_) {}
     }
 
-    // bro.sys.audio fallback events
+    // bro.sys.audio events
     if (typeof bro !== 'undefined' && bro.sys?.audio && typeof bro.sys.audio.on === 'function') {
       try {
         const refreshHandler = () => this.refreshIfActive();
@@ -57,7 +58,7 @@ export class AudioView {
   }
 
   /* -------------------------------------------------------------------------
-   * Data Fetching with Robust Fallbacks
+   * Data Fetching
    * ---------------------------------------------------------------------- */
 
   getOutputDevices() {
@@ -102,39 +103,7 @@ export class AudioView {
       } catch (_) {}
     }
 
-    // 3. Fallback mock output devices
-    return [
-      {
-        id: 1,
-        name: 'Built-in Audio Analog Stereo (Speakers / Headphones)',
-        technicalName: 'alsa_output.pci-0000_00_1f.3.analog-stereo',
-        volume: 0.82,
-        isMuted: false,
-        isDefault: true,
-        channels: 2,
-        type: 'mock',
-      },
-      {
-        id: 2,
-        name: 'HDMI / DisplayPort Digital Stereo Audio',
-        technicalName: 'alsa_output.pci-0000_01_00.1.hdmi-stereo',
-        volume: 0.65,
-        isMuted: false,
-        isDefault: false,
-        channels: 2,
-        type: 'mock',
-      },
-      {
-        id: 3,
-        name: 'USB Studio DAC / External Interface',
-        technicalName: 'alsa_output.usb-Focusrite_Scarlett_2i2-00.analog-stereo',
-        volume: 0.90,
-        isMuted: false,
-        isDefault: false,
-        channels: 2,
-        type: 'mock',
-      }
-    ];
+    return [];
   }
 
   getInputDevices() {
@@ -157,33 +126,25 @@ export class AudioView {
       } catch (_) {}
     }
 
-    // 2. Fallback mock input devices
-    return [
-      {
-        id: 'in-1',
-        name: 'Internal Digital Microphone Array',
-        volume: 0.70,
-        isMuted: false,
-        isDefault: true,
-        type: 'mock',
-      },
-      {
-        id: 'in-2',
-        name: 'Studio USB Condenser Microphone',
-        volume: 0.85,
-        isMuted: false,
-        isDefault: false,
-        type: 'mock',
-      },
-      {
-        id: 'in-3',
-        name: 'Line-In Stereo Input',
-        volume: 0.50,
-        isMuted: true,
-        isDefault: false,
-        type: 'mock',
-      }
-    ];
+    // 2. Try bro.pulse.getSources()
+    if (typeof bro !== 'undefined' && bro.pulse && typeof bro.pulse.getSources === 'function') {
+      try {
+        const sources = bro.pulse.getSources();
+        if (Array.isArray(sources) && sources.length > 0) {
+          return sources.map((s) => ({
+            id: s.id,
+            name: s.description || s.name || `Input #${s.id}`,
+            technicalName: s.name,
+            volume: typeof s.volume === 'number' ? s.volume : 0.75,
+            isMuted: !!s.isMuted,
+            isDefault: !!s.isDefault,
+            type: 'pulse',
+          }));
+        }
+      } catch (_) {}
+    }
+
+    return [];
   }
 
   getAudioStreams() {
@@ -201,52 +162,14 @@ export class AudioView {
               icon: st.icon || '🎵',
               volume: typeof st.volume === 'number' ? st.volume : 0.8,
               isMuted: !!st.isMuted,
-              sinkId: st.sinkId != null ? st.sinkId : 1,
+              sinkId: st.sinkId != null ? st.sinkId : null,
             }));
           }
         } catch (_) {}
       }
     }
 
-    // 2. Fallback simulated active desktop application streams
-    return [
-      {
-        id: 101,
-        name: 'Web Browser (Chromium / YouTube)',
-        appId: 'browser',
-        icon: '🌐',
-        volume: 0.85,
-        isMuted: false,
-        sinkId: 1,
-      },
-      {
-        id: 102,
-        name: 'Helm Media Player (FLAC Hi-Fi)',
-        appId: 'media',
-        icon: '🎵',
-        volume: 0.95,
-        isMuted: false,
-        sinkId: 1,
-      },
-      {
-        id: 103,
-        name: 'Bro Terminal (Bell & Notifications)',
-        appId: 'terminal',
-        icon: '💻',
-        volume: 0.60,
-        isMuted: false,
-        sinkId: 1,
-      },
-      {
-        id: 104,
-        name: 'Discord / Voice Call',
-        appId: 'discord',
-        icon: '💬',
-        volume: 0.75,
-        isMuted: false,
-        sinkId: 3,
-      }
-    ];
+    return [];
   }
 
   /* -------------------------------------------------------------------------
@@ -301,6 +224,18 @@ export class AudioView {
       </div>
     `;
     card.appendChild(header);
+
+    if (outputs.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'settings-empty-state';
+      empty.innerHTML = `
+        <div class="empty-state-icon">🔇</div>
+        <div class="empty-state-title">No Audio Output Devices Found</div>
+        <div class="empty-state-desc">No speakers, headphones, or HDMI sound endpoints are currently detected.</div>
+      `;
+      card.appendChild(empty);
+      return card;
+    }
 
     const list = document.createElement('div');
     list.className = 'audio-device-list';
@@ -379,7 +314,7 @@ export class AudioView {
       volRow.appendChild(valBadge);
       deviceRow.appendChild(volRow);
 
-      // Stereo Balance Slider (Left <-> Center <-> Right)
+      // Stereo Balance Slider
       const balRow = document.createElement('div');
       balRow.className = 'audio-control-row balance-row';
 
@@ -444,6 +379,18 @@ export class AudioView {
       </div>
     `;
     card.appendChild(header);
+
+    if (inputs.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'settings-empty-state';
+      empty.innerHTML = `
+        <div class="empty-state-icon">🎤</div>
+        <div class="empty-state-title">No Audio Input Devices Found</div>
+        <div class="empty-state-desc">No microphones or line-in recording endpoints are currently detected.</div>
+      `;
+      card.appendChild(empty);
+      return card;
+    }
 
     const list = document.createElement('div');
     list.className = 'audio-device-list';
@@ -528,11 +475,11 @@ export class AudioView {
     meterBox.innerHTML = `
       <div class="meter-header">
         <span class="meter-title">Live Microphone Level</span>
-        <span class="meter-db-value" id="audio-meter-db">-18.4 dB</span>
+        <span class="meter-db-value" id="audio-meter-db">Idle</span>
       </div>
       <div class="meter-track">
-        <div class="meter-bar" id="audio-meter-bar" style="width: 35%;"></div>
-        <div class="meter-peak" id="audio-meter-peak" style="left: 45%;"></div>
+        <div class="meter-bar" id="audio-meter-bar" style="width: 0%;"></div>
+        <div class="meter-peak" id="audio-meter-peak" style="left: 0%;"></div>
       </div>
       <div class="meter-scale">
         <span>-48 dB</span>
@@ -565,8 +512,12 @@ export class AudioView {
 
     if (streams.length === 0) {
       const empty = document.createElement('div');
-      empty.className = 'empty-state-card';
-      empty.textContent = 'No active application audio streams currently playing.';
+      empty.className = 'settings-empty-state';
+      empty.innerHTML = `
+        <div class="empty-state-icon">🎧</div>
+        <div class="empty-state-title">No Audio Streams Active</div>
+        <div class="empty-state-desc">No applications are currently playing audio through the sound graph.</div>
+      `;
       card.appendChild(empty);
       return card;
     }
@@ -663,159 +614,130 @@ export class AudioView {
   }
 
   /* -------------------------------------------------------------------------
-   * Audio Hardware Operations
+   * Audio Actions & Control
    * ---------------------------------------------------------------------- */
+
+  setDefaultOutput(device) {
+    if (typeof bro !== 'undefined') {
+      if (bro.pulse?.setDefaultSink) {
+        try { bro.pulse.setDefaultSink(device.id); } catch (_) {}
+      } else if (bro.sys?.audio?.setDefaultOutput) {
+        try { bro.sys.audio.setDefaultOutput(device.id); } catch (_) {}
+      }
+    }
+    this.refreshIfActive();
+  }
+
+  setDefaultInput(device) {
+    if (typeof bro !== 'undefined') {
+      if (bro.pulse?.setDefaultSource) {
+        try { bro.pulse.setDefaultSource(device.id); } catch (_) {}
+      } else if (bro.sys?.audio?.setDefaultInput) {
+        try { bro.sys.audio.setDefaultInput(device.id); } catch (_) {}
+      }
+    }
+    this.refreshIfActive();
+  }
 
   setOutputVolume(device, volume) {
     device.volume = volume;
-
-    // 1. Try bro.pulse
-    if (typeof bro !== 'undefined' && bro.pulse && typeof bro.pulse.setSinkVolume === 'function') {
-      try {
-        const id = typeof device.id === 'string' ? parseInt(device.id, 10) || 0 : device.id;
-        bro.pulse.setSinkVolume(id, volume);
-        return;
-      } catch (_) {}
+    if (typeof bro !== 'undefined') {
+      if (bro.pulse?.setSinkVolume) {
+        try { bro.pulse.setSinkVolume(device.id, volume); } catch (_) {}
+      } else if (bro.sys?.audio?.setVolume) {
+        try { bro.sys.audio.setVolume(device.id, volume); } catch (_) {}
+      }
     }
-
-    // 2. Try bro.sys.audio
-    if (typeof bro !== 'undefined' && bro.sys?.audio?.setVolume) {
-      try {
-        bro.sys.audio.setVolume(String(device.id), volume);
-      } catch (_) {}
-    }
-  }
-
-  toggleOutputMute(device, btnEl, sliderEl) {
-    device.isMuted = !device.isMuted;
-    btnEl.textContent = device.isMuted ? '🔇 Unmute' : '🔊 Mute';
-    btnEl.className = `btn btn-sm ${device.isMuted ? 'btn-danger' : 'btn-ghost'}`;
-
-    if (typeof bro !== 'undefined' && bro.pulse && typeof bro.pulse.setSinkMuted === 'function') {
-      try {
-        const id = typeof device.id === 'string' ? parseInt(device.id, 10) || 0 : device.id;
-        bro.pulse.setSinkMuted(id, device.isMuted);
-        return;
-      } catch (_) {}
-    }
-
-    if (typeof bro !== 'undefined' && bro.sys?.audio?.setMute) {
-      try {
-        bro.sys.audio.setMute(String(device.id), device.isMuted);
-      } catch (_) {}
-    }
-  }
-
-  setDefaultOutput(device) {
-    if (typeof bro !== 'undefined' && bro.pulse && typeof bro.pulse.setDefaultSink === 'function') {
-      try {
-        const id = typeof device.id === 'string' ? parseInt(device.id, 10) || 0 : device.id;
-        bro.pulse.setDefaultSink(id);
-      } catch (_) {}
-    }
-
-    if (typeof bro !== 'undefined' && bro.sys?.audio?.setDefaultSink) {
-      try {
-        bro.sys.audio.setDefaultSink(String(device.id));
-      } catch (_) {}
-    }
-
-    this.render(this.container, this.controller.searchQuery);
   }
 
   setInputVolume(device, volume) {
     device.volume = volume;
-    if (typeof bro !== 'undefined' && bro.sys?.audio?.setVolume) {
-      try {
-        bro.sys.audio.setVolume(String(device.id), volume);
-      } catch (_) {}
+    if (typeof bro !== 'undefined') {
+      if (bro.pulse?.setSourceVolume) {
+        try { bro.pulse.setSourceVolume(device.id, volume); } catch (_) {}
+      } else if (bro.sys?.audio?.setInputVolume) {
+        try { bro.sys.audio.setInputVolume(device.id, volume); } catch (_) {}
+      }
     }
   }
 
-  toggleInputMute(device, btnEl) {
+  toggleOutputMute(device, muteBtn, slider) {
     device.isMuted = !device.isMuted;
-    btnEl.textContent = device.isMuted ? '🔇 Unmute' : '🎙️ Mute';
-    btnEl.className = `btn btn-sm ${device.isMuted ? 'btn-danger' : 'btn-ghost'}`;
+    muteBtn.textContent = device.isMuted ? '🔇 Unmute' : '🔊 Mute';
+    muteBtn.className = `btn btn-sm ${device.isMuted ? 'btn-danger' : 'btn-ghost'}`;
 
-    if (typeof bro !== 'undefined' && bro.sys?.audio?.setMute) {
-      try {
-        bro.sys.audio.setMute(String(device.id), device.isMuted);
-      } catch (_) {}
+    if (typeof bro !== 'undefined') {
+      if (bro.pulse?.setSinkMute) {
+        try { bro.pulse.setSinkMute(device.id, device.isMuted); } catch (_) {}
+      } else if (bro.sys?.audio?.setMute) {
+        try { bro.sys.audio.setMute(device.id, device.isMuted); } catch (_) {}
+      }
     }
   }
 
-  setDefaultInput(device) {
-    if (typeof bro !== 'undefined' && bro.sys?.audio?.setDefaultSource) {
-      try {
-        bro.sys.audio.setDefaultSource(String(device.id));
-      } catch (_) {}
+  toggleInputMute(device, muteBtn) {
+    device.isMuted = !device.isMuted;
+    muteBtn.textContent = device.isMuted ? '🔇 Unmute' : '🎙️ Mute';
+    muteBtn.className = `btn btn-sm ${device.isMuted ? 'btn-danger' : 'btn-ghost'}`;
+
+    if (typeof bro !== 'undefined') {
+      if (bro.pulse?.setSourceMute) {
+        try { bro.pulse.setSourceMute(device.id, device.isMuted); } catch (_) {}
+      } else if (bro.sys?.audio?.setMute) {
+        try { bro.sys.audio.setMute(device.id, device.isMuted); } catch (_) {}
+      }
     }
-    this.render(this.container, this.controller.searchQuery);
   }
 
   setStreamVolume(streamId, volume) {
-    if (typeof bro !== 'undefined' && bro.pulse) {
-      const setVol = bro.pulse.setSinkInputVolume || bro.pulse.setStreamVolume;
-      if (typeof setVol === 'function') {
-        try {
-          const numId = typeof streamId === 'string' ? parseInt(streamId, 10) || 0 : streamId;
-          setVol.call(bro.pulse, numId, volume);
-        } catch (_) {}
-      }
+    if (typeof bro !== 'undefined' && bro.pulse?.setSinkInputVolume) {
+      try { bro.pulse.setSinkInputVolume(streamId, volume); } catch (_) {}
     }
   }
 
   setStreamMute(streamId, isMuted) {
-    if (typeof bro !== 'undefined' && bro.pulse) {
-      const setMute = bro.pulse.setSinkInputMuted || bro.pulse.setStreamMuted || bro.pulse.setStreamMute;
-      if (typeof setMute === 'function') {
-        try {
-          const numId = typeof streamId === 'string' ? parseInt(streamId, 10) || 0 : streamId;
-          setMute.call(bro.pulse, numId, isMuted);
-        } catch (_) {}
-      }
+    if (typeof bro !== 'undefined' && bro.pulse?.setSinkInputMute) {
+      try { bro.pulse.setSinkInputMute(streamId, isMuted); } catch (_) {}
     }
   }
 
-  moveStream(streamId, sinkId) {
-    if (typeof bro !== 'undefined' && bro.pulse) {
-      const moveFn = bro.pulse.moveSinkInput || bro.pulse.moveStream;
-      if (typeof moveFn === 'function') {
-        try {
-          const numStreamId = typeof streamId === 'string' ? parseInt(streamId, 10) || 0 : streamId;
-          const numSinkId = typeof sinkId === 'string' ? parseInt(sinkId, 10) || 0 : sinkId;
-          moveFn.call(bro.pulse, numStreamId, numSinkId);
-        } catch (_) {}
-      }
+  moveStream(streamId, targetSinkId) {
+    if (typeof bro !== 'undefined' && bro.pulse?.moveSinkInput) {
+      try { bro.pulse.moveSinkInput(streamId, targetSinkId); } catch (_) {}
     }
   }
 
   /* -------------------------------------------------------------------------
-   * Live Audio Level VU Meter
+   * Live VU Meter Lifecycle
    * ---------------------------------------------------------------------- */
 
   startLiveMeter() {
     this.stopMeter();
+    // Query genuine meter readings if provided by host
+    const barEl = document.getElementById('audio-meter-bar');
+    const peakEl = document.getElementById('audio-meter-peak');
+    const dbEl = document.getElementById('audio-meter-db');
+    if (!barEl || !peakEl || !dbEl) return;
 
-    let peak = 0.35;
-    this.meterInterval = setInterval(() => {
-      const barEl = document.getElementById('audio-meter-bar');
-      const peakEl = document.getElementById('audio-meter-peak');
-      const dbEl = document.getElementById('audio-meter-db');
-      if (!barEl || !peakEl || !dbEl) return;
-
-      // Realistic audio meter simulation
-      const baseLevel = 0.25 + Math.random() * 0.45;
-      const pct = Math.min(100, Math.max(2, Math.round(baseLevel * 100)));
-      if (baseLevel > peak) peak = baseLevel;
-      else peak = Math.max(baseLevel, peak - 0.04);
-
-      barEl.style.width = `${pct}%`;
-      peakEl.style.left = `${Math.round(peak * 100)}%`;
-
-      const db = Math.round((baseLevel * 48 - 48) * 10) / 10;
-      dbEl.textContent = `${db > -1 ? '0.0' : db.toFixed(1)} dB`;
-    }, 120);
+    if (typeof bro !== 'undefined' && bro.pulse?.getMeterLevel) {
+      this.meterInterval = setInterval(() => {
+        try {
+          const lvl = bro.pulse.getMeterLevel();
+          if (typeof lvl === 'number') {
+            const pct = Math.min(100, Math.max(0, Math.round(lvl * 100)));
+            barEl.style.width = `${pct}%`;
+            peakEl.style.left = `${pct}%`;
+            const db = pct === 0 ? -48 : Math.round((lvl * 48 - 48) * 10) / 10;
+            dbEl.textContent = `${db.toFixed(1)} dB`;
+          }
+        } catch (_) {}
+      }, 100);
+    } else {
+      // Idle state
+      barEl.style.width = '0%';
+      peakEl.style.left = '0%';
+      dbEl.textContent = 'Idle';
+    }
   }
 
   stopMeter() {

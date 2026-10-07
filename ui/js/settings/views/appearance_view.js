@@ -319,24 +319,10 @@ export class AppearanceView {
     this.render(this.container, this.controller.searchQuery);
   }
 
-  async openCustomWallpaperPicker(fileInput) {
-    // If bro.vfs is available, scan Pictures/Wallpapers directory
-    if (typeof bro !== 'undefined' && bro.vfs && typeof bro.vfs.scan === 'function') {
-      try {
-        const homePath = '/home' || 'C:/Users';
-        const res = await bro.vfs.scan(homePath, { maxDepth: 2 });
-        if (Array.isArray(res) && res.length > 0) {
-          const img = res.find((f) => f.name.match(/\.(png|jpg|jpeg|webp)$/i));
-          if (img && img.path) {
-            this.applyCustomWallpaper(img.path, img.name);
-            return;
-          }
-        }
-      } catch (_) {}
+  openCustomWallpaperPicker(fileInput) {
+    if (fileInput) {
+      fileInput.click();
     }
-
-    // Standard file dialog fallback
-    fileInput.click();
   }
 
   setThemeMode(mode) {

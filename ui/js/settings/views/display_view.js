@@ -79,43 +79,28 @@ export class DisplayView {
       }
     }
 
-    // Default multi-monitor setup fallback (1 Primary 1440p + 1 Secondary 1080p)
+    // Genuine single monitor fallback matching active screen
+    const curW = window.screen.width || 1920;
+    const curH = window.screen.height || 1080;
+    const dpr = window.devicePixelRatio || 1.0;
     this.displays = [
       {
-        id: '1',
-        name: 'Dell UltraSharp U2724D (Primary)',
+        id: 'primary',
+        name: 'Primary Display',
         isPrimary: true,
         isActive: true,
-        geometry: { x: 0, y: 0, width: 2560, height: 1440 },
+        geometry: { x: 0, y: 0, width: curW, height: curH },
         orientation: 'normal',
-        scaleFactor: 1.0,
-        currentMode: { width: 2560, height: 1440, refreshRate: 120 },
+        scaleFactor: dpr,
+        currentMode: { width: curW, height: curH, refreshRate: 60 },
         availableModes: [
-          { width: 2560, height: 1440, refreshRate: 120 },
-          { width: 2560, height: 1440, refreshRate: 60 },
-          { width: 1920, height: 1080, refreshRate: 120 },
-          { width: 1920, height: 1080, refreshRate: 60 },
-        ],
-      },
-      {
-        id: '2',
-        name: 'LG UltraFine 24MD4KL (Side Portrait)',
-        isPrimary: false,
-        isActive: true,
-        geometry: { x: 2560, y: 0, width: 1080, height: 1920 },
-        orientation: 'rotate90',
-        scaleFactor: 1.25,
-        currentMode: { width: 1080, height: 1920, refreshRate: 60 },
-        availableModes: [
-          { width: 1080, height: 1920, refreshRate: 60 },
-          { width: 1920, height: 1080, refreshRate: 60 },
-          { width: 1280, height: 720, refreshRate: 60 },
+          { width: curW, height: curH, refreshRate: 60 },
         ],
       }
     ];
 
     if (!this.selectedDisplayId) {
-      this.selectedDisplayId = '1';
+      this.selectedDisplayId = 'primary';
     }
   }
 
@@ -526,9 +511,6 @@ export class DisplayView {
         console.warn('Displays apply failed:', err);
       }
     }
-
-    // Fallback simulate test mode
-    this.startCountdown(10);
   }
 
   startCountdown(seconds) {

@@ -9,11 +9,11 @@ export class SystemView {
     this.controller = controller;
     this.container = null;
     this.uptimeInterval = null;
-    this.bootTimestamp = Date.now() - 14820000; // ~4h 7m uptime fallback
+    this.bootTimestamp = Date.now() - Math.floor(performance.now());
   }
 
   init() {
-    // If bro.server?.uptime exists, read it
+    // If bro.server?.uptime exists, read genuine system uptime
     if (typeof bro !== 'undefined' && bro.server?.uptime) {
       try {
         const up = bro.server.uptime;
@@ -35,20 +35,31 @@ export class SystemView {
    * ---------------------------------------------------------------------- */
 
   getSystemInfo() {
-    const osPlatform = navigator.userAgent.includes('Windows') ? 'Microsoft Windows 11 Pro' : 'Helm Linux Desktop 6.8.0';
-    const cpuCores = navigator.hardwareConcurrency || 16;
-    const cpuDesc = `x86_64 Architecture (${cpuCores} Logical Compute Cores)`;
+    let osPlatform = 'Unknown Host OS';
+    if (navigator.userAgent.includes('Windows')) {
+      osPlatform = 'Microsoft Windows';
+      if (navigator.userAgent.includes('Win64') || navigator.userAgent.includes('x64')) {
+        osPlatform += ' (64-bit)';
+      }
+    } else if (navigator.userAgent.includes('Linux')) {
+      osPlatform = 'Linux Desktop';
+    } else if (navigator.platform) {
+      osPlatform = navigator.platform;
+    }
 
-    let gpuName = 'NVIDIA GeForce RTX 4090 / Vulkan Desktop Renderer';
-    let gpuVram = '24 GB GDDR6X';
-    let gpuBackend = 'Vulkan';
+    const cpuCores = navigator.hardwareConcurrency;
+    const cpuDesc = cpuCores ? `${cpuCores} Logical Compute Cores` : 'Multi-Core Processor';
+
+    let gpuName = 'Standard Graphics Adapter';
+    let gpuVram = null;
+    let gpuBackend = null;
 
     // Probe bro.gpu if available
     if (typeof bro !== 'undefined' && bro.gpu) {
       try {
         if (bro.gpu.backend) gpuBackend = String(bro.gpu.backend).toUpperCase();
         if (typeof bro.gpu.deviceName === 'function') {
-          const dev = bro.gpu.deviceName('cuda') || bro.gpu.deviceName('vulkan') || bro.gpu.deviceName();
+          const dev = bro.gpu.deviceName('vulkan') || bro.gpu.deviceName('cuda') || bro.gpu.deviceName();
           if (dev) gpuName = dev;
         }
         if (typeof bro.gpu.memoryInfo === 'function') {
@@ -58,32 +69,56 @@ export class SystemView {
           }
         }
       } catch (_) {}
-    } else {
-      // Try WebGL unmasked renderer
+    }
+
+    // Try WebGL unmasked renderer if bro.gpu didn't yield a name
+    if (gpuName === 'Standard Graphics Adapter') {
       try {
         const canvas = document.createElement('canvas');
-        const gl = canvas.getContext('webgl');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
         if (gl) {
           const dbg = gl.getExtension('WEBGL_debug_renderer_info');
           if (dbg) {
             const rend = gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL);
+            if (rend) gpuName = rend;
+          } else {
+            const rend = gl.getParameter(gl.RENDERER);
             if (rend) gpuName = rend;
           }
         }
       } catch (_) {}
     }
 
-    const ramTotal = '64 GB High-Speed DDR5';
-    const helmVersion = 'Helm Desktop v0.1.0 (Production Release)';
+    const gpuParts = [gpuName];
+    if (gpuVram) gpuParts.push(gpuVram);
+    if (gpuBackend) gpuParts.push(gpuBackend);
+    const gpuDesc = gpuParts.join(' · ');
+
+    let ramTotal = 'System Memory (Managed)';
+    if (navigator.deviceMemory) {
+      ramTotal = `${navigator.deviceMemory} GB System RAM`;
+    }
+
+    let kernelDesc = 'Helm Desktop Substrate';
+    if (typeof bro !== 'undefined') {
+      if (bro.version) {
+        kernelDesc = `Bronze Engine v${bro.version}`;
+      } else if (bro.runtime?.version) {
+        kernelDesc = `Bronze Runtime v${bro.runtime.version}`;
+      }
+    }
+
+    const helmVersion = 'Helm Desktop v0.1.0';
+    const dpi = Math.round((window.devicePixelRatio || 1) * 100);
 
     return {
       os: osPlatform,
-      kernel: 'Bromine Substrate Subsystem (Level 5)',
+      kernel: kernelDesc,
       cpu: cpuDesc,
-      gpu: `${gpuName} (${gpuVram}, ${gpuBackend})`,
+      gpu: gpuDesc,
       memory: ramTotal,
       version: helmVersion,
-      resolution: `${window.screen.width} × ${window.screen.height} (${window.devicePixelRatio * 100}% DPI)`,
+      resolution: `${window.screen.width} × ${window.screen.height} (${dpi}% DPI)`,
     };
   }
 
