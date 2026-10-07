@@ -4,12 +4,15 @@
  * and system tray integrations.
  */
 
+import { MediaController } from './media.js';
+
 export class PanelController {
   constructor() {
     this.clockInterval = null;
     this.currentPopup = null;
     this.activeAudioDeviceId = null;
     this.isMuted = false;
+    this.media = new MediaController();
   }
 
   init() {
@@ -19,6 +22,7 @@ export class PanelController {
     this.setupNetwork();
     this.setupPower();
     this.setupTray();
+    this.media.init();
     this.setupSystemListeners();
   }
 
@@ -98,9 +102,9 @@ export class PanelController {
   }
 
   /* -------------------------------------------------------------------------
-   * Audio Subsystem Integration (bro.sys.audio)
+   * Audio Subsystem Integration (bro.pulse with bro.sys.audio fallback)
    * ---------------------------------------------------------------------- */
-  setupAudio() {
+   setupAudio() {
     const slider = document.getElementById('vol-slider');
     const muteBtn = document.getElementById('vol-mute-btn');
 
@@ -127,6 +131,29 @@ export class PanelController {
     const muteBtn = document.getElementById('vol-mute-btn');
     const devInfo = document.getElementById('vol-device-name');
 
+    // 1. Prefer Tier-1 bropulse PipeWire/PulseAudio client
+    if (typeof bro !== 'undefined' && bro.pulse && bro.pulse.available) {
+      try {
+        const sinks = bro.pulse.getSinks();
+        if (Array.isArray(sinks) && sinks.length > 0) {
+          const defaultSink = bro.pulse.getDefaultSink() || sinks.find((s) => s.isDefault) || sinks[0];
+          if (defaultSink) {
+            this.activeAudioDeviceId = defaultSink.id;
+            this.isMuted = !!defaultSink.isMuted;
+            const pct = Math.round((defaultSink.volume ?? 0.8) * 100);
+
+            if (textEl) textEl.textContent = `${pct}%`;
+            if (iconEl) iconEl.textContent = this.isMuted ? '🔇' : (pct === 0 ? '🔈' : (pct < 50 ? '🔉' : '🔊'));
+            if (slider) slider.value = pct;
+            if (muteBtn) muteBtn.textContent = this.isMuted ? 'Unmute' : 'Mute';
+            if (devInfo) devInfo.textContent = defaultSink.description || defaultSink.name || 'Default Sink';
+            return;
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 2. Fall back to bro.sys.audio
     if (typeof bro !== 'undefined' && bro.sys?.audio?.getState) {
       try {
         const state = bro.sys.audio.getState();
@@ -160,6 +187,13 @@ export class PanelController {
     if (textEl) textEl.textContent = `${pct}%`;
     if (iconEl) iconEl.textContent = pct === 0 ? '🔈' : (pct < 50 ? '🔉' : '🔊');
 
+    if (typeof bro !== 'undefined' && bro.pulse && bro.pulse.available && this.activeAudioDeviceId != null) {
+      try {
+        bro.pulse.setSinkVolume(this.activeAudioDeviceId, vol);
+        return;
+      } catch (_) {}
+    }
+
     if (typeof bro !== 'undefined' && bro.sys?.audio?.setVolume && this.activeAudioDeviceId) {
       try {
         bro.sys.audio.setVolume(this.activeAudioDeviceId, vol);
@@ -173,6 +207,13 @@ export class PanelController {
     const iconEl = document.getElementById('icon-volume');
     if (muteBtn) muteBtn.textContent = this.isMuted ? 'Unmute' : 'Mute';
     if (iconEl) iconEl.textContent = this.isMuted ? '🔇' : '🔊';
+
+    if (typeof bro !== 'undefined' && bro.pulse && bro.pulse.available && this.activeAudioDeviceId != null) {
+      try {
+        bro.pulse.setSinkMuted(this.activeAudioDeviceId, this.isMuted);
+        return;
+      } catch (_) {}
+    }
 
     if (typeof bro !== 'undefined' && bro.sys?.audio?.setMuted && this.activeAudioDeviceId) {
       try {
@@ -338,6 +379,15 @@ export class PanelController {
    * Reactive Subsystem Event Listeners
    * ---------------------------------------------------------------------- */
   setupSystemListeners() {
+    if (typeof bro !== 'undefined' && bro.pulse && bro.pulse.available && typeof bro.pulse.on === 'function') {
+      try {
+        bro.pulse.on('sinkUpdated', () => this.updateAudioState());
+        bro.pulse.on('sinkAdded', () => this.updateAudioState());
+        bro.pulse.on('sinkRemoved', () => this.updateAudioState());
+        bro.pulse.on('defaultSinkChanged', () => this.updateAudioState());
+      } catch (_) {}
+    }
+
     if (typeof bro === 'undefined' || !bro.sys?.on) return;
 
     try {

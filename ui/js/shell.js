@@ -31,6 +31,10 @@ export class Shell {
 
     // Attach to global window object for test automation and extensibility
     window.helm = this;
+    window.helm.media = this.panel.media;
+    window.helm.clipboard = this.launcher.clipboard;
+    window.helm.ime = (typeof bro !== 'undefined' && bro.ime) ? bro.ime : null;
+    window.helm.decor = (typeof bro !== 'undefined' && bro.decor) ? bro.decor : null;
 
     // Dispatch ready event
     window.dispatchEvent(new CustomEvent('helm:ready', { detail: { shell: this } }));
@@ -54,7 +58,17 @@ export class Shell {
         return;
       }
 
-      // 2. Ctrl+Alt+L or Meta+L -> Lock Session
+      // 2. Super+V or Ctrl+Alt+V -> Open Clipboard History
+      const isClipChord =
+        (e.key.toLowerCase() === 'v' && ((e.ctrlKey && e.altKey) || e.metaKey));
+
+      if (isClipChord) {
+        e.preventDefault();
+        this.launcher.openClipboard();
+        return;
+      }
+
+      // 3. Ctrl+Alt+L or Meta+L -> Lock Session
       const isLockChord =
         (e.key.toLowerCase() === 'l' && ((e.ctrlKey && e.altKey) || e.metaKey));
 
@@ -64,7 +78,7 @@ export class Shell {
         return;
       }
 
-      // 3. Ctrl+Shift+N -> Toggle Notifications Drawer
+      // 4. Ctrl+Shift+N -> Toggle Notifications Drawer
       const isNotifyChord =
         (e.key.toLowerCase() === 'n' && e.ctrlKey && e.shiftKey);
 

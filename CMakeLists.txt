@@ -68,6 +68,11 @@ set(BRO_WITH_KEYS ON CACHE BOOL "Keybindings")
 set(BRO_WITH_THEMES ON CACHE BOOL "Themes")
 set(BRO_WITH_CONF ON CACHE BOOL "Config store")
 set(BRO_WITH_SEAT ON CACHE BOOL "Session seat")
+set(BRO_WITH_DECOR ON CACHE BOOL "Window decorations")
+set(BRO_WITH_CLIP ON CACHE BOOL "Clipboard history")
+set(BRO_WITH_MPRIS ON CACHE BOOL "Media player integration")
+set(BRO_WITH_PULSE ON CACHE BOOL "PipeWire audio policy")
+set(BRO_WITH_IME ON CACHE BOOL "Input method engine")
 
 add_subdirectory("${BRO_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/bro")
 

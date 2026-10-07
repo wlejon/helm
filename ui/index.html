@@ -5,6 +5,7 @@
   <title>Helm Desktop</title>
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/shell.css">
+  <link rel="stylesheet" href="css/media.css">
 </head>
 <body class="desktop-root">
   <!-- Desktop Wallpaper Surface -->
@@ -30,8 +31,14 @@
       </div>
     </div>
 
-    <!-- Center: Clock & Date -->
+    <!-- Center: Clock & Date + Media Player -->
     <div class="panel-section panel-center">
+      <div class="panel-media-widget hidden" id="panel-media-widget">
+        <button class="panel-btn" id="media-prev-btn" title="Previous Track">⏮</button>
+        <button class="panel-btn" id="media-play-btn" title="Play/Pause">▶</button>
+        <button class="panel-btn" id="media-next-btn" title="Next Track">⏭</button>
+        <span class="media-title" id="media-title">No Media</span>
+      </div>
       <button class="panel-btn clock-btn" id="btn-clock" title="Toggle calendar & notifications">
         <span class="clock-time" id="panel-clock-time">12:00</span>
         <span class="clock-date" id="panel-clock-date">Mon, Oct 6</span>

@@ -1,7 +1,4 @@
-/**
- * Helm Desktop Spotlight Launcher
- * Fuzzy application runner and system command dispatcher.
- */
+import { ClipboardController } from './clipboard.js';
 
 export class LauncherController {
   constructor() {
@@ -10,9 +7,11 @@ export class LauncherController {
     this.systemCommands = [];
     this.filtered = [];
     this.selectedIndex = 0;
+    this.clipboard = new ClipboardController();
   }
 
   init() {
+    this.clipboard.init();
     this.setupSystemCommands();
     this.loadApps();
     this.bindEvents();
@@ -71,6 +70,14 @@ export class LauncherController {
         icon: '🔔',
         type: 'cmd',
         action: () => window.helm?.notify?.toggleDrawer(),
+      },
+      {
+        id: 'cmd:clipboard',
+        name: 'Clipboard History',
+        comment: 'Search and paste recent clipboard items',
+        icon: '📋',
+        type: 'cmd',
+        action: () => this.openClipboard(),
       },
     ];
   }
@@ -140,6 +147,24 @@ export class LauncherController {
     if (!q) {
       // Show combination of apps and system commands
       this.filtered = [...this.apps, ...this.systemCommands];
+      this.selectedIndex = 0;
+      this.renderResults();
+      return;
+    }
+
+    // Clipboard History query mode
+    if (q.startsWith('clip:') || q.startsWith('/clip')) {
+      const filterText = q.replace(/^(clip:|\/clip)\s*/, '').toLowerCase();
+      const entries = this.clipboard.getEntries();
+      this.filtered = entries
+        .filter((e) => !filterText || (e.previewText && e.previewText.toLowerCase().includes(filterText)))
+        .map((e) => ({
+          id: e.id,
+          name: e.previewText || `Clip #${e.id}`,
+          comment: `${e.byteSize || 0} bytes • ${e.isPinned ? '📌 Pinned' : 'Recent'}`,
+          icon: '📋',
+          type: 'clip',
+        }));
       this.selectedIndex = 0;
       this.renderResults();
       return;
@@ -278,6 +303,8 @@ export class LauncherController {
 
     if (selected.type === 'app') {
       this.launchApp(selected.id);
+    } else if (selected.type === 'clip') {
+      this.clipboard.pasteEntry(selected.id);
     } else if (selected.type === 'cmd' && typeof selected.action === 'function') {
       selected.action();
     }
@@ -291,6 +318,18 @@ export class LauncherController {
         console.warn(`Failed to launch app ${appId}:`, err);
       }
     }
+  }
+
+  openClipboard() {
+    this.isOpen = true;
+    const modal = document.getElementById('launcher-modal');
+    const input = document.getElementById('launcher-input');
+    if (modal) modal.classList.remove('hidden');
+    if (input) {
+      input.value = 'clip: ';
+      input.focus();
+    }
+    this.onInput('clip: ');
   }
 
   open() {

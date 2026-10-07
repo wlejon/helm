@@ -1,0 +1,43 @@
+/* =============================================================================
+   HELM MEDIA & CLIPBOARD STYLING
+   ============================================================================= */
+
+/* Media Player Panel Widget */
+.panel-media-widget {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  background: var(--color-bg-input);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border-subtle);
+  max-width: 260px;
+}
+
+.panel-media-widget .media-title {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+  margin-left: 4px;
+}
+
+.panel-media-widget .panel-btn {
+  height: 22px;
+  width: 22px;
+  padding: 0;
+  font-size: 11px;
+}
+
+/* Clipboard Results in Launcher */
+.launcher-item.clipboard-item {
+  border-left: 3px solid var(--color-accent);
+}
+
+.launcher-item-time {
+  font-size: 10px;
+  color: var(--color-text-dim);
+  margin-left: auto;
+}

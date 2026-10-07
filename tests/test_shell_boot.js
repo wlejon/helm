@@ -104,6 +104,54 @@ assert(window.helm.notify.notifications.length > 0, 'notification recorded in hi
 const toasts = document.querySelectorAll('.toast');
 assert(toasts.length > 0, 'toast notification element rendered in DOM');
 
+// 6. Verify Tier-1 Desktop Substrate APIs (clip, pulse, mpris, ime, decor)
+// (a) bro.clip
+assert(typeof bro !== 'undefined' && typeof bro.clip === 'object', 'bro.clip namespace exists');
+assert(bro.clip.available === true, 'bro.clip is available');
+bro.clip.setText('helm boot test clip content');
+const clipHistory = bro.clip.getHistory();
+assert(Array.isArray(clipHistory) && clipHistory.length > 0, 'bro.clip.getHistory() has entries');
+assert(window.helm.clipboard !== undefined, 'helm clipboard controller exists');
+const helmClips = window.helm.clipboard.getEntries();
+assert(helmClips.length > 0, 'helm clipboard controller returned entries');
+
+// Test launcher clipboard mode & Super+V / Ctrl+Alt+V hotkey
+window.helm.launcher.openClipboard();
+assert(window.helm.launcher.isOpen === true, 'launcher opened in clipboard mode');
+assert(window.helm.launcher.filtered.some((f) => f.type === 'clip'), 'launcher results contain clipboard entries');
+window.helm.launcher.close();
+assert(window.helm.launcher.isOpen === false, 'launcher closed');
+
+// (b) bro.pulse
+assert(typeof bro.pulse === 'object', 'bro.pulse namespace exists');
+assert(bro.pulse.available === true, 'bro.pulse is available');
+const sinks = bro.pulse.getSinks();
+assert(Array.isArray(sinks), 'bro.pulse.getSinks() returns array');
+window.helm.panel.setAudioVolume(0.75);
+const volTextEl = document.getElementById('text-volume');
+assert(volTextEl !== null && volTextEl.textContent === '75%', 'panel volume updated to 75%');
+
+// (c) bro.mpris
+assert(typeof bro.mpris === 'object', 'bro.mpris namespace exists');
+assert(bro.mpris.available === true, 'bro.mpris is available');
+assert(window.helm.media !== undefined, 'helm media controller exists');
+const players = bro.mpris.getPlayers();
+assert(Array.isArray(players), 'bro.mpris.getPlayers() returns array');
+
+// (d) bro.ime
+assert(typeof bro.ime === 'object', 'bro.ime namespace exists');
+assert(bro.ime.available === true, 'bro.ime is available');
+const acuteRes = bro.ime.feedKey('DeadAcute');
+assert(typeof acuteRes === 'object', 'bro.ime.feedKey returned object');
+const acuteE = bro.ime.feedKey('e');
+assert(acuteE.status === 'matched' && acuteE.text === 'é', 'bro.ime compose DeadAcute + e -> é');
+
+// (e) bro.decor
+assert(typeof bro.decor === 'object', 'bro.decor namespace exists');
+assert(bro.decor.available === true, 'bro.decor is available');
+const metrics = bro.decor.getDefaultMetrics();
+assert(typeof metrics === 'object' && metrics.captionHeight > 0, 'bro.decor returned frame metrics');
+
 // Final layout flush
 advanceTime(16);
 flush();
