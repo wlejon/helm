@@ -7,6 +7,7 @@ import { PanelController } from './panel.js';
 import { LauncherController } from './launcher.js';
 import { NotificationController } from './notify.js';
 import { LockController } from './lock.js';
+import { SettingsController } from './settings/settings_controller.js';
 
 export class Shell {
   constructor() {
@@ -14,6 +15,7 @@ export class Shell {
     this.launcher = new LauncherController();
     this.notify = new NotificationController();
     this.lock = new LockController();
+    this.settings = new SettingsController();
     this.activeModals = {};
     this.booted = false;
   }
@@ -37,6 +39,7 @@ export class Shell {
     this.launcher.init();
     this.notify.init();
     this.lock.init();
+    this.settings.init();
 
     this.registerGlobalHotkeys();
     this.registerNativeHotkeys();
@@ -45,6 +48,7 @@ export class Shell {
 
     // Attach to global window object for test automation and extensibility
     window.helm = this;
+    window.helm.settings = this.settings;
     window.helm.media = this.panel.media;
     window.helm.taskbar = this.panel.taskbar;
     window.helm.clipboard = this.launcher.clipboard;
@@ -68,6 +72,7 @@ export class Shell {
         { accel: 'CommandOrControl+Shift+N', action: () => this.notify.toggleDrawer() },
         { accel: 'CommandOrControl+Alt+L', action: () => this.lock.lock() },
         { accel: 'CommandOrControl+Alt+V', action: () => this.launcher.openClipboard() },
+        { accel: 'CommandOrControl+,', action: () => this.settings.toggle() },
       ];
 
       for (const { accel, action } of chords) {
@@ -128,9 +133,23 @@ export class Shell {
         return;
       }
 
-      // 4. Escape -> Close any active popup / launcher / drawer
+      // 5. Super+, or Ctrl+, -> Toggle Settings
+      const isSettingsChord =
+        (e.key === ',' && (e.ctrlKey || e.metaKey));
+
+      if (isSettingsChord) {
+        e.preventDefault();
+        this.settings.toggle();
+        return;
+      }
+
+      // 6. Escape -> Close any active popup / launcher / drawer / settings
       if (e.key === 'Escape') {
         let handled = false;
+        if (this.settings.isOpen) {
+          this.settings.close();
+          handled = true;
+        }
         if (this.launcher.isOpen) {
           this.launcher.close();
           handled = true;
@@ -159,6 +178,7 @@ export class Shell {
     }
     this.panel.destroy();
     this.lock.destroy();
+    this.settings.destroy();
     this.booted = false;
   }
 }

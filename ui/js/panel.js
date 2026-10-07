@@ -57,17 +57,22 @@ export class PanelController {
    * ---------------------------------------------------------------------- */
   setupPopups() {
     const popups = {
-      'btn-quick-volume': 'popup-volume',
-      'btn-quick-net': 'popup-network',
-      'btn-quick-battery': 'popup-power',
+      'btn-quick-volume': { popup: 'popup-volume', category: 'audio' },
+      'btn-quick-net': { popup: 'popup-network', category: 'network' },
+      'btn-quick-battery': { popup: 'popup-power', category: 'power' },
     };
 
-    for (const [btnId, popupId] of Object.entries(popups)) {
+    for (const [btnId, config] of Object.entries(popups)) {
       const btn = document.getElementById(btnId);
       if (btn) {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
-          this.togglePopup(popupId);
+          this.closePopups();
+          if (window.helm?.settings) {
+            window.helm.settings.open(config.category);
+          } else {
+            this.togglePopup(config.popup);
+          }
         });
       }
     }

@@ -73,6 +73,14 @@ export class LauncherController {
         action: () => window.helm?.notify?.toggleDrawer(),
       },
       {
+        id: 'cmd:settings',
+        name: 'System Settings',
+        comment: 'Configure display, audio, network, and power preferences',
+        icon: '⚙️',
+        type: 'cmd',
+        action: () => window.helm?.settings?.open(),
+      },
+      {
         id: 'cmd:clipboard',
         name: 'Clipboard History',
         comment: 'Search and paste recent clipboard items',
@@ -312,6 +320,11 @@ export class LauncherController {
   }
 
   launchApp(appId) {
+    if ((appId === 'settings' || appId === 'helm-settings') && window.helm?.settings) {
+      window.helm.settings.open();
+      return;
+    }
+
     if (typeof bro !== 'undefined' && bro.apps?.launch) {
       try {
         const p = bro.apps.launch(appId);
