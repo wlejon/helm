@@ -136,7 +136,21 @@ int main(int argc, char* argv[]) {
     config.installHostBindings = [](bro::engine::Engine& engine) {
         helm::WinShellBroker::installHostBindings(engine);
     };
-    _putenv_s("BRO_TRUSTED_APP_DIR", config.appDir.c_str());
+#endif
+
+    const char* existingTrusted = std::getenv("BRO_TRUSTED_APP_DIR");
+    std::string trustedDirs = config.appDir;
+    if (existingTrusted && *existingTrusted) {
+#if defined(_WIN32)
+        trustedDirs += ";" + std::string(existingTrusted);
+#else
+        trustedDirs += ":" + std::string(existingTrusted);
+#endif
+    }
+#if defined(_WIN32)
+    _putenv_s("BRO_TRUSTED_APP_DIR", trustedDirs.c_str());
+#else
+    ::setenv("BRO_TRUSTED_APP_DIR", trustedDirs.c_str(), 1);
 #endif
     bro::engine::publishLaunchEnv(config);
 
