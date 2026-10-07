@@ -71,27 +71,40 @@ assert(window.helm.lock.isLocked === true, 'Ctrl+Alt+L hotkey locks session');
 const lockScreenEl = document.getElementById('lock-screen');
 assert(lockScreenEl !== null && !lockScreenEl.classList.contains('hidden'), 'lock screen visible in DOM');
 
-// Verify wrong password fails closed and keeps session locked
-let verifyRes = await window.helm.lock.verify('wrong_password_attempt');
-assert(verifyRes === false, 'wrong password rejected');
-assert(window.helm.lock.isLocked === true, 'session remains locked after wrong password');
+// The lock screen's decisions are tested against a stand-in for
+// bro.cred.authenticate. The real one asks PAM (or LogonUser) about the
+// account running the test, and a wrong password there is a real failed
+// login: enough of them and pam_faillock locks the account.
+const origAuthenticate = bro.cred.authenticate;
 const errorMsgEl = document.getElementById('lock-error-msg');
-assert(errorMsgEl !== null && !errorMsgEl.classList.contains('hidden'), 'error message shown on failed auth');
-
-// Verify valid authentication unlocks session
-const origAuthenticate = (typeof bro !== 'undefined' && bro.cred) ? bro.cred.authenticate : null;
 try {
-  if (typeof bro !== 'undefined' && bro.cred) {
-    bro.cred.authenticate = async () => true;
-  }
+  // A rejected password keeps the session locked.
+  bro.cred.authenticate = async () => false;
+  let verifyRes = await window.helm.lock.verify('wrong_password_attempt');
+  assert(verifyRes === false, 'wrong password rejected');
+  assert(window.helm.lock.isLocked === true, 'session remains locked after wrong password');
+  assert(errorMsgEl !== null && !errorMsgEl.classList.contains('hidden'), 'error message shown on failed auth');
+
+  // An authentication service that fails keeps it locked too.
+  bro.cred.authenticate = async () => { throw new Error('PAM conversation failed'); };
+  verifyRes = await window.helm.lock.verify('any_password');
+  assert(verifyRes === false, 'authentication error rejected');
+  assert(window.helm.lock.isLocked === true, 'session remains locked after an authentication error');
+
+  // So does a missing one: the lock screen fails closed.
+  bro.cred.authenticate = undefined;
+  verifyRes = await window.helm.lock.verify('any_password');
+  assert(verifyRes === false, 'missing authentication service rejected');
+  assert(window.helm.lock.isLocked === true, 'session remains locked without an authentication service');
+
+  // An accepted password unlocks it.
+  bro.cred.authenticate = async () => true;
   verifyRes = await window.helm.lock.verify('correct_password');
   assert(verifyRes === true, 'valid password accepted');
   assert(window.helm.lock.isLocked === false, 'session unlocked successfully on valid authentication');
   assert(lockScreenEl.classList.contains('hidden'), 'lock screen hidden after unlock');
 } finally {
-  if (typeof bro !== 'undefined' && bro.cred && origAuthenticate) {
-    bro.cred.authenticate = origAuthenticate;
-  }
+  bro.cred.authenticate = origAuthenticate;
 }
 
 // 5. Verify Notifications

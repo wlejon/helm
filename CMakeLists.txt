@@ -123,7 +123,8 @@ add_dependencies(helm-headless helm_stage_ui)
 # ---- Installation -------------------------------------------------------------
 include(GNUInstallDirs)
 install(TARGETS helm RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-install(DIRECTORY ui/ DESTINATION ${CMAKE_INSTALL_BINDIR}/ui)
+# system/ beside the executable is where bro trusts a shell app to live.
+install(DIRECTORY ui/ DESTINATION ${CMAKE_INSTALL_BINDIR}/system/helm)
 install(FILES $<TARGET_FILE:bronze_runtime_shared> DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 # ---- Tests --------------------------------------------------------------------
@@ -139,7 +140,7 @@ foreach(_t IN LISTS _helm_tests)
              COMMAND helm-headless --width 1920 --height 1080
                      "${CMAKE_CURRENT_SOURCE_DIR}/ui" "${_t}")
     set_tests_properties(ui-${_name} PROPERTIES
-        ENVIRONMENT "BRO_TRUSTED=1;HELM_CONFIG_DIR=${_cfg};HELM_TEST=1"
+        ENVIRONMENT "BRO_TRUSTED_APP_DIR=${CMAKE_CURRENT_SOURCE_DIR}/ui;HELM_CONFIG_DIR=${_cfg};HELM_TEST=1"
         FIXTURES_REQUIRED cfg-${_name}
         SKIP_RETURN_CODE 77
         TIMEOUT 180)

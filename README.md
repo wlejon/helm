@@ -24,7 +24,7 @@ helm/
 │   ├── paths.h             # Filesystem & config path resolution
 │   └── paths.cpp
 ├── ui/
-│   ├── bro.json            # Desktop shell manifest (declares "trusted": true)
+│   ├── bro.json            # Desktop shell manifest (asks for "shell": true)
 │   ├── index.html          # Desktop shell DOM structure
 │   ├── css/
 │   │   ├── tokens.css      # Design system tokens (Oklch palette, typography, spacing)
@@ -40,7 +40,7 @@ helm/
 ```
 
 ### Trusted Desktop Permissions
-Helm is a privileged desktop shell. In `ui/bro.json`, Helm declares `"trusted": true` and `"shell": true`, granting access to privileged system namespaces:
+Helm is a privileged desktop shell. Its `ui/bro.json` asks for `"shell": true`, and bro grants it only because of where the UI is installed: `system/helm` beside the `helm` executable, a location bro trusts (see bro's `docs/desktop-trust.md`). The manifest alone grants nothing. Run from a build tree, the UI is the source `ui/` folder, which you name in `BRO_TRUSTED_APP_DIR`; without it Helm boots with the privileged namespaces unavailable. With trust, Helm gets:
 - `bro.compositor`: Foreign toplevel management, window manipulation, and workspace policy.
 - `bro.sys`: Power management, audio control, network configuration, notification server, and system tray host.
 - `bro.displays`: Output topology, resolution, refresh rate, and night light.
@@ -64,9 +64,9 @@ ninja -C build
 ```
 
 ### Run
-Launch in windowed mode:
+Launch in windowed mode (from a build tree, naming the source UI as trusted):
 ```bash
-./build/helm --windowed
+BRO_TRUSTED_APP_DIR="$PWD/ui" ./build/helm --windowed
 ```
 
 Launch bare-metal on Linux DRM/KMS:
@@ -87,7 +87,7 @@ ctest --test-dir build --output-on-failure
 
 Or run the test script directly with `helm-headless`:
 ```bash
-./build/helm-headless ui/ tests/test_shell_boot.js
+BRO_TRUSTED_APP_DIR="$PWD/ui" ./build/helm-headless ui/ tests/test_shell_boot.js
 ```
 
 ---
