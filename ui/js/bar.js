@@ -24,6 +24,8 @@ export class Bar {
     this.statusBtn = $('#bar-status');
     this.mediaBtn = $('#bar-media');
     this.trayEl = $('#tray');
+    // Maximized windows stop below the bar.
+    this.reservation = windows.reserveEdge('top', Math.round(this.el.getBoundingClientRect().height) || 34);
 
     $('#bar-launcher').addEventListener('click', () => this.shell.launcher.toggle());
     this.clockBtn.addEventListener('click', () => this.shell.calendar.toggle(this.clockBtn));
@@ -187,6 +189,8 @@ export class Bar {
   }
 
   destroy() {
+    windows.releaseEdge(this.reservation);
+    this.reservation = 0;
     if (this.stopClock) this.stopClock();
     clearInterval(this.secondsTimer);
   }

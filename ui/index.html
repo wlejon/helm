@@ -17,9 +17,10 @@
   <!-- Desktop level (z-index < 1000): drawn under client windows. -->
   <div class="desktop-wallpaper" id="wallpaper"></div>
 
-  <!-- Shell overlays (z-index >= 1000): drawn over client windows. The ids
-       top-panel, launcher-modal and lock-screen are named by bro's DRM input
-       routing; keep them. -->
+  <!-- Shell overlays (z-index >= 1000): drawn over client windows, and
+       bro's DRM input routing gives them the pointer. Overlays that take keys
+       carry data-shell-keyboard: while one is rendered (no .hidden), keys go
+       to the shell rather than the focused window. -->
   <header class="bar" id="top-panel">
     <div class="bar-left">
       <button class="bar-btn bar-logo" id="bar-launcher" title="Applications (Super)"><i data-icon="helm"></i></button>

@@ -119,28 +119,82 @@ export class Shell {
   }
 
   /**
-   * Chords registered with the host, where it supports global hotkeys
-   * (bro.window.registerGlobalHotkey), so they work while a client window
-   * has the keyboard. The keydown handler below covers the shell's own focus.
+   * Chords registered with the host's global hotkeys
+   * (bro.window.registerGlobalHotkey), so they work while a client window has
+   * the keyboard. Under DRM bro matches every key against them before any
+   * window or the shell's DOM sees it: a matched chord reaches nobody else,
+   * so the keydown handler below never sees it twice. Elsewhere (windowed,
+   * headless) that handler is what runs them.
    */
   registerNativeHotkeys() {
     const win = api('window');
-    if (!win || typeof win.registerGlobalHotkey !== 'function') return;
-    const chords = [
-      ['CommandOrControl+Space', () => this.launcher.toggle()],
-      ['Alt+Space', () => this.launcher.toggle()],
-      ['CommandOrControl+Shift+N', () => this.calendar.toggle($('#bar-clock'))],
-      ['CommandOrControl+Alt+L', () => this.lock.lock()],
-      ['CommandOrControl+Alt+V', () => this.launcher.openClipboard()],
-      ['CommandOrControl+,', () => this.settings.toggle()],
-    ];
     this.nativeHotkeys = [];
-    for (const [accel, fn] of chords) {
+    this.nativeSuperTap = false;
+    if (!win || typeof win.registerGlobalHotkey !== 'function') return;
+    const reg = (accel, fn, options) => {
       const id = attempt(`registerGlobalHotkey ${accel}`, () => win.registerGlobalHotkey(accel, () => {
         if (!this.lock.isLocked) fn();
-      }));
+      }, options));
       if (id) this.nativeHotkeys.push(id);
+      return !!id;
+    };
+
+    if (win.displayMode !== 'drm') {
+      const chords = [
+        ['CommandOrControl+Space', () => this.launcher.toggle()],
+        ['Alt+Space', () => this.launcher.toggle()],
+        ['CommandOrControl+Shift+N', () => this.calendar.toggle($('#bar-clock'))],
+        ['CommandOrControl+Alt+L', () => this.lock.lock()],
+        ['CommandOrControl+Alt+V', () => this.launcher.openClipboard()],
+        ['CommandOrControl+,', () => this.settings.toggle()],
+      ];
+      for (const [accel, fn] of chords) reg(accel, fn);
+      return;
     }
+
+    // Super pressed and released alone (a Super+key chord or a Super+drag
+    // is not a tap). The keydown handler leaves Meta alone when this holds.
+    this.nativeSuperTap = reg('Super', () => this.launcher.toggle());
+    const chords = [
+      ['Ctrl+Space', () => this.launcher.toggle()],
+      ['Alt+Space', () => this.launcher.toggle()],
+      ['Super+V', () => this.launcher.openClipboard()],
+      ['Ctrl+Alt+V', () => this.launcher.openClipboard()],
+      ['Super+L', () => this.lock.lock()],
+      ['Ctrl+Alt+L', () => this.lock.lock()],
+      ['Super+N', () => this.calendar.toggle($('#bar-clock'))],
+      ['Ctrl+Shift+N', () => this.calendar.toggle($('#bar-clock'))],
+      ['Super+S', () => this.quick.toggle($('#bar-status'))],
+      ['Super+,', () => this.toggleSettings()],
+      ['Super+Q', () => this.closeFocused()],
+      ['VolumeUp', () => this.stepVolume(0.05)],
+      ['VolumeDown', () => this.stepVolume(-0.05)],
+      ['VolumeMute', () => this.toggleMute()],
+      ['MediaPlayPause', () => this.media.playPause()],
+      ['MediaNextTrack', () => this.media.next()],
+      ['MediaPreviousTrack', () => this.media.previous()],
+    ];
+    for (let i = 1; i <= 9; i++) chords.push([`Super+${i}`, () => windows.switchToIndex(i - 1)]);
+    for (const [accel, fn] of chords) reg(accel, fn);
+
+    // The switcher: each Tab steps; the grab keeps the keyboard with the
+    // shell until the modifier is released, and that keyup commits
+    // (Switcher.onKeyUp).
+    const grab = { grab: true };
+    reg('Alt+Tab', () => this.switcher.step('Alt', 1), grab);
+    reg('Alt+Shift+Tab', () => this.switcher.step('Alt', -1), grab);
+    reg('Super+Tab', () => this.switcher.step('Meta', 1), grab);
+    reg('Super+Shift+Tab', () => this.switcher.step('Meta', -1), grab);
+  }
+
+  toggleSettings() {
+    if (this.settings.isOpen) this.settings.close();
+    else this.openSettings();
+  }
+
+  closeFocused() {
+    const w = windows.focused();
+    if (w) windows.close(w.id);
   }
 
   cycleWallpaper() {
@@ -203,8 +257,10 @@ export class Shell {
       if (k === 'BrightnessUp' || k === 'MonBrightnessUp') return run(() => this.stepBrightness(0.05));
       if (k === 'BrightnessDown' || k === 'MonBrightnessDown') return run(() => this.stepBrightness(-0.05));
 
-      // Super alone, Ctrl/Alt+Space: launcher
-      if ((k === 'Meta' && !e.ctrlKey && !e.altKey && !e.shiftKey) || (k === ' ' && (e.ctrlKey || e.altKey))) {
+      // Super alone, Ctrl/Alt+Space: launcher (Super: on its own keydown,
+      // unless the host delivers the Super tap itself)
+      const superAlone = k === 'Meta' && !e.ctrlKey && !e.altKey && !e.shiftKey && !this.nativeSuperTap;
+      if (superAlone || (k === ' ' && (e.ctrlKey || e.altKey))) {
         return run(() => this.launcher.toggle());
       }
       // Super+V, Ctrl+Alt+V: clipboard history
@@ -218,14 +274,9 @@ export class Shell {
       // Super+1..9: workspaces
       if (sup && /^[1-9]$/.test(k)) return run(() => windows.switchToIndex(Number(k) - 1));
       // Super+, / Ctrl+,: settings
-      if (k === ',' && (sup || e.ctrlKey)) return run(() => (this.settings.isOpen ? this.settings.close() : this.openSettings()));
+      if (k === ',' && (sup || e.ctrlKey)) return run(() => this.toggleSettings());
       // Super+Q: close the focused window
-      if (k === 'q' && sup) {
-        return run(() => {
-          const w = windows.focused();
-          if (w) windows.close(w.id);
-        });
-      }
+      if (k === 'q' && sup) return run(() => this.closeFocused());
 
       if (k === 'Escape') {
         if (this.menus.isOpen) return run(() => this.menus.close());
