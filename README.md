@@ -5,7 +5,7 @@
 **Helm** is the standalone desktop environment shell application for the [bro ecosystem](https://github.com/wlejon/bro).
 
 Built on top of `bro_engine`, `bro_bronze_host`, and `bronze`, Helm provides the primary human interface to the desktop operating system:
-a status bar panel with hardware status and tray integrations, a centered spotlight fuzzy application launcher, a rich notification toast/drawer center, and a session lock screen with credential verification.
+a slim top bar (workspaces, focused app, clock, media, tray, status), a quick settings panel (volume and outputs, network and Wi-Fi, Bluetooth, Do Not Disturb, power), a calendar with the notification center, toasts and on-screen display, a launcher with app grid, search, calculator, actions and clipboard history, an auto-hiding dock with running indicators, an Alt+Tab window switcher, and a lock screen with credential verification.
 
 ---
 
@@ -25,18 +25,41 @@ helm/
 │   └── paths.cpp
 ├── ui/
 │   ├── bro.json            # Desktop shell manifest (asks for "shell": true)
-│   ├── index.html          # Desktop shell DOM structure
+│   ├── index.html          # Shell DOM: wallpaper, bar, popovers, dock, overlays
 │   ├── css/
-│   │   ├── tokens.css      # Design system tokens (Oklch palette, typography, spacing)
-│   │   └── shell.css       # Panel, launcher, popups, toasts, and lock screen styles
+│   │   ├── tokens.css      # Palette (accent hue knob), glass, radii, z-scale
+│   │   ├── base.css        # Reset and shared controls: buttons, sliders, tiles, menus, popovers
+│   │   ├── bar.css         # Top bar
+│   │   ├── popovers.css    # Quick settings, calendar + notification center, toasts, OSD
+│   │   ├── launcher.css    # Launcher overlay
+│   │   ├── dock.css        # Dock and window switcher
+│   │   └── lock.css        # Lock screen
 │   └── js/
-│       ├── shell.js        # Main desktop controller orchestrating subsystems
-│       ├── panel.js        # Top status bar, clock, audio/network/power popups, tray
-│       ├── launcher.js     # Centered spotlight runner (bro.apps + bro.search)
-│       ├── notify.js       # Toast notifications & drawer (bro.sys.notifications)
-│       └── lock.js         # Session lock screen & password auth (bro.cred)
+│       ├── shell.js        # Builds every surface, global hotkeys, window.helm
+│       ├── util.js         # DOM builder, app icons, popover manager, time formatting
+│       ├── icons.js        # Inline SVG icon set
+│       ├── settings.js     # Shell preferences (bro.conf, helm.shell.*)
+│       ├── wallpaper.js    # Gradient presets or an image
+│       ├── controls.js     # Slider and switch widgets
+│       ├── system.js       # Audio, network, Bluetooth, power, display (bro.sys / pulse)
+│       ├── windows.js      # Windows and workspaces (bro.compositor)
+│       ├── appdb.js        # App catalog, window-to-app matching, launching (bro.apps)
+│       ├── media.js        # MPRIS controller
+│       ├── menus.js        # Context menus and tray DBusMenu menus
+│       ├── bar.js          # Top bar
+│       ├── quicksettings.js# Quick settings panel
+│       ├── notify.js       # Notification server, toasts, history (bro.sys.notifications)
+│       ├── calendar.js     # Calendar and notification center popover
+│       ├── osd.js          # Volume / brightness on-screen display
+│       ├── launcher.js     # Launcher: grid, search, calculator, actions, clipboard
+│       ├── calc.js         # Arithmetic evaluator for the launcher
+│       ├── dock.js         # Dock: pinned + running apps, intellihide
+│       ├── switcher.js     # Alt+Tab window switcher
+│       └── lock.js         # Lock screen and password auth (bro.cred)
 └── tests/
-    └── test_shell_boot.js  # Headless integration test suite
+    ├── test_shell_boot.js      # Boot, bar, popovers, launcher, hotkeys, lock fails closed
+    ├── test_notifications.js   # Toasts, history, actions, Do Not Disturb
+    └── test_dock.js            # Dock, intellihide, Alt+Tab over stand-in windows
 ```
 
 ### Trusted Desktop Permissions
@@ -89,6 +112,7 @@ Or run the test script directly with `helm-headless`:
 ```bash
 BRO_TRUSTED_APP_DIR="$PWD/ui" ./build/helm-headless ui/ tests/test_shell_boot.js
 ```
+Use a scratch `XDG_CONFIG_HOME` and `HELM_CONFIG_DIR` when running by hand, so the run does not write your real settings (ctest sets both).
 
 ---
 
@@ -96,12 +120,18 @@ BRO_TRUSTED_APP_DIR="$PWD/ui" ./build/helm-headless ui/ tests/test_shell_boot.js
 
 | Shortcut | Action |
 |----------|--------|
-| `Ctrl+Space` / `Alt+Space` / `Super` | Toggle Spotlight Application Launcher |
-| `Ctrl+Alt+L` / `Meta+L` | Lock Session |
-| `Ctrl+Shift+N` | Toggle Notification Drawer |
-| `Escape` | Dismiss active popup, launcher, or notification drawer |
-| `ArrowUp` / `ArrowDown` | Navigate results in Launcher |
-| `Enter` | Launch selected application or action in Launcher |
+| `Super` / `Ctrl+Space` / `Alt+Space` | Toggle the launcher |
+| `Super+V` / `Ctrl+Alt+V` | Clipboard history |
+| `Super+L` / `Ctrl+Alt+L` | Lock |
+| `Super+N` / `Ctrl+Shift+N` | Calendar and notification center |
+| `Super+S` | Quick settings |
+| `Super+1`..`9` | Switch workspace |
+| `Super+Q` | Close the focused window |
+| `Alt+Tab` / `Super+Tab` | Window switcher (release to switch) |
+| Volume, media and brightness keys | Adjust, with an on-screen display |
+| `Escape` | Close the open menu, launcher or popover |
+
+Under DRM, bro routes only some of these chords to the shell today; the rest reach the focused window.
 
 ---
 

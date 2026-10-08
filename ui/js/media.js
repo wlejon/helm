@@ -1,167 +1,101 @@
 /**
- * Helm Desktop MPRIS Media Player Controller
- * Integrates with bro.mpris to track active media players and control playback.
+ * The active MPRIS player (bro.mpris): what is playing and the controls.
+ * Subscribers are told whenever the player, its status or its track change.
  */
+
+import { api, attempt, listen } from './util.js';
 
 export class MediaController {
   constructor() {
-    this.activePlayerId = null;
-    this.playbackStatus = 'Stopped';
-    this.metadata = null;
-    this.isAvailable = false;
+    this.player = null;
+    this.status = 'Stopped';
+    this.meta = null;
+    this.subs = new Set();
   }
 
   init() {
-    if (typeof bro !== 'undefined' && bro.mpris && bro.mpris.available) {
-      this.isAvailable = true;
-    }
-
-    this.bindDom();
-    if (this.isAvailable) {
-      this.refreshPlayers();
-      this.bindEvents();
-    }
-  }
-
-  bindDom() {
-    this.widgetEl = document.getElementById('panel-media-widget');
-    this.titleEl = document.getElementById('media-title');
-    this.playBtn = document.getElementById('media-play-btn');
-    this.prevBtn = document.getElementById('media-prev-btn');
-    this.nextBtn = document.getElementById('media-next-btn');
-
-    if (this.playBtn) {
-      this.playBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.playPause();
-      });
-    }
-
-    if (this.prevBtn) {
-      this.prevBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.previous();
-      });
-    }
-
-    if (this.nextBtn) {
-      this.nextBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.next();
-      });
-    }
-  }
-
-  bindEvents() {
-    if (!this.isAvailable || typeof bro.mpris.on !== 'function') return;
-
-    try {
-      bro.mpris.on('activePlayerChanged', (player) => {
-        this.onActivePlayerChanged(player);
-      });
-      bro.mpris.on('playbackStatus', (data) => {
-        if (!data) return;
-        if (!this.activePlayerId || data.playerId === this.activePlayerId) {
-          this.playbackStatus = data.status || 'Stopped';
-          this.updateUi();
-        }
-      });
-      bro.mpris.on('metadata', (data) => {
-        if (!data) return;
-        if (!this.activePlayerId || data.playerId === this.activePlayerId) {
-          this.metadata = data.metadata || data;
-          this.updateUi();
-        }
-      });
-      bro.mpris.on('playerAdded', () => this.refreshPlayers());
-      bro.mpris.on('playerRemoved', () => this.refreshPlayers());
-    } catch (err) {
-      console.warn('Helm MediaController: failed to bind MPRIS events:', err);
-    }
-  }
-
-  refreshPlayers() {
-    if (!this.isAvailable) return;
-    try {
-      const active = bro.mpris.getActivePlayer();
-      if (active) {
-        this.onActivePlayerChanged(active);
-        return;
-      }
-      const players = bro.mpris.getPlayers();
-      if (Array.isArray(players) && players.length > 0) {
-        this.onActivePlayerChanged(players[0]);
+    const m = api('mpris');
+    if (!m) return;
+    listen(m, 'activePlayerChanged', () => this.refresh());
+    listen(m, 'playerAdded', () => this.refresh());
+    listen(m, 'playerRemoved', () => this.refresh());
+    listen(m, 'playbackStatus', (d) => {
+      if (d && this.player && d.playerId === this.player.id) {
+        this.status = d.playbackStatus || d.status || this.status;
+        this.emit();
       } else {
-        this.activePlayerId = null;
-        this.playbackStatus = 'Stopped';
-        this.metadata = null;
-        this.updateUi();
+        this.refresh();
       }
-    } catch (err) {
-      console.warn('Helm MediaController: refreshPlayers failed:', err);
-    }
+    });
+    listen(m, 'metadata', (d) => {
+      if (d && this.player && d.playerId === this.player.id) {
+        this.meta = d.metadata || d;
+        this.emit();
+      }
+    });
+    this.refresh();
   }
 
-  onActivePlayerChanged(player) {
-    if (!player) return;
-    this.activePlayerId = player.id || player.identity;
-    this.playbackStatus = player.playbackStatus || 'Stopped';
-    try {
-      this.metadata = bro.mpris.getMetadata(this.activePlayerId);
-    } catch (_) {
-      this.metadata = null;
-    }
-    this.updateUi();
+  onChange(fn) {
+    this.subs.add(fn);
   }
 
-  updateUi() {
-    if (!this.widgetEl) return;
+  emit() {
+    for (const fn of this.subs) attempt('media subscriber', () => fn(this));
+  }
 
-    if (!this.activePlayerId) {
-      this.widgetEl.classList.add('hidden');
-      return;
-    }
+  refresh() {
+    const m = api('mpris');
+    if (!m) return;
+    const players = attempt('mpris.getPlayers', () => m.getPlayers(), []) || [];
+    const active = attempt('mpris.getActivePlayer', () => m.getActivePlayer())
+      || players.find((p) => p.playbackStatus === 'Playing')
+      || players[0]
+      || null;
+    this.player = active && active.id ? active : null;
+    this.status = this.player ? this.player.playbackStatus || 'Stopped' : 'Stopped';
+    this.meta = this.player ? attempt('mpris.getMetadata', () => m.getMetadata(this.player.id)) : null;
+    this.emit();
+  }
 
-    this.widgetEl.classList.remove('hidden');
+  get active() {
+    return !!this.player;
+  }
 
-    if (this.playBtn) {
-      this.playBtn.textContent = this.playbackStatus === 'Playing' ? '⏸' : '▶';
-    }
+  get playing() {
+    return this.status === 'Playing';
+  }
 
-    if (this.titleEl) {
-      const title = this.metadata?.title || 'Unknown Track';
-      const artist = this.metadata?.artist ? ` - ${this.metadata.artist}` : '';
-      this.titleEl.textContent = `${title}${artist}`;
-      this.titleEl.title = `${title}${artist}`;
-    }
+  get title() {
+    return (this.meta && this.meta.title) || (this.player && this.player.identity) || 'Unknown';
+  }
+
+  get artist() {
+    return (this.meta && this.meta.artist) || (this.player && this.player.identity) || '';
+  }
+
+  get artPath() {
+    const url = this.meta && this.meta.albumArtUrl;
+    if (!url) return null;
+    if (url.startsWith('file://')) return decodeURIComponent(url.slice(7));
+    return url.startsWith('/') ? url : null;
   }
 
   playPause() {
-    if (!this.isAvailable || !this.activePlayerId) return;
-    try {
-      bro.mpris.playPause(this.activePlayerId);
-      this.playbackStatus = this.playbackStatus === 'Playing' ? 'Paused' : 'Playing';
-      this.updateUi();
-    } catch (err) {
-      console.warn('Helm Media: playPause failed:', err);
-    }
-  }
-
-  previous() {
-    if (!this.isAvailable || !this.activePlayerId) return;
-    try {
-      bro.mpris.previous(this.activePlayerId);
-    } catch (err) {
-      console.warn('Helm Media: previous failed:', err);
-    }
+    const m = api('mpris');
+    if (!m || !this.player) return;
+    attempt('mpris.playPause', () => m.playPause(this.player.id));
+    this.status = this.playing ? 'Paused' : 'Playing';
+    this.emit();
   }
 
   next() {
-    if (!this.isAvailable || !this.activePlayerId) return;
-    try {
-      bro.mpris.next(this.activePlayerId);
-    } catch (err) {
-      console.warn('Helm Media: next failed:', err);
-    }
+    const m = api('mpris');
+    if (m && this.player) attempt('mpris.next', () => m.next(this.player.id));
+  }
+
+  previous() {
+    const m = api('mpris');
+    if (m && this.player) attempt('mpris.previous', () => m.previous(this.player.id));
   }
 }

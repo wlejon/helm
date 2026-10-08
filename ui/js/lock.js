@@ -1,162 +1,147 @@
 /**
- * Helm Desktop Session Lock Controller
- * Manages the full-screen session lock screen and password verification
- * via bro.cred.
+ * Session lock: a full-screen overlay over the blurred wallpaper with the
+ * clock and a password field checked by bro.cred. Fails closed: without a
+ * working authentication service the session stays locked.
  */
 
+import { h, $, api, everyMinute, fmtTime, fmtDateLong, initials } from './util.js';
+import { icon } from './icons.js';
+import { settings } from './settings.js';
+
 export class LockController {
-  constructor() {
+  constructor(shell) {
+    this.shell = shell;
     this.isLocked = false;
-    this.username = 'User';
-    this.clockInterval = null;
+    this.busy = false;
+    this.requestedAt = 0;
+    this.stopClock = null;
+  }
+
+  get username() {
+    return this.shell.username;
   }
 
   init() {
-    this.detectUsername();
-    this.setupClock();
-    this.bindEvents();
-    if (typeof bro !== 'undefined' && bro.seat?.addEventListener) {
-      bro.seat.addEventListener('lock', () => this.lock());
-      bro.seat.addEventListener('unlock', () => this.unlock());
-    }
-  }
-
-  detectUsername() {
-    const userEl = document.getElementById('lock-username');
-    if (typeof process !== 'undefined' && process.env?.USER) {
-      this.username = process.env.USER;
-    } else if (typeof process !== 'undefined' && process.env?.USERNAME) {
-      this.username = process.env.USERNAME;
-    }
-    if (userEl) userEl.textContent = this.username;
-  }
-
-  setupClock() {
-    this.updateClock();
-    this.clockInterval = setInterval(() => this.updateClock(), 1000);
-  }
-
-  updateClock() {
-    const timeEl = document.getElementById('lock-clock-time');
-    const dateEl = document.getElementById('lock-clock-date');
-    if (!timeEl || !dateEl) return;
-
-    const now = new Date();
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    timeEl.textContent = `${hours}:${minutes}`;
-
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    dateEl.textContent = `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}`;
-  }
-
-  bindEvents() {
-    const lockBtn = document.getElementById('btn-session-lock');
-    const form = document.getElementById('lock-form');
-
-    if (lockBtn) {
-      lockBtn.addEventListener('click', () => this.lock());
-    }
-
-    if (form) {
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const input = document.getElementById('lock-password');
-        const password = input ? input.value : '';
-        await this.verify(password);
+    this.el = $('#lock-screen');
+    this.render();
+    this.stopClock = everyMinute(() => this.renderClock());
+    settings.watch('use24h', () => this.renderClock());
+    const seat = api('seat');
+    if (seat && typeof seat.addEventListener === 'function') {
+      // logind answers our own seat.lock() with a Lock signal; one landing
+      // after a quick unlock must not lock the screen again.
+      seat.addEventListener('lock', () => {
+        if (Date.now() - this.requestedAt < 3000) return;
+        this.lock({ fromSeat: true });
       });
     }
   }
 
-  lock() {
+  render() {
+    this.timeEl = h('div.lock-time');
+    this.dateEl = h('div.lock-date');
+    this.input = h('input.lock-input#lock-password', {
+      type: 'password', placeholder: 'Password', autocomplete: 'current-password',
+    });
+    this.submitBtn = h('button.lock-go#lock-submit', { type: 'submit', title: 'Unlock' }, icon('arrow-right'));
+    this.errorEl = h('div.lock-error.hidden#lock-error-msg');
+    this.form = h('form.lock-form#lock-form', h('div.lock-field', this.input, this.submitBtn), this.errorEl);
+    this.form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.verify(this.input.value);
+    });
+    this.el.replaceChildren(
+      h('div.lock-bg#lock-bg'),
+      h('div.lock-scrim'),
+      h('div.lock-top', this.timeEl, this.dateEl),
+      h('div.lock-auth',
+        h('div.lock-avatar', initials(this.username)),
+        h('div.lock-user#lock-username', this.username),
+        this.form));
+    this.renderClock();
+  }
+
+  renderClock() {
+    const now = new Date();
+    if (this.timeEl) this.timeEl.textContent = fmtTime(now, settings.get('use24h')).replace(/ [AP]M$/, '');
+    if (this.dateEl) this.dateEl.textContent = fmtDateLong(now);
+  }
+
+  lock({ fromSeat = false } = {}) {
+    if (this.isLocked) return;
     this.isLocked = true;
-    const screen = document.getElementById('lock-screen');
-    const input = document.getElementById('lock-password');
-    const errorEl = document.getElementById('lock-error-msg');
-
-    if (screen) screen.classList.remove('hidden');
-    if (errorEl) errorEl.classList.add('hidden');
-    if (input) {
-      input.value = '';
-      input.focus();
-    }
-
-    // Notify session seat & power subsystems
-    if (typeof bro !== 'undefined') {
-      if (bro.seat?.lock) {
-        try {
-          bro.seat.lock();
-        } catch (_) {}
-      }
-      if (bro.sys?.power?.request) {
-        try {
-          bro.sys.power.request('lock');
-        } catch (_) {}
-      }
+    this.shell.closeTransient();
+    $('#lock-bg', this.el).style.backgroundImage = this.shell.wallpaper.css();
+    this.renderClock();
+    this.errorEl.classList.add('hidden');
+    this.input.value = '';
+    this.el.classList.remove('hidden', 'leaving');
+    this.el.classList.add('entering');
+    setTimeout(() => this.el.classList.remove('entering'), 400);
+    setTimeout(() => this.input.focus(), 0);
+    const seat = api('seat');
+    if (!fromSeat && seat && typeof seat.lock === 'function') {
+      this.requestedAt = Date.now();
+      try { seat.lock(); } catch (_) {}
     }
   }
 
   unlock() {
     this.isLocked = false;
-    const screen = document.getElementById('lock-screen');
-    const input = document.getElementById('lock-password');
-    const errorEl = document.getElementById('lock-error-msg');
-
-    if (screen) screen.classList.add('hidden');
-    if (errorEl) errorEl.classList.add('hidden');
-    if (input) input.value = '';
-
-    // Notify session seat subsystem
-    if (typeof bro !== 'undefined' && bro.seat?.unlock) {
-      try {
-        bro.seat.unlock();
-      } catch (_) {}
+    this.input.value = '';
+    this.errorEl.classList.add('hidden');
+    this.el.classList.add('leaving');
+    setTimeout(() => {
+      if (!this.isLocked) this.el.classList.add('hidden');
+      this.el.classList.remove('leaving');
+    }, 300);
+    const seat = api('seat');
+    if (seat && typeof seat.unlock === 'function') {
+      try { seat.unlock(); } catch (_) {}
     }
   }
 
   async verify(password) {
-    // Fail closed: Never unlock if authentication service is unavailable
-    if (typeof bro === 'undefined' || !bro.cred || typeof bro.cred.authenticate !== 'function') {
+    if (this.busy) return false;
+    const cred = typeof bro !== 'undefined' && bro ? bro.cred : null;
+    if (!cred || typeof cred.authenticate !== 'function') {
       this.showError('Authentication service unavailable');
       return false;
     }
-
+    this.busy = true;
+    this.form.classList.add('busy');
     try {
-      const res = bro.cred.authenticate(this.username, password);
+      const res = cred.authenticate(this.username, password);
       const ok = res && typeof res.then === 'function' ? await res : !!res;
-
       if (ok) {
         this.unlock();
         return true;
-      } else {
-        this.showError('Incorrect password. Please try again.');
-        return false;
       }
-    } catch (err) {
-      console.warn('Authentication error:', err);
-      this.showError('Authentication service error');
+      this.showError('Incorrect password');
       return false;
+    } catch (err) {
+      console.warn('helm: authentication error:', err);
+      this.showError('Authentication failed');
+      return false;
+    } finally {
+      this.busy = false;
+      this.form.classList.remove('busy');
     }
   }
 
   showError(msg) {
-    const errorEl = document.getElementById('lock-error-msg');
-    const input = document.getElementById('lock-password');
-    if (errorEl) {
-      errorEl.textContent = msg;
-      errorEl.classList.remove('hidden');
-    }
-    if (input) {
-      input.value = '';
-      input.focus();
-    }
+    this.errorEl.textContent = msg;
+    this.errorEl.classList.remove('hidden');
+    this.input.value = '';
+    this.form.classList.remove('shake');
+    // Restart the animation on repeated failures.
+    void this.form.offsetWidth;
+    this.form.classList.add('shake');
+    setTimeout(() => this.form.classList.remove('shake'), 450);
+    this.input.focus();
   }
 
   destroy() {
-    if (this.clockInterval) {
-      clearInterval(this.clockInterval);
-      this.clockInterval = null;
-    }
+    if (this.stopClock) this.stopClock();
   }
 }

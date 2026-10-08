@@ -1,100 +1,111 @@
 /* =============================================================================
-   HELM DESIGN SYSTEM TOKENS (Level 5 Cascade, Oklch Color Model)
+   HELM DESIGN TOKENS
+   Neutral graphite surfaces, one accent, glass layers over the wallpaper.
+   The accent hue is the one knob: --accent-h is rewritten from settings.
    ============================================================================= */
 
 :root {
-  /* Color Palette — Neutral Dark Foundations */
-  --color-bg-base: oklch(0.14 0.015 260);
-  --color-bg-surface: oklch(0.18 0.02 260 / 0.85);
-  --color-bg-surface-solid: oklch(0.18 0.02 260);
-  --color-bg-elevated: oklch(0.22 0.025 260 / 0.92);
-  --color-bg-elevated-solid: oklch(0.22 0.025 260);
-  --color-bg-hover: oklch(0.28 0.03 260 / 0.75);
-  --color-bg-active: oklch(0.33 0.035 260 / 0.85);
-  --color-bg-input: oklch(0.12 0.015 260 / 0.85);
+  --accent-h: 255;
+  --accent-c: 0.15;
 
-  /* Vibrant Accent — Modern Indigo/Violet */
-  --color-accent: oklch(0.68 0.22 260);
-  --color-accent-hover: oklch(0.74 0.24 260);
-  --color-accent-active: oklch(0.62 0.20 260);
-  --color-accent-subtle: oklch(0.68 0.22 260 / 0.18);
-  --color-accent-text: oklch(0.98 0.01 260);
+  /* Accent */
+  --accent: oklch(0.72 var(--accent-c) var(--accent-h));
+  --accent-strong: oklch(0.64 var(--accent-c) var(--accent-h));
+  --accent-soft: oklch(0.72 var(--accent-c) var(--accent-h) / 0.18);
+  --accent-softer: oklch(0.72 var(--accent-c) var(--accent-h) / 0.10);
+  --on-accent: oklch(0.99 0.005 var(--accent-h));
 
-  /* Status and Semantic Colors */
-  --color-success: oklch(0.72 0.18 145);
-  --color-success-subtle: oklch(0.72 0.18 145 / 0.2);
-  --color-warning: oklch(0.78 0.16 75);
-  --color-warning-subtle: oklch(0.78 0.16 75 / 0.2);
-  --color-danger: oklch(0.65 0.24 25);
-  --color-danger-subtle: oklch(0.65 0.24 25 / 0.2);
-  --color-info: oklch(0.70 0.17 220);
+  /* Surfaces: glass over the wallpaper, solid where legibility matters */
+  --bg-desktop: oklch(0.16 0.01 265);
+  --glass-bar: rgb(14 14 18 / 0.62);
+  --glass-1: rgb(28 28 34 / 0.78);
+  --glass-2: rgb(38 38 46 / 0.82);
+  --surface-1: oklch(0.21 0.008 265);
+  --surface-2: oklch(0.25 0.009 265);
+  --surface-3: oklch(0.30 0.010 265);
+  --fill-1: rgb(255 255 255 / 0.05);
+  --fill-2: rgb(255 255 255 / 0.08);
+  --fill-3: rgb(255 255 255 / 0.12);
+  --fill-4: rgb(255 255 255 / 0.18);
+  --scrim: rgb(6 6 10 / 0.45);
 
-  /* Typography Colors */
-  --color-text-primary: oklch(0.96 0.01 260);
-  --color-text-secondary: oklch(0.76 0.02 260);
-  --color-text-muted: oklch(0.56 0.02 260);
-  --color-text-dim: oklch(0.42 0.015 260);
+  /* Text */
+  --text-1: oklch(0.97 0.004 265);
+  --text-2: oklch(0.80 0.008 265);
+  --text-3: oklch(0.64 0.010 265);
+  --text-4: oklch(0.50 0.010 265);
 
-  /* Borders and Separators */
-  --color-border-subtle: oklch(0.30 0.02 260 / 0.45);
-  --color-border-medium: oklch(0.38 0.025 260 / 0.6);
-  --color-border-focus: oklch(0.68 0.22 260);
+  /* Lines */
+  --hairline: rgb(255 255 255 / 0.08);
+  --hairline-strong: rgb(255 255 255 / 0.14);
+  --edge-light: inset 0 1px 0 rgb(255 255 255 / 0.07);
 
-  /* Typography Font Families */
-  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Cantarell, "Helvetica Neue", Ubuntu, sans-serif;
-  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", "Fira Code", monospace;
+  /* Semantic */
+  --ok: oklch(0.76 0.15 155);
+  --warn: oklch(0.82 0.14 80);
+  --danger: oklch(0.68 0.19 25);
+  --danger-soft: oklch(0.68 0.19 25 / 0.18);
 
-  /* Font Sizes */
-  --text-xs: 11px;
-  --text-sm: 13px;
-  --text-base: 14px;
-  --text-md: 16px;
-  --text-lg: 18px;
-  --text-xl: 22px;
-  --text-2xl: 28px;
-  --text-3xl: 36px;
-  --text-clock: 52px;
+  /* Type */
+  --font-ui: "Inter", "Adwaita Sans", "Cantarell", "Noto Sans", "Liberation Sans", sans-serif;
+  --font-mono: "JetBrains Mono", "Adwaita Mono", "DejaVu Sans Mono", monospace;
+  --fs-2xs: 10px;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-md: 13px;
+  --fs-lg: 15px;
+  --fs-xl: 18px;
+  --fs-2xl: 24px;
+  --fs-hero: 96px;
 
-  /* Spacing Scale */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-8: 32px;
-  --space-10: 40px;
-  --space-12: 48px;
+  /* Space */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 20px;
+  --s6: 24px;
+  --s8: 32px;
 
-  /* Border Radii */
-  --radius-xs: 4px;
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 20px;
-  --radius-full: 9999px;
+  /* Radii */
+  --r-xs: 6px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 22px;
+  --r-full: 999px;
 
-  /* Shadows */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
-  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.6);
-  --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.7);
+  /* Elevation */
+  --shadow-pop: 0 18px 50px rgb(0 0 0 / 0.45), 0 2px 8px rgb(0 0 0 / 0.30);
+  --shadow-card: 0 8px 24px rgb(0 0 0 / 0.35);
+  --shadow-modal: 0 30px 80px rgb(0 0 0 / 0.55), 0 4px 14px rgb(0 0 0 / 0.35);
+  --blur-bar: blur(28px) saturate(1.5);
+  --blur-pop: blur(36px) saturate(1.6);
 
-  /* Glassmorphism & Effects */
-  --backdrop-blur: blur(24px);
-  --backdrop-blur-heavy: blur(40px);
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --t-fast: 120ms;
+  --t-med: 220ms;
+  --t-slow: 360ms;
 
-  /* Transitions */
-  --transition-fast: 140ms cubic-bezier(0.16, 1, 0.3, 1);
-  --transition-normal: 240ms cubic-bezier(0.16, 1, 0.3, 1);
-  --transition-bounce: 350ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* Layout */
+  --bar-h: 34px;
+  --dock-h: 64px;
+  --icon-sm: 16px;
+  --icon-md: 18px;
 
-  /* Layout Constants */
-  --panel-height: 40px;
-  --panel-z-index: 1000;
-  --popup-z-index: 2000;
-  --toast-z-index: 3000;
-  --drawer-z-index: 4000;
-  --launcher-z-index: 5000;
-  --lock-z-index: 9000;
+  /* Stacking. The engine draws client windows between the desktop (<1000)
+     and the shell overlays (>=1000), and gives pointer input to anything at
+     z-index >= 1000. */
+  --z-desktop: 1;
+  --z-bar: 1000;
+  --z-dock: 1010;
+  --z-popover: 2000;
+  --z-toast: 3000;
+  --z-osd: 3500;
+  --z-switcher: 4500;
+  --z-launcher: 5000;
+  --z-menu: 6000;
+  --z-lock: 9000;
 }

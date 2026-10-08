@@ -1,0 +1,449 @@
+/* =============================================================================
+   BASE: reset, typography, and the components every surface shares.
+   ============================================================================= */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+body {
+  background: var(--bg-desktop);
+  font-family: var(--font-ui);
+  font-size: var(--fs-md);
+  color: var(--text-1);
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: default;
+}
+
+input {
+  font: inherit;
+  color: inherit;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Icons ---------------------------------------------------------------- */
+
+.icon {
+  width: var(--icon-md);
+  height: var(--icon-md);
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.icon.filled {
+  fill: currentColor;
+}
+
+/* Buttons --------------------------------------------------------------- */
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-full);
+  color: var(--text-2);
+  transition: background var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
+}
+
+.icon-btn:hover {
+  background: var(--fill-2);
+  color: var(--text-1);
+}
+
+.icon-btn:active {
+  background: var(--fill-3);
+}
+
+.icon-btn.round-fill {
+  background: var(--fill-2);
+}
+
+.icon-btn.round-fill:hover {
+  background: var(--fill-3);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  height: 30px;
+  padding: 0 var(--s3);
+  border-radius: var(--r-full);
+  background: var(--fill-2);
+  color: var(--text-1);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  transition: background var(--t-fast) var(--ease-out);
+}
+
+.btn:hover {
+  background: var(--fill-3);
+}
+
+.btn.primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.btn.primary:hover {
+  background: var(--accent-strong);
+}
+
+.btn.danger {
+  background: var(--danger);
+  color: white;
+}
+
+.btn.ghost {
+  background: transparent;
+  color: var(--text-2);
+}
+
+.btn.ghost:hover {
+  background: var(--fill-2);
+  color: var(--text-1);
+}
+
+/* Slider: a div track the JS drives (see controls.js) ------------------ */
+
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+
+.slider {
+  position: relative;
+  flex: 1;
+  height: 24px;
+  border-radius: var(--r-full);
+  background: var(--fill-2);
+  overflow: hidden;
+}
+
+.slider-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  min-width: 28px;
+  border-radius: var(--r-full);
+  background: var(--text-1);
+}
+
+.slider-icon {
+  position: absolute;
+  left: 6px;
+  top: 5px;
+  width: 18px;
+  height: 18px;
+  color: var(--surface-1);
+  pointer-events: none;
+}
+
+.slider.muted .slider-fill {
+  background: var(--text-3);
+}
+
+/* Toggle tiles (quick settings) ----------------------------------------- */
+
+.tile {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  height: 56px;
+  padding: 0 var(--s2) 0 var(--s3);
+  border-radius: var(--r-lg);
+  background: var(--fill-2);
+  color: var(--text-1);
+  text-align: left;
+  transition: background var(--t-fast) var(--ease-out);
+}
+
+.tile:hover {
+  background: var(--fill-3);
+}
+
+.tile .tile-glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-full);
+  background: var(--fill-3);
+  flex: none;
+}
+
+.tile.on .tile-glyph {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.tile .tile-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow: hidden;
+}
+
+.tile .tile-title {
+  font-size: var(--fs-md);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tile .tile-sub {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tile .tile-more {
+  color: var(--text-3);
+  width: 26px;
+  height: 26px;
+  border-radius: var(--r-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tile .tile-more:hover {
+  background: var(--fill-3);
+  color: var(--text-1);
+}
+
+.tile .tile-more .icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Popovers ---------------------------------------------------------------- */
+
+.popover {
+  position: fixed;
+  top: calc(var(--bar-h) + 6px);
+  z-index: var(--z-popover);
+  background: var(--glass-1);
+  backdrop-filter: var(--blur-pop);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-pop), var(--edge-light);
+  color: var(--text-1);
+}
+
+.popover.open {
+  animation: pop-in var(--t-med) var(--ease-out);
+}
+
+.popover.leaving {
+  opacity: 0;
+  transform: translateY(-4px) scale(0.98);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.section-label {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+/* Lists inside popovers --------------------------------------------------- */
+
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  min-height: 38px;
+  padding: 0 var(--s3);
+  border-radius: var(--r-md);
+  color: var(--text-1);
+  font-size: var(--fs-md);
+  text-align: left;
+  width: 100%;
+}
+
+.list-row:hover {
+  background: var(--fill-2);
+}
+
+.list-row .grow {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.list-row .meta {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+
+.list-row.selected .check {
+  color: var(--accent);
+}
+
+/* Context menus ------------------------------------------------------------ */
+
+.menu {
+  position: fixed;
+  z-index: var(--z-menu);
+  min-width: 200px;
+  padding: 5px;
+  background: var(--glass-2);
+  backdrop-filter: var(--blur-pop);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-pop), var(--edge-light);
+  animation: pop-in var(--t-fast) var(--ease-out);
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  width: 100%;
+  height: 30px;
+  padding: 0 var(--s2);
+  border-radius: var(--r-xs);
+  font-size: var(--fs-md);
+  color: var(--text-1);
+  text-align: left;
+}
+
+.menu-item .icon {
+  width: 16px;
+  height: 16px;
+  color: var(--text-2);
+}
+
+.menu-item:hover {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.menu-item:hover .icon {
+  color: var(--on-accent);
+}
+
+.menu-item.danger {
+  color: var(--danger);
+}
+
+.menu-sep {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--hairline);
+}
+
+.menu-label {
+  padding: 6px var(--s2) 4px;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+
+/* App icons ---------------------------------------------------------------- */
+
+.app-icon-img {
+  display: inline-flex;
+  flex: none;
+  overflow: hidden;
+}
+
+.app-icon-img img {
+  width: 100%;
+  height: 100%;
+}
+
+.app-icon-shell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border-radius: 24%;
+  background: linear-gradient(160deg, oklch(0.36 0.02 265), oklch(0.20 0.015 265));
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
+  color: oklch(0.86 0.12 150);
+}
+
+.app-icon-shell .icon {
+  width: 56%;
+  height: 56%;
+  stroke-width: 2;
+}
+
+.app-icon-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 24%;
+  background: linear-gradient(160deg,
+    oklch(0.66 0.13 var(--fallback-h, 260)),
+    oklch(0.48 0.13 var(--fallback-h, 260)));
+  color: white;
+  font-weight: 700;
+}
+
+kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 5px;
+  background: var(--fill-2);
+  border: 1px solid var(--hairline);
+  font-family: var(--font-ui);
+  font-size: var(--fs-2xs);
+  font-weight: 600;
+  color: var(--text-3);
+}
+
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-full);
+  background: var(--accent);
+}

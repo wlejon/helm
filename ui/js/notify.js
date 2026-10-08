@@ -1,272 +1,242 @@
 /**
- * Helm Desktop Notification Controller
- * Manages toast notification overlays, notification drawer,
- * and integration with bro.sys.notifications.
+ * Notifications: helm is the org.freedesktop.Notifications server
+ * (bro.sys.notifications). Incoming notifications become toasts and join
+ * the history the notification center lists. Do Not Disturb holds toasts
+ * back (critical ones still show) and is remembered in settings.
  */
 
-export class NotificationController {
+import { h, $, api, attempt, listen, fmtRelative, appIconPath } from './util.js';
+import { icon } from './icons.js';
+import { settings } from './settings.js';
+import { appdb } from './appdb.js';
+
+const MAX_TOASTS = 3;
+const MAX_HISTORY = 50;
+
+export class NotificationCenter {
   constructor() {
-    this.notifications = [];
-    this.unreadCount = 0;
-    this.isDrawerOpen = false;
-    this.dndEnabled = false;
-    this.nextNotificationId = 1;
+    this.items = [];          // newest first
+    this.unread = 0;
+    this.dnd = false;
+    this.toasts = new Map();  // id -> { el, timer }
+    this.localId = 1000000;
+    this.subs = new Set();
+    this.dndSubs = new Set();
+    this.server = false;
   }
 
   init() {
-    this.setupListeners();
-    this.bindEvents();
-    this.updateBadge();
-  }
-
-  setupListeners() {
-    if (typeof bro !== 'undefined' && bro.sys?.notifications) {
-      try {
-        if (typeof bro.sys.notifications.listen === 'function') {
-          bro.sys.notifications.listen();
-        }
-
-        const handlePosted = (payload) => {
-          const n = payload?.notification || payload;
-          if (n) {
-            this.handleIncomingNotification({
-              id: n.id || ++this.nextNotificationId,
-              appName: n.appName || 'System',
-              appIcon: n.appIcon || '🔔',
-              summary: n.summary || 'Notification',
-              body: n.body || '',
-              actions: n.actions || [],
-            });
-          }
-        };
-
-        if (typeof bro.sys.notifications.on === 'function') {
-          bro.sys.notifications.on('posted', handlePosted);
-        } else if (typeof bro.sys.on === 'function') {
-          bro.sys.on('notifications:posted', handlePosted);
-          bro.sys.on('notificationPosted', handlePosted);
-        }
-      } catch (err) {
-        console.warn('Failed to initialize bro.sys.notifications:', err);
-      }
+    this.stack = $('#toast-stack');
+    this.dnd = !!settings.get('dndEnabled');
+    const n = api('sys') && api('sys').notifications;
+    if (n) {
+      this.server = attempt('notifications.listen', () => n.listen({ doNotDisturb: this.dnd }), false) !== false;
+      listen(n, 'posted', (p) => p && p.notification && this.receive(p.notification, !!p.replaced));
+      listen(n, 'closed', (p) => p && this.remove(p.id, false));
+      listen(n, 'dndChanged', (p) => p && this.applyDnd(!!p.enabled));
     }
   }
 
-  bindEvents() {
-    const toggleBtn = document.getElementById('btn-notify-toggle');
-    const clockBtn = document.getElementById('btn-clock');
-    const dndBtn = document.getElementById('btn-dnd-toggle');
-    const clearBtn = document.getElementById('btn-clear-notifications');
-
-    if (toggleBtn) {
-      toggleBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.toggleDrawer();
-      });
-    }
-
-    if (clockBtn) {
-      clockBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.toggleDrawer();
-      });
-    }
-
-    if (dndBtn) {
-      dndBtn.addEventListener('click', () => {
-        this.dndEnabled = !this.dndEnabled;
-        dndBtn.textContent = `DND: ${this.dndEnabled ? 'On' : 'Off'}`;
-      });
-    }
-
-    if (clearBtn) {
-      clearBtn.addEventListener('click', () => {
-        this.clearAll();
-      });
-    }
-
-    document.addEventListener('click', (e) => {
-      if (this.isDrawerOpen) {
-        const drawer = document.getElementById('notify-drawer');
-        const toggle = document.getElementById('btn-notify-toggle');
-        const clock = document.getElementById('btn-clock');
-        if (drawer && !drawer.contains(e.target) && !toggle?.contains(e.target) && !clock?.contains(e.target)) {
-          this.closeDrawer();
-        }
-      }
-    });
+  onChange(fn) {
+    this.subs.add(fn);
   }
 
-  postNotification(opts) {
-    const notif = {
-      id: opts.id || ++this.nextNotificationId,
-      appName: opts.appName || 'Desktop',
-      appIcon: opts.appIcon || '🔔',
-      summary: opts.summary || 'Alert',
-      body: opts.body || '',
-      actions: opts.actions || [],
-      timestamp: Date.now(),
+  onDndChange(fn) {
+    this.dndSubs.add(fn);
+  }
+
+  emit() {
+    for (const fn of this.subs) attempt('notify subscriber', () => fn(this));
+  }
+
+  /** A notification from inside the shell (not routed over D-Bus). */
+  post({ summary, body = '', appName = 'Helm', icon: iconName = 'info', urgency = 'normal' }) {
+    this.receive({
+      id: ++this.localId,
+      appName,
+      shellIcon: iconName,
+      summary,
+      body,
+      urgency,
+      actions: [],
+      expireTimeoutMs: -1,
+      local: true,
+    }, false);
+  }
+
+  receive(n, replaced) {
+    const item = {
+      id: n.id,
+      appName: n.appName || 'Notification',
+      appIcon: n.appIcon || '',
+      desktopEntry: n.desktopEntry || '',
+      imagePath: n.imagePath || '',
+      shellIcon: n.shellIcon || null,
+      summary: stripMarkup(n.summary || ''),
+      body: stripMarkup(n.body || ''),
+      urgency: n.urgency || 'normal',
+      actions: Array.isArray(n.actions) ? n.actions : [],
+      expireTimeoutMs: n.expireTimeoutMs ?? -1,
+      transient: !!n.transient,
+      resident: !!n.resident,
+      local: !!n.local,
+      time: Date.now(),
     };
-    this.handleIncomingNotification(notif);
-  }
 
-  handleIncomingNotification(notif) {
-    this.notifications.unshift(notif);
-    this.unreadCount++;
-    this.updateBadge();
-    this.renderDrawerList();
-
-    if (!this.dndEnabled) {
-      this.showToast(notif);
-    }
-  }
-
-  showToast(notif) {
-    const container = document.getElementById('toast-container');
-    if (!container) return;
-
-    const toastEl = document.createElement('div');
-    toastEl.className = 'toast';
-    toastEl.dataset.id = notif.id;
-
-    const iconEl = document.createElement('div');
-    iconEl.className = 'toast-icon';
-    iconEl.textContent = notif.appIcon || '🔔';
-
-    const contentEl = document.createElement('div');
-    contentEl.className = 'toast-content';
-
-    const titleEl = document.createElement('div');
-    titleEl.className = 'toast-title';
-    titleEl.textContent = notif.summary;
-
-    const bodyEl = document.createElement('div');
-    bodyEl.className = 'toast-body';
-    bodyEl.textContent = notif.body;
-
-    contentEl.appendChild(titleEl);
-    if (notif.body) contentEl.appendChild(bodyEl);
-
-    if (Array.isArray(notif.actions) && notif.actions.length > 0) {
-      const actionsEl = document.createElement('div');
-      actionsEl.className = 'toast-actions';
-      for (const act of notif.actions) {
-        const btn = document.createElement('button');
-        btn.className = 'drawer-action-btn';
-        btn.textContent = act.label || act.key;
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          if (typeof bro !== 'undefined' && bro.sys?.notifications?.invokeAction) {
-            bro.sys.notifications.invokeAction(notif.id, act.key);
-          }
-          this.dismissToast(toastEl);
-        });
-        actionsEl.appendChild(btn);
-      }
-      contentEl.appendChild(actionsEl);
+    const idx = this.items.findIndex((x) => x.id === item.id);
+    if (idx >= 0) this.items.splice(idx, 1);
+    if (!item.transient) {
+      this.items.unshift(item);
+      if (this.items.length > MAX_HISTORY) this.items.length = MAX_HISTORY;
+      if (!replaced) this.unread++;
     }
 
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'toast-close';
-    closeBtn.textContent = '✕';
-    closeBtn.title = 'Dismiss';
-    closeBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      this.dismissToast(toastEl);
-    });
-
-    toastEl.appendChild(iconEl);
-    toastEl.appendChild(contentEl);
-    toastEl.appendChild(closeBtn);
-
-    container.appendChild(toastEl);
-
-    // Auto-dismiss after 5 seconds
-    setTimeout(() => {
-      this.dismissToast(toastEl);
-    }, 5000);
+    const showToast = !this.dnd || item.urgency === 'critical';
+    if (showToast) this.toast(item);
+    this.emit();
   }
 
-  dismissToast(toastEl) {
-    if (!toastEl || !toastEl.parentNode) return;
-    toastEl.style.transition = 'opacity 200ms ease, transform 200ms ease';
-    toastEl.style.opacity = '0';
-    toastEl.style.transform = 'translateY(-10px)';
-    setTimeout(() => {
-      if (toastEl.parentNode) toastEl.parentNode.removeChild(toastEl);
-    }, 220);
-  }
-
-  updateBadge() {
-    const badge = document.getElementById('notify-badge');
-    if (!badge) return;
-    badge.textContent = String(this.unreadCount);
-    if (this.unreadCount > 0) {
-      badge.classList.remove('hidden');
-    } else {
-      badge.classList.add('hidden');
+  remove(id, signal = true) {
+    const idx = this.items.findIndex((x) => x.id === id);
+    const item = idx >= 0 ? this.items[idx] : null;
+    if (idx >= 0) this.items.splice(idx, 1);
+    this.dropToast(id);
+    if (signal && item && !item.local) {
+      const n = api('sys').notifications;
+      attempt('notifications.dismiss', () => n.dismiss(id));
     }
-  }
-
-  renderDrawerList() {
-    const listEl = document.getElementById('notify-history-list');
-    const emptyEl = document.getElementById('notify-empty-state');
-    if (!listEl) return;
-
-    listEl.innerHTML = '';
-
-    if (this.notifications.length === 0) {
-      if (emptyEl) {
-        emptyEl.classList.remove('hidden');
-        listEl.appendChild(emptyEl);
-      }
-      return;
-    }
-
-    for (const notif of this.notifications) {
-      const itemEl = document.createElement('div');
-      itemEl.className = 'drawer-item';
-
-      const titleEl = document.createElement('div');
-      titleEl.className = 'toast-title';
-      titleEl.textContent = `${notif.appIcon || '🔔'} ${notif.summary}`;
-
-      const bodyEl = document.createElement('div');
-      bodyEl.className = 'toast-body';
-      bodyEl.textContent = notif.body;
-
-      itemEl.appendChild(titleEl);
-      if (notif.body) itemEl.appendChild(bodyEl);
-      listEl.appendChild(itemEl);
-    }
+    this.emit();
   }
 
   clearAll() {
-    this.notifications = [];
-    this.unreadCount = 0;
-    this.updateBadge();
-    this.renderDrawerList();
+    const n = api('sys') && api('sys').notifications;
+    for (const it of this.items) {
+      if (!it.local && n) attempt('notifications.dismiss', () => n.dismiss(it.id));
+      this.dropToast(it.id);
+    }
+    this.items = [];
+    this.unread = 0;
+    this.emit();
   }
 
-  openDrawer() {
-    this.isDrawerOpen = true;
-    const drawer = document.getElementById('notify-drawer');
-    if (drawer) drawer.classList.remove('hidden');
-    this.unreadCount = 0;
-    this.updateBadge();
+  markRead() {
+    if (this.unread === 0) return;
+    this.unread = 0;
+    this.emit();
   }
 
-  closeDrawer() {
-    this.isDrawerOpen = false;
-    const drawer = document.getElementById('notify-drawer');
-    if (drawer) drawer.classList.add('hidden');
+  activate(item, key = 'default') {
+    if (!item.local) {
+      const n = api('sys').notifications;
+      attempt('notifications.invokeAction', () => n.invokeAction(item.id, key));
+    }
+    if (!item.resident) this.remove(item.id, false);
+    this.dropToast(item.id);
   }
 
-  toggleDrawer() {
-    if (this.isDrawerOpen) {
-      this.closeDrawer();
+  setDnd(on) {
+    const n = api('sys') && api('sys').notifications;
+    if (n) attempt('notifications.setDoNotDisturb', () => n.setDoNotDisturb(!!on));
+    this.applyDnd(!!on);
+  }
+
+  applyDnd(on) {
+    if (this.dnd === on) return;
+    this.dnd = on;
+    settings.set('dndEnabled', on);
+    if (on) for (const id of Array.from(this.toasts.keys())) this.dropToast(id);
+    for (const fn of this.dndSubs) attempt('dnd subscriber', () => fn(on));
+    this.emit();
+  }
+
+  // -- Cards -----------------------------------------------------------------
+
+  iconFor(item) {
+    if (item.shellIcon) return icon(item.shellIcon);
+    let path = null;
+    if (item.imagePath) path = item.imagePath.replace(/^file:\/\//, '');
+    if (!path && item.appIcon) path = appIconPath(item.appIcon.replace(/^file:\/\//, ''), 64);
+    if (!path && item.desktopEntry) {
+      const app = appdb.get(item.desktopEntry);
+      if (app) path = appIconPath(app.icon, 64);
+    }
+    return path ? h('img', { src: path }) : icon('bell');
+  }
+
+  card(item, { onDismiss, withTime = true } = {}) {
+    const actions = item.actions.filter((a) => a.key !== 'default');
+    const el = h('div.notif',
+      h('div.notif-icon', this.iconFor(item)),
+      h('div.notif-main',
+        h('div.notif-top',
+          h('span.notif-app', item.appName),
+          withTime ? h('span.notif-time', fmtRelative(item.time)) : null),
+        item.summary ? h('div.notif-summary', item.summary) : null,
+        item.body ? h('div.notif-body', item.body) : null,
+        actions.length ? h('div.notif-actions', actions.slice(0, 3).map((a) => {
+          const b = h('button.btn', a.label || a.key);
+          b.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.activate(item, a.key);
+          });
+          return b;
+        })) : null),
+      h('button.notif-close', { title: 'Dismiss' }, icon('x')));
+    el.classList.toggle('critical', item.urgency === 'critical');
+    $('.notif-close', el).addEventListener('click', (e) => {
+      e.stopPropagation();
+      (onDismiss || (() => this.remove(item.id)))();
+    });
+    el.addEventListener('click', () => {
+      if (item.actions.some((a) => a.key === 'default')) this.activate(item, 'default');
+    });
+    return el;
+  }
+
+  // -- Toasts ----------------------------------------------------------------
+
+  toast(item) {
+    const existing = this.toasts.get(item.id);
+    const el = this.card(item, { onDismiss: () => this.remove(item.id), withTime: false });
+    if (existing) {
+      clearTimeout(existing.timer);
+      existing.el.replaceWith(el);
     } else {
-      this.openDrawer();
+      this.stack.prepend(el);
+    }
+    const entry = { el, timer: null, item };
+    this.toasts.set(item.id, entry);
+    this.arm(entry);
+    el.addEventListener('pointerenter', () => clearTimeout(entry.timer));
+    el.addEventListener('pointerleave', () => this.arm(entry));
+
+    while (this.toasts.size > MAX_TOASTS) {
+      const oldest = Array.from(this.toasts.keys())[0];
+      this.dropToast(oldest);
     }
   }
+
+  arm(entry) {
+    clearTimeout(entry.timer);
+    const it = entry.item;
+    if (it.urgency === 'critical' || it.expireTimeoutMs === 0) return;
+    const ms = it.expireTimeoutMs > 0 ? Math.max(it.expireTimeoutMs, 3000) : 5000;
+    entry.timer = setTimeout(() => this.dropToast(it.id), ms);
+  }
+
+  dropToast(id) {
+    const entry = this.toasts.get(id);
+    if (!entry) return;
+    this.toasts.delete(id);
+    clearTimeout(entry.timer);
+    entry.el.classList.add('leaving');
+    setTimeout(() => entry.el.remove(), 200);
+  }
+}
+
+function stripMarkup(s) {
+  return String(s)
+    .replace(/<[^>]*>/g, '')
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'").replace(/&amp;/g, '&');
 }

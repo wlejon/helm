@@ -1,0 +1,210 @@
+/* =============================================================================
+   DOCK + WINDOW SWITCHER
+   ============================================================================= */
+
+.dock {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 8px;
+  z-index: var(--z-dock);
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  transition: transform var(--t-slow) var(--ease-out), opacity var(--t-slow) var(--ease-out);
+}
+
+.dock.tucked {
+  transform: translateY(calc(100% + 16px));
+  opacity: 0;
+}
+
+.dock-inner {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: var(--dock-h);
+  padding: 0 8px;
+  border-radius: var(--r-xl);
+  background: var(--glass-1);
+  backdrop-filter: var(--blur-pop);
+  border: 1px solid var(--hairline-strong);
+  box-shadow: var(--shadow-pop), var(--edge-light);
+}
+
+.dock.tucked .dock-inner {
+  pointer-events: none;
+}
+
+.dock-item {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-md);
+  transition: background var(--t-fast) var(--ease-out), transform var(--t-med) var(--ease-spring);
+}
+
+.dock-item:hover {
+  background: var(--fill-2);
+  transform: translateY(-2px);
+}
+
+.dock-item:active {
+  transform: translateY(0) scale(0.94);
+}
+
+.dock-icon {
+  width: 40px;
+  height: 40px;
+  font-size: 17px;
+}
+
+.dock-item.launching .dock-icon {
+  animation: dock-bounce 900ms var(--ease-out) infinite;
+}
+
+@keyframes dock-bounce {
+  0%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-7px); }
+  70% { transform: translateY(0); }
+}
+
+.dock-dots {
+  position: absolute;
+  bottom: 1px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+}
+
+.dock-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: var(--r-full);
+  background: var(--text-3);
+}
+
+.dock-item.focused .dock-dot {
+  background: var(--text-1);
+}
+
+.dock-item.focused .dock-dots .dock-dot:first-child {
+  width: 12px;
+}
+
+.dock-sep {
+  width: 1px;
+  height: 32px;
+  margin: 0 4px;
+  background: var(--hairline-strong);
+}
+
+.dock-apps-glyph {
+  width: 40px;
+  height: 40px;
+  border-radius: 24%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--fill-2);
+  color: var(--text-1);
+}
+
+.dock-apps-glyph .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.dock-tip {
+  position: fixed;
+  z-index: var(--z-menu);
+  padding: 5px 10px;
+  border-radius: var(--r-sm);
+  background: var(--glass-2);
+  backdrop-filter: var(--blur-pop);
+  border: 1px solid var(--hairline-strong);
+  box-shadow: var(--shadow-card);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* A thin strip along the bottom edge that brings a tucked dock back. */
+.dock-edge {
+  position: fixed;
+  left: 25%;
+  right: 25%;
+  bottom: 0;
+  height: 3px;
+  z-index: var(--z-dock);
+}
+
+/* Window switcher ------------------------------------------------------------ */
+
+.switcher {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-switcher);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.switcher-panel {
+  pointer-events: auto;
+  display: flex;
+  gap: 8px;
+  padding: 14px;
+  max-width: 90vw;
+  border-radius: var(--r-xl);
+  background: var(--glass-1);
+  backdrop-filter: var(--blur-pop);
+  border: 1px solid var(--hairline-strong);
+  box-shadow: var(--shadow-modal), var(--edge-light);
+  animation: pop-in var(--t-fast) var(--ease-out);
+}
+
+.switcher-card {
+  width: 128px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 8px 12px;
+  border-radius: var(--r-lg);
+  border: 2px solid transparent;
+}
+
+.switcher-card.selected {
+  background: var(--fill-2);
+  border-color: var(--accent);
+}
+
+.switcher-icon {
+  width: 64px;
+  height: 64px;
+  font-size: 26px;
+}
+
+.switcher-title {
+  width: 100%;
+  font-size: var(--fs-sm);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-2);
+}
+
+.switcher-card.selected .switcher-title {
+  color: var(--text-1);
+  font-weight: 600;
+}

@@ -1,360 +1,345 @@
-import { ClipboardController } from './clipboard.js';
+/**
+ * The launcher: with no query, frequent apps and a grid of every app; with a
+ * query, one ranked list of apps, actions, a calculator answer and clipboard
+ * entries. Arrow keys move the selection, Enter runs it, Escape closes.
+ */
+
+import { h, $, api, attempt, appIcon, fmtRelative } from './util.js';
+import { icon } from './icons.js';
+import { settings } from './settings.js';
+import { appdb } from './appdb.js';
+import { evaluate, formatNumber } from './calc.js';
+
+const GRID_COLS = 6;
 
 export class LauncherController {
-  constructor() {
+  constructor(shell) {
+    this.shell = shell;
     this.isOpen = false;
-    this.apps = [];
-    this.systemCommands = [];
-    this.filtered = [];
-    this.selectedIndex = 0;
-    this.clipboard = new ClipboardController();
+    this.mode = 'grid';     // 'grid' | 'list'
+    this.entries = [];      // what Enter/arrows act on, in display order
+    this.selected = 0;
+    this.clipMode = false;
   }
 
   init() {
-    this.clipboard.init();
-    this.setupSystemCommands();
-    this.loadApps();
-    this.bindEvents();
+    this.el = $('#launcher-modal');
+    this.input = h('input.launcher-input#launcher-input', {
+      type: 'text', placeholder: 'Search apps, actions, or type = to calculate',
+      autocomplete: 'off', spellcheck: 'false',
+    });
+    this.body = h('div.launcher-body#launcher-results');
+    this.window = h('div.launcher-window',
+      h('div.launcher-search', icon('search', 'launcher-search-icon'), this.input),
+      this.body);
+    this.el.replaceChildren(h('div.launcher-scrim#launcher-backdrop'), this.window);
+    $('#launcher-backdrop').addEventListener('pointerdown', () => this.close());
+    this.input.addEventListener('input', () => this.refresh());
+    this.input.addEventListener('keydown', (e) => this.onKey(e));
+    appdb.onChange(() => this.isOpen && this.refresh());
   }
 
-  setupSystemCommands() {
-    this.systemCommands = [
-      {
-        id: 'cmd:lock',
-        name: 'Lock Screen',
-        comment: 'Lock the current desktop session',
-        icon: '🔒',
-        type: 'cmd',
-        action: () => window.helm?.lock?.lock(),
-      },
-      {
-        id: 'cmd:sleep',
-        name: 'Sleep / Suspend',
-        comment: 'Suspend system to RAM',
-        icon: '💤',
-        type: 'cmd',
-        action: () => window.helm?.panel?.requestPowerAction('suspend'),
-      },
-      {
-        id: 'cmd:restart',
-        name: 'Restart System',
-        comment: 'Reboot the machine',
-        icon: '🔄',
-        type: 'cmd',
-        action: () => window.helm?.panel?.requestPowerAction('reboot'),
-      },
-      {
-        id: 'cmd:shutdown',
-        name: 'Shut Down',
-        comment: 'Power off the system',
-        icon: '⏻',
-        type: 'cmd',
-        action: () => window.helm?.panel?.requestPowerAction('powerOff'),
-      },
-      {
-        id: 'cmd:terminal',
-        name: 'Terminal',
-        comment: 'Open command line terminal',
-        icon: '💻',
-        type: 'cmd',
-        action: () => {
-          if (typeof bro !== 'undefined' && bro.apps?.launch) {
-            bro.apps.launch('terminal');
-          }
-        },
-      },
-      {
-        id: 'cmd:notifications',
-        name: 'Toggle Notifications',
-        comment: 'Open notification history drawer',
-        icon: '🔔',
-        type: 'cmd',
-        action: () => window.helm?.notify?.toggleDrawer(),
-      },
-      {
-        id: 'cmd:clipboard',
-        name: 'Clipboard History',
-        comment: 'Search and paste recent clipboard items',
-        icon: '📋',
-        type: 'cmd',
-        action: () => this.openClipboard(),
-      },
+  get actions() {
+    const s = this.shell;
+    return [
+      { name: 'Lock Screen', desc: 'Lock this session', icon: 'lock', run: () => s.lock.lock() },
+      { name: 'Clipboard History', desc: 'Recent copied items', icon: 'clipboard', keep: true, run: () => this.openClipboard() },
+      { name: 'Notifications', desc: 'Open the notification center', icon: 'bell', run: () => s.calendar.toggle($('#bar-clock')) },
+      { name: 'Quick Settings', desc: 'Sound, network, Bluetooth, power', icon: 'settings', run: () => s.quick.toggle($('#bar-status')) },
+      { name: 'Do Not Disturb', desc: s.notify.dnd ? 'Turn off' : 'Turn on', icon: 'bell-off', run: () => s.notify.setDnd(!s.notify.dnd) },
+      { name: 'Sleep', desc: 'Suspend the computer', icon: 'moon', run: () => s.system.request('suspend') },
+      { name: 'Restart', desc: 'Restart the computer', icon: 'restart', run: () => s.system.request('reboot') },
+      { name: 'Shut Down', desc: 'Power off the computer', icon: 'power', run: () => s.system.request('powerOff') },
+      { name: 'Change Wallpaper', desc: 'Cycle the desktop background', icon: 'image', run: () => s.cycleWallpaper() },
     ];
   }
 
-  loadApps() {
-    this.apps = [];
-
-    if (typeof bro !== 'undefined' && bro.apps?.list) {
-      try {
-        const rawApps = bro.apps.list() || [];
-        for (const a of rawApps) {
-          if (a.nodisplay) continue;
-          this.apps.push({
-            id: a.id,
-            name: a.name || a.id,
-            comment: a.comment || a.genericName || '',
-            exec: a.exec || '',
-            icon: a.icon || '🚀',
-            type: 'app',
-          });
-        }
-      } catch (err) {
-        console.warn('Failed to load apps via bro.apps.list():', err);
-      }
-    }
-
-    // Default sample applications if none discovered from system
-    if (this.apps.length === 0) {
-      this.apps = [
-        { id: 'broterm', name: 'Bro Terminal', comment: 'Hardware-accelerated terminal emulator', icon: '💻', type: 'app' },
-        { id: 'files', name: 'File Manager', comment: 'Browse files, folders, and storage', icon: '📁', type: 'app' },
-        { id: 'browser', name: 'Web Browser', comment: 'Browse the World Wide Web', icon: '🌐', type: 'app' },
-        { id: 'settings', name: 'System Settings', comment: 'Display, network, audio, and device settings', icon: '⚙️', type: 'app' },
-        { id: 'editor', name: 'Text Editor', comment: 'Edit code and text documents', icon: '📝', type: 'app' },
-        { id: 'media', name: 'Media Player', comment: 'Play audio and video streams', icon: '🎵', type: 'app' },
-      ];
-    }
-  }
-
-  bindEvents() {
-    const input = document.getElementById('launcher-input');
-    const backdrop = document.getElementById('launcher-backdrop');
-    const pillBtn = document.getElementById('btn-launcher-pill');
-    const actBtn = document.getElementById('btn-activities');
-
-    if (pillBtn) {
-      pillBtn.addEventListener('click', () => this.toggle());
-    }
-
-    if (actBtn) {
-      actBtn.addEventListener('click', () => this.toggle());
-    }
-
-    if (backdrop) {
-      backdrop.addEventListener('click', () => this.close());
-    }
-
-    if (input) {
-      input.addEventListener('input', (e) => this.onInput(e.target.value));
-      input.addEventListener('keydown', (e) => this.onKeyDown(e));
-    }
-  }
-
-  onInput(query) {
-    const q = (query || '').trim();
-
-    if (!q) {
-      // Show combination of apps and system commands
-      this.filtered = [...this.apps, ...this.systemCommands];
-      this.selectedIndex = 0;
-      this.renderResults();
-      return;
-    }
-
-    // Clipboard History query mode
-    if (q.startsWith('clip:') || q.startsWith('/clip')) {
-      const filterText = q.replace(/^(clip:|\/clip)\s*/, '').toLowerCase();
-      const entries = this.clipboard.getEntries();
-      this.filtered = entries
-        .filter((e) => !filterText || (e.previewText && e.previewText.toLowerCase().includes(filterText)))
-        .map((e) => ({
-          id: e.id,
-          name: e.previewText || `Clip #${e.id}`,
-          comment: `${e.byteSize || 0} bytes • ${e.isPinned ? '📌 Pinned' : 'Recent'}`,
-          icon: '📋',
-          type: 'clip',
-        }));
-      this.selectedIndex = 0;
-      this.renderResults();
-      return;
-    }
-
-    const allCandidates = [...this.apps, ...this.systemCommands];
-
-    // Use native bro.search.fuzzy if available
-    if (typeof bro !== 'undefined' && bro.search?.fuzzy) {
-      try {
-        const matches = bro.search.fuzzy(q, allCandidates, { key: 'name' });
-        if (Array.isArray(matches)) {
-          this.filtered = matches.map((m) => (m && m.item ? m.item : m)).filter(Boolean);
-          this.selectedIndex = 0;
-          this.renderResults();
-          return;
-        }
-      } catch (_) {}
-    }
-
-    // Fallback fuzzy/substring search
-    const lowerQ = q.toLowerCase();
-    this.filtered = allCandidates.filter((item) => {
-      const name = (item.name || '').toLowerCase();
-      const comment = (item.comment || '').toLowerCase();
-      return name.includes(lowerQ) || comment.includes(lowerQ);
-    });
-
-    this.selectedIndex = 0;
-    this.renderResults();
-  }
-
-  onKeyDown(e) {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      this.navigate(1);
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      this.navigate(-1);
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      this.executeSelected();
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      this.close();
-    }
-  }
-
-  navigate(delta) {
-    if (this.filtered.length === 0) return;
-    this.selectedIndex = (this.selectedIndex + delta + this.filtered.length) % this.filtered.length;
-    this.renderSelection();
-  }
-
-  renderResults() {
-    const container = document.getElementById('launcher-results');
-    if (!container) return;
-
-    container.innerHTML = '';
-
-    if (this.filtered.length === 0) {
-      const emptyEl = document.createElement('div');
-      emptyEl.className = 'launcher-empty';
-      emptyEl.textContent = 'No matching applications or commands';
-      container.appendChild(emptyEl);
-      return;
-    }
-
-    this.filtered.forEach((item, index) => {
-      const itemEl = document.createElement('div');
-      itemEl.className = `launcher-item ${index === this.selectedIndex ? 'active' : ''}`;
-      itemEl.dataset.index = index;
-
-      const iconEl = document.createElement('span');
-      iconEl.className = 'launcher-item-icon';
-      iconEl.textContent = item.icon || (item.type === 'cmd' ? '⚡' : '🚀');
-
-      const contentEl = document.createElement('div');
-      contentEl.className = 'launcher-item-content';
-
-      const titleEl = document.createElement('span');
-      titleEl.className = 'launcher-item-title';
-      titleEl.textContent = item.name;
-
-      const descEl = document.createElement('span');
-      descEl.className = 'launcher-item-desc';
-      descEl.textContent = item.comment || '';
-
-      contentEl.appendChild(titleEl);
-      if (item.comment) contentEl.appendChild(descEl);
-
-      const badgeEl = document.createElement('span');
-      badgeEl.className = 'launcher-item-badge';
-      badgeEl.textContent = item.type === 'cmd' ? 'Action' : 'App';
-
-      itemEl.appendChild(iconEl);
-      itemEl.appendChild(contentEl);
-      itemEl.appendChild(badgeEl);
-
-      itemEl.addEventListener('click', () => {
-        this.selectedIndex = index;
-        this.executeSelected();
-      });
-
-      container.appendChild(itemEl);
-    });
-
-    this.scrollSelectedIntoView();
-  }
-
-  renderSelection() {
-    const items = document.querySelectorAll('.launcher-item');
-    items.forEach((el, idx) => {
-      if (idx === this.selectedIndex) {
-        el.classList.add('active');
-      } else {
-        el.classList.remove('active');
-      }
-    });
-    this.scrollSelectedIntoView();
-  }
-
-  scrollSelectedIntoView() {
-    const activeEl = document.querySelector('.launcher-item.active');
-    if (activeEl && typeof activeEl.scrollIntoView === 'function') {
-      activeEl.scrollIntoView({ block: 'nearest' });
-    }
-  }
-
-  executeSelected() {
-    if (this.filtered.length === 0 || this.selectedIndex < 0) return;
-    const selected = this.filtered[this.selectedIndex];
-    if (!selected) return;
-
-    this.close();
-
-    if (selected.type === 'app') {
-      this.launchApp(selected.id);
-    } else if (selected.type === 'clip') {
-      this.clipboard.pasteEntry(selected.id);
-    } else if (selected.type === 'cmd' && typeof selected.action === 'function') {
-      selected.action();
-    }
-  }
-
-  launchApp(appId) {
-    if (typeof bro !== 'undefined' && bro.apps?.launch) {
-      try {
-        bro.apps.launch(appId);
-      } catch (err) {
-        console.warn(`Failed to launch app ${appId}:`, err);
-      }
-    }
+  open() {
+    if (this.isOpen) return;
+    this.shell.closeTransient();
+    this.isOpen = true;
+    this.clipMode = false;
+    this.input.value = '';
+    this.el.classList.remove('hidden', 'leaving');
+    this.refresh();
+    this.input.focus();
+    window.dispatchEvent(new CustomEvent('helm:overlay'));
   }
 
   openClipboard() {
-    this.isOpen = true;
-    const modal = document.getElementById('launcher-modal');
-    const input = document.getElementById('launcher-input');
-    if (modal) modal.classList.remove('hidden');
-    if (input) {
-      input.value = 'clip: ';
-      input.focus();
-    }
-    this.onInput('clip: ');
-  }
-
-  open() {
-    this.isOpen = true;
-    const modal = document.getElementById('launcher-modal');
-    const input = document.getElementById('launcher-input');
-    if (modal) modal.classList.remove('hidden');
-    if (input) {
-      input.value = '';
-      input.focus();
-    }
-    this.onInput('');
+    if (!this.isOpen) this.open();
+    this.clipMode = true;
+    this.input.value = '';
+    this.input.placeholder = 'Search clipboard history';
+    this.refresh();
+    this.input.focus();
   }
 
   close() {
+    if (!this.isOpen) return;
     this.isOpen = false;
-    const modal = document.getElementById('launcher-modal');
-    if (modal) modal.classList.add('hidden');
+    this.input.blur();
+    this.input.placeholder = 'Search apps, actions, or type = to calculate';
+    this.el.classList.add('leaving');
+    setTimeout(() => {
+      if (!this.isOpen) this.el.classList.add('hidden');
+      this.el.classList.remove('leaving');
+    }, 140);
+    window.dispatchEvent(new CustomEvent('helm:overlay'));
   }
 
   toggle() {
-    if (this.isOpen) {
-      this.close();
-    } else {
-      this.open();
+    if (this.isOpen) this.close();
+    else this.open();
+  }
+
+  // -- Ranking -----------------------------------------------------------------
+
+  counts() {
+    return settings.getJson('launchCounts', {}) || {};
+  }
+
+  bump(id) {
+    const c = this.counts();
+    c[id] = (c[id] || 0) + 1;
+    settings.setJson('launchCounts', c);
+  }
+
+  frequent(n) {
+    const c = this.counts();
+    return appdb.apps
+      .filter((a) => c[a.id] > 0)
+      .sort((a, b) => c[b.id] - c[a.id])
+      .slice(0, n);
+  }
+
+  score(q, item) {
+    const name = item.name.toLowerCase();
+    const words = name.split(/[\s\-_.]+/);
+    let s = 0;
+    if (name === q) s = 1000;
+    else if (name.startsWith(q)) s = 800;
+    else if (words.some((w) => w.startsWith(q))) s = 600;
+    else if (name.includes(q)) s = 400;
+    else {
+      const hay = [item.generic, item.desc, item.comment, ...(item.keywords || [])].join(' ').toLowerCase();
+      if (hay.includes(q)) s = 200;
+      else if (fuzzy(q, name)) s = 100;
+    }
+    if (s > 0 && item.id) s += Math.min(150, (this.counts()[item.id] || 0) * 15);
+    return s;
+  }
+
+  // -- Rendering ---------------------------------------------------------------
+
+  refresh() {
+    const q = this.input.value.trim();
+    if (this.clipMode) return this.renderClipboard(q.toLowerCase());
+    if (!q) return this.renderGrid();
+    return this.renderList(q);
+  }
+
+  renderGrid() {
+    this.mode = 'grid';
+    this.entries = [];
+    const sections = [];
+    const freq = this.frequent(GRID_COLS);
+    if (freq.length) {
+      sections.push(h('div.launcher-section', 'Frequent'));
+      sections.push(this.gridOf(freq));
+    }
+    sections.push(h('div.launcher-section', 'All Apps'));
+    sections.push(this.gridOf(appdb.apps));
+    this.body.replaceChildren(...sections);
+    this.select(0, false);
+  }
+
+  gridOf(apps) {
+    const sec = this.entries.length ? this.entries[this.entries.length - 1].sec + 1 : 0;
+    return h('div.app-grid', apps.map((a, pos) => {
+      const index = this.entries.length;
+      const entry = { kind: 'app', app: a, sec, pos, run: () => this.launch(a) };
+      const tile = h('button.app-tile', { title: a.comment || a.name },
+        appIcon(a.icon, a.name, 64, 'app-tile-icon'),
+        h('span.app-tile-name', a.name));
+      tile.addEventListener('click', () => this.runEntry(entry));
+      tile.addEventListener('pointermove', () => this.selected !== index && this.select(index, false));
+      tile.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        this.shell.appMenu(a, e.clientX, e.clientY);
+      });
+      entry.el = tile;
+      this.entries.push(entry);
+      return tile;
+    }));
+  }
+
+  renderList(q) {
+    this.mode = 'list';
+    this.entries = [];
+    const ql = q.toLowerCase();
+    const rows = [];
+
+    const calc = evaluate(q);
+    if (calc != null) {
+      const text = formatNumber(calc);
+      rows.push(this.row({
+        kind: 'calc', glyph: icon('calculator'), title: text, desc: `${q.replace(/^=/, '')} =`, badge: 'Copy',
+        run: () => this.copy(text),
+      }));
+    }
+
+    const apps = appdb.apps
+      .map((a) => ({ a, s: this.score(ql, { ...a, desc: a.comment }) }))
+      .filter((x) => x.s > 0)
+      .sort((x, y) => y.s - x.s)
+      .slice(0, 8);
+    if (apps.length) {
+      rows.push(h('div.launcher-section', 'Applications'));
+      for (const { a } of apps) {
+        rows.push(this.row({
+          kind: 'app', app: a, glyph: appIcon(a.icon, a.name, 64, 'row-app-icon'),
+          title: a.name, desc: a.comment || a.generic, run: () => this.launch(a),
+        }));
+      }
+    }
+
+    const acts = this.actions
+      .map((x) => ({ x, s: this.score(ql, { name: x.name, desc: x.desc }) }))
+      .filter((x) => x.s > 0)
+      .sort((x, y) => y.s - x.s)
+      .slice(0, 4);
+    if (acts.length) {
+      rows.push(h('div.launcher-section', 'Actions'));
+      for (const { x } of acts) {
+        rows.push(this.row({
+          kind: 'action', glyph: h('span.row-glyph', icon(x.icon)), title: x.name, desc: x.desc,
+          run: x.run, keep: x.keep,
+        }));
+      }
+    }
+
+    if (this.entries.length === 0) {
+      rows.push(h('div.launcher-empty', icon('search'), `No results for “${q}”`));
+    }
+    this.body.replaceChildren(...rows);
+    this.select(0, false);
+  }
+
+  renderClipboard(ql) {
+    this.mode = 'list';
+    this.entries = [];
+    const clip = api('clip');
+    const items = clip ? attempt('clip.getHistory', () => clip.getHistory(), []) || [] : [];
+    const rows = [h('div.launcher-section', 'Clipboard')];
+    for (const it of items) {
+      const text = (it.previewText || it.text || '').replace(/\s+/g, ' ').trim();
+      if (ql && !text.toLowerCase().includes(ql)) continue;
+      rows.push(this.row({
+        kind: 'clip', glyph: h('span.row-glyph', icon(it.isPinned ? 'pin' : 'clipboard')),
+        title: text || `${(it.mimeTypes || [])[0] || 'data'} · ${it.byteSize || 0} bytes`,
+        desc: fmtRelative(it.timestamp), badge: 'Copy',
+        run: () => {
+          attempt('clip.paste', () => clip.paste(it.id));
+          this.shell.notify.post({ summary: 'Copied to clipboard', icon: 'clipboard' });
+        },
+      }));
+    }
+    if (this.entries.length === 0) {
+      rows.push(h('div.launcher-empty', icon('clipboard'), clip ? 'Clipboard history is empty' : 'Clipboard history is unavailable'));
+    }
+    this.body.replaceChildren(...rows);
+    this.select(0, false);
+  }
+
+  row(entry) {
+    const index = this.entries.length;
+    const el = h('button.launcher-row',
+      entry.glyph,
+      h('span.row-text',
+        h('span.row-title', entry.title),
+        entry.desc ? h('span.row-desc', entry.desc) : null),
+      h('span.row-badge', entry.badge || (entry.kind === 'app' ? 'Open' : 'Run')));
+    el.addEventListener('click', () => this.runEntry(entry));
+    el.addEventListener('pointermove', () => this.selected !== index && this.select(index, false));
+    if (entry.app) {
+      el.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        this.shell.appMenu(entry.app, e.clientX, e.clientY);
+      });
+    }
+    entry.el = el;
+    this.entries.push(entry);
+    return el;
+  }
+
+  select(i, scroll = true) {
+    if (this.entries.length === 0) return;
+    const prev = this.entries[this.selected];
+    if (prev && prev.el) prev.el.classList.remove('selected');
+    this.selected = Math.max(0, Math.min(this.entries.length - 1, i));
+    const cur = this.entries[this.selected];
+    cur.el.classList.add('selected');
+    if (scroll && cur.el.scrollIntoView) cur.el.scrollIntoView({ block: 'nearest' });
+  }
+
+  onKey(e) {
+    const grid = this.mode === 'grid';
+    let handled = true;
+    switch (e.key) {
+      case 'ArrowDown': if (grid) this.gridMove(1); else this.select(this.selected + 1); break;
+      case 'ArrowUp': if (grid) this.gridMove(-1); else this.select(this.selected - 1); break;
+      case 'ArrowRight': if (grid) this.select(this.selected + 1); else handled = false; break;
+      case 'ArrowLeft': if (grid) this.select(this.selected - 1); else handled = false; break;
+      case 'Enter': if (this.entries[this.selected]) this.runEntry(this.entries[this.selected]); break;
+      case 'Escape':
+        if (this.clipMode && this.input.value) this.input.value = '';
+        else this.close();
+        this.refresh();
+        break;
+      default: handled = false;
+    }
+    if (handled) {
+      e.preventDefault();
+      e.stopPropagation();
     }
   }
+
+  /** Move a grid row up or down, crossing from one section's grid to the next. */
+  gridMove(dir) {
+    const cur = this.entries[this.selected];
+    if (!cur) return;
+    const col = cur.pos % GRID_COLS;
+    const same = this.entries.filter((x) => x.sec === cur.sec);
+    const target = same.find((x) => x.pos === cur.pos + dir * GRID_COLS);
+    if (target) return this.select(this.entries.indexOf(target));
+    const other = this.entries.filter((x) => x.sec === cur.sec + dir);
+    if (other.length === 0) return;
+    const rows = Math.ceil(other.length / GRID_COLS);
+    const row = dir > 0 ? 0 : rows - 1;
+    const pick = other[Math.min(other.length - 1, row * GRID_COLS + col)];
+    this.select(this.entries.indexOf(pick));
+  }
+
+  runEntry(entry) {
+    if (!entry.keep) this.close();
+    entry.run();
+  }
+
+  launch(app) {
+    this.bump(app.id);
+    appdb.launch(app.id);
+  }
+
+  copy(text) {
+    const clip = api('clip');
+    if (clip) attempt('clip.setText', () => clip.setText(text));
+    this.shell.notify.post({ summary: `Copied ${text}`, icon: 'calculator' });
+  }
+}
+
+function fuzzy(q, s) {
+  let i = 0;
+  for (const ch of s) if (ch === q[i]) i++;
+  return i === q.length;
 }

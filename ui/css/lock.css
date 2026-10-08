@@ -1,0 +1,180 @@
+/* =============================================================================
+   LOCK SCREEN
+   ============================================================================= */
+
+.lock-screen {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-lock);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: white;
+  background: var(--bg-desktop);
+}
+
+.lock-screen.entering {
+  animation: lock-in var(--t-slow) var(--ease-out);
+}
+
+.lock-screen.leaving {
+  opacity: 0;
+  transform: scale(1.03);
+  transition: opacity 280ms ease, transform 280ms var(--ease-out);
+}
+
+@keyframes lock-in {
+  from { opacity: 0; transform: scale(1.03); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.lock-bg {
+  position: absolute;
+  inset: -40px;
+  background-color: var(--bg-desktop);
+  background-size: cover;
+  background-position: center;
+  filter: blur(40px) saturate(1.2);
+}
+
+.lock-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgb(0 0 0 / 0.20), rgb(0 0 0 / 0.45));
+}
+
+.lock-top {
+  position: relative;
+  margin-top: 16vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.lock-time {
+  font-size: var(--fs-hero);
+  font-weight: 200;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.lock-date {
+  font-size: var(--fs-xl);
+  font-weight: 500;
+  color: rgb(255 255 255 / 0.8);
+}
+
+.lock-auth {
+  position: relative;
+  margin-top: auto;
+  margin-bottom: 14vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 300px;
+}
+
+.lock-avatar {
+  width: 84px;
+  height: 84px;
+  border-radius: var(--r-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(150deg, var(--accent), oklch(0.55 0.16 calc(var(--accent-h) + 40)));
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.35), inset 0 0 0 2px rgb(255 255 255 / 0.25);
+  font-size: 30px;
+  font-weight: 600;
+  color: var(--on-accent);
+}
+
+.lock-user {
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.lock-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.lock-form.busy {
+  opacity: 0.6;
+}
+
+.lock-form.shake {
+  animation: shake 400ms var(--ease-out);
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-10px); }
+  40% { transform: translateX(9px); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(3px); }
+}
+
+.lock-field {
+  position: relative;
+  width: 100%;
+}
+
+.lock-input {
+  width: 100%;
+  height: 42px;
+  padding: 0 48px 0 18px;
+  border-radius: var(--r-full);
+  border: 1px solid rgb(255 255 255 / 0.18);
+  background: rgb(255 255 255 / 0.12);
+  backdrop-filter: blur(20px);
+  color: white;
+  font-size: var(--fs-lg);
+  outline: none;
+  transition: border-color var(--t-fast) var(--ease-out), background var(--t-fast) var(--ease-out);
+}
+
+.lock-input::placeholder {
+  color: rgb(255 255 255 / 0.55);
+}
+
+.lock-input:focus {
+  border-color: rgb(255 255 255 / 0.45);
+  background: rgb(255 255 255 / 0.16);
+}
+
+.lock-go {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(255 255 255 / 0.9);
+  color: oklch(0.2 0.01 265);
+}
+
+.lock-go:hover {
+  background: white;
+}
+
+.lock-go .icon {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2.4;
+}
+
+.lock-error {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: oklch(0.85 0.1 25);
+}

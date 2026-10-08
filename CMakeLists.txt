@@ -140,7 +140,7 @@ foreach(_t IN LISTS _helm_tests)
              COMMAND helm-headless --width 1920 --height 1080
                      "${CMAKE_CURRENT_SOURCE_DIR}/ui" "${_t}")
     set_tests_properties(ui-${_name} PROPERTIES
-        ENVIRONMENT "BRO_TRUSTED_APP_DIR=${CMAKE_CURRENT_SOURCE_DIR}/ui;HELM_CONFIG_DIR=${_cfg};HELM_TEST=1"
+        ENVIRONMENT "BRO_TRUSTED_APP_DIR=${CMAKE_CURRENT_SOURCE_DIR}/ui;HELM_CONFIG_DIR=${_cfg};XDG_CONFIG_HOME=${_cfg}/xdg;HELM_TEST=1"
         FIXTURES_REQUIRED cfg-${_name}
         SKIP_RETURN_CODE 77
         TIMEOUT 180)
