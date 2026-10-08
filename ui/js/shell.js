@@ -28,11 +28,13 @@ import { Switcher } from './switcher.js';
 import { Frames } from './frames.js';
 import { SettingsApp } from './settings/app.js';
 import { chordOf, hotkeyFor, nativeChords } from './hotkeys.js';
+import { remoteHost } from './remote.js';
 
 export class Shell {
   constructor() {
     this.booted = false;
     this.prefs = settings;
+    this.remote = remoteHost;
     this.system = system;
     this.windows = windows;
     this.apps = appdb;
@@ -87,6 +89,7 @@ export class Shell {
       ['frames', () => this.frames.init()],
       ['activities', () => this.watchMedia()],
       ['edges', () => this.reserveEdges()],
+      ['remote', () => remoteHost.init()],
     ];
     // One surface failing to start must not take the rest of the desktop with it.
     for (const [name, fn] of steps) attempt(`init ${name}`, fn);

@@ -139,6 +139,16 @@ Launch bare-metal on Linux DRM/KMS:
 ./build/helm --drm
 ```
 
+Host the screen for a remote viewer (`broremote-view` from
+[broremote](../broremote), which must be checked out beside `helm/` when
+building). `--remote=NAME` picks the socket name; the `remoteHost` setting
+(`helm.shell.remoteHost`) hosts without the flag:
+```bash
+./build/helm --drm --remote
+# then, from another machine:
+broremote-view --ssh HOST
+```
+
 Launch with software rendering (CPU only):
 ```bash
 ./build/helm --no-gpu

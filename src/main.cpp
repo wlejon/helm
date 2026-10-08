@@ -38,6 +38,7 @@ const char* kUsage =
     "      --shell            Run as primary OS desktop shell (reserves work area, borderless)\n"
     "      --drm              Run bare-metal on Linux DRM/KMS display with seat\n"
     "      --windowed         Run inside a windowed desktop session (default)\n"
+    "      --remote[=NAME]    Host the screen for broremote-view on socket NAME (default: default)\n"
     "      --no-gpu           Render on the CPU (software rasterizer)\n"
     "  -h, --help             Show this help text\n"
     "  -v, --version          Print the version and exit\n"
@@ -70,6 +71,15 @@ int main(int argc, char* argv[]) {
             shellMode = true;
         } else if (std::strcmp(argv[i], "--no-gpu") == 0) {
             noGpu = true;
+        } else if (std::strcmp(argv[i], "--remote") == 0 || std::strncmp(argv[i], "--remote=", 9) == 0) {
+            // The UI hosts (ui/js/remote.js, bro.remote); it reads the socket
+            // name from HELM_REMOTE.
+            const char* name = argv[i][8] == '=' && argv[i][9] ? argv[i] + 9 : "default";
+#if defined(_WIN32)
+            _putenv_s("HELM_REMOTE", name);
+#else
+            ::setenv("HELM_REMOTE", name, 1);
+#endif
         }
     }
 

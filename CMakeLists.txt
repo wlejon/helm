@@ -73,6 +73,9 @@ set(BRO_WITH_CLIP ON CACHE BOOL "Clipboard history")
 set(BRO_WITH_MPRIS ON CACHE BOOL "Media player integration")
 set(BRO_WITH_PULSE ON CACHE BOOL "PipeWire audio policy")
 set(BRO_WITH_IME ON CACHE BOOL "Input method engine")
+# bro.remote: `helm --remote` hosts the screen for broremote-view (needs a
+# ../broremote checkout; without one bro turns it off and says so).
+set(BRO_WITH_REMOTE ON CACHE BOOL "Remote session hosting (broremote)")
 
 add_subdirectory("${BRO_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/bro")
 
