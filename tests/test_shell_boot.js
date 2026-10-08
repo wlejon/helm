@@ -10,12 +10,22 @@ const helm = window.helm;
 assert(typeof helm === 'object' && helm !== null, 'window.helm exists');
 assert(helm.booted === true, 'shell booted');
 
-// Islands. #top-panel is the strip older engines route input by.
-const top = document.getElementById('top-panel');
-assert(top !== null, 'top islands rendered');
+// The bar: one slim strip along the bottom edge holding the three islands,
+// and no dock.
+const bar = document.getElementById('bar');
+assert(bar !== null, 'the bar rendered');
+const barRect = bar.getBoundingClientRect();
+assert(barRect.bottom === window.innerHeight && barRect.left === 0 && barRect.width === window.innerWidth,
+  `the bar spans the bottom edge: ${JSON.stringify(barRect)}`);
+assert(barRect.height > 0 && barRect.height <= 44, `the bar is slim: ${barRect.height}`);
 for (const id of ['island-left', 'island-center', 'island-right']) {
-  assert(top.querySelector(`#${id}`) !== null, `${id} lives inside #top-panel`);
+  assert(bar.querySelector(`#${id}`) !== null, `${id} lives inside #bar`);
+  const r = document.getElementById(id).getBoundingClientRect();
+  assert(r.top >= barRect.top && r.bottom <= barRect.bottom, `${id} sits within the bar`);
 }
+assert(document.getElementById('top-panel') === null, 'no top panel');
+assert(document.getElementById('dock') === null && document.querySelector('.dock') === null, 'no dock');
+assert(helm.dock === undefined, 'no dock controller');
 const center = document.getElementById('island-center');
 assert(/\d{1,2}:\d{2}/.test(center.textContent), 'clock island shows a time');
 assert(document.querySelectorAll('#isl-status svg').length >= 2, 'status island shows icons');
@@ -35,6 +45,14 @@ settle(2);
 assert(helm.quick.isOpen, 'quick settings opens');
 assert(!document.getElementById('quick-settings').classList.contains('hidden'), 'quick settings visible');
 assert(right.classList.contains('morphed'), 'the status island hands its glass to the panel');
+settle(40);
+{
+  const qr = document.getElementById('quick-settings').getBoundingClientRect();
+  const ir = right.getBoundingClientRect();
+  assert(Math.abs(qr.bottom - ir.bottom) <= 1 && qr.top < ir.top - 100,
+    `quick settings stands on its island and grows upward: ${JSON.stringify(qr)} over ${JSON.stringify(ir)}`);
+  assert(Math.abs(qr.right - ir.right) <= 1, 'quick settings lines up with the right island');
+}
 assert(document.querySelectorAll('#quick-settings .tile').length >= 2, 'quick settings has toggle tiles');
 assert(document.querySelectorAll('#quick-settings .qs-power-btn').length === 4, 'quick settings has the power row');
 window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));

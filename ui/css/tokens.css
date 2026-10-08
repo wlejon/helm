@@ -103,7 +103,7 @@
   /* -- Motion -------------------------------------------------------------
      --spring is a damped spring sampled into linear(): it overshoots ~2%,
      so panels settle rather than stop. --spring-pop overshoots ~8%, for
-     small things (dock icons, chips). Exits are quicker than entrances and
+     small things (chips, active workspaces). Exits are quicker than entrances and
      never bounce. */
   --spring: linear(0, 0.0365, 0.1251, 0.2406, 0.3655, 0.4877, 0.6001, 0.6985, 0.7814, 0.8488, 0.9019, 0.9422, 0.9717, 0.9923, 1.0059, 1.0142, 1.0184, 1.0199, 1.0195, 1.0179, 1.0156, 1.0132, 1.0107, 1.0084, 1);
   --spring-pop: linear(0, 0.0303, 0.1079, 0.2154, 0.3384, 0.4655, 0.5883, 0.7009, 0.7996, 0.8827, 0.9496, 1.001, 1.0381, 1.0628, 1.0771, 1.0831, 1.0826, 1.0775, 1.0693, 1.0595, 1.0489, 1.0384, 1.0286, 1.0199, 1.0124, 1.0063, 1.0015, 0.9979, 0.9955, 0.9939, 1);
@@ -118,15 +118,16 @@
 
   /* -- Geometry -----------------------------------------------------------*/
   --edge: 12px;
-  --island-top: 10px;
-  --island-h: 42px;
-  --dock-icon: 46px;
+  /* The bar along the bottom edge, and the islands (its three groups of
+     controls) inside it; panels grow up out of an island. */
+  --bar-h: 40px;
+  --island-h: 32px;
+  --island-gap: 4px;   /* between an island and the screen's bottom edge */
 
   /* -- Stacking -----------------------------------------------------------
      bro draws client windows between the desktop (<1000) and the shell
      overlays (>=1000), and gives pointer input to anything at >=1000. */
   --z-desktop: 1;
-  --z-dock: 1010;
   --z-islands: 1020;
   --z-panel: 2000;
   --z-toast: 3000;

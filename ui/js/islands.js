@@ -1,5 +1,5 @@
 /**
- * The top islands. Left: the launcher mark, workspaces and the focused
+ * The bar's islands, along the bottom edge (#bar). Left: the launcher mark, workspaces and the focused
  * app. Center: the clock with the live activity and the notification
  * count; it grows into the calendar and notification center. Right: the
  * tray and the status glyphs; it grows into quick settings.

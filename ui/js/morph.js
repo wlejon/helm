@@ -1,6 +1,6 @@
 /**
- * Shared-element motion. A panel does not appear beneath its island: the
- * island's own glass grows into it. morphIn() animates the panel's box from
+ * Shared-element motion. A panel does not appear above its island: the
+ * island's own glass grows up out of the bar into it. morphIn() animates the panel's box from
  * the island's rect to its laid-out rect (left/top/width/height/radius on a
  * spring) while the panel's body, laid out at its final width and clipped
  * by the growing box, fades up behind it; morphOut() runs the same path
@@ -72,9 +72,10 @@ export function morphIn(el, from, { body, align, fromRadius, toRadius = 30, dura
   const anims = [animate(el, [boxFrame(from, fromRadius ?? from.height / 2), boxFrame(to, toRadius)],
     { duration, easing: SPRING })];
   if (body) {
+    // The glass grows up out of the bar: the body rises with it.
     anims.push(animate(body, [
-      { opacity: 0, transform: 'translateY(-10px) scale(0.98)' },
-      { opacity: 0, transform: 'translateY(-10px) scale(0.98)', offset: 0.18 },
+      { opacity: 0, transform: 'translateY(10px) scale(0.98)' },
+      { opacity: 0, transform: 'translateY(10px) scale(0.98)', offset: 0.18 },
       { opacity: 1, transform: 'none' },
     ], { duration: duration * 0.85, easing: EASE_OUT }));
   }
@@ -169,7 +170,10 @@ class PanelManager {
     window.dispatchEvent(new CustomEvent('helm:overlay'));
   }
 
-  /** Pin the panel's box beside its island; the body sets its width. */
+  /**
+   * Stand the panel's box on its island's bottom edge, beside it; the body
+   * sets its width and height, so the panel grows upward.
+   */
   place(panel) {
     const { el, island, align = 'center' } = panel;
     const vw = window.innerWidth;
@@ -181,7 +185,8 @@ class PanelManager {
       if (align === 'left') left = r.left;
       else if (align === 'right') left = r.right - w;
       else left = r.left + r.width / 2 - w / 2;
-      el.style.top = `${Math.round(r.top)}px`;
+      el.style.top = 'auto';
+      el.style.bottom = `${Math.round(window.innerHeight - r.bottom)}px`;
     }
     left = Math.max(8, Math.min(vw - w - 8, left));
     el.style.left = `${Math.round(left)}px`;

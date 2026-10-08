@@ -1,0 +1,85 @@
+/* =============================================================================
+   SWITCHER: the Alt+Tab window cards, over a dimmed desktop.
+   ============================================================================= */
+
+.switcher {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-switcher);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: oklch(0.08 0.02 var(--accent-h) / 0.35);
+}
+
+.switcher-panel {
+  display: flex;
+  gap: var(--s2);
+  max-width: calc(100vw - 80px);
+  padding: var(--s3);
+  border-radius: 30px;
+  background: var(--glass-modal);
+  backdrop-filter: var(--blur-panel);
+  border: 1px solid var(--rim);
+  box-shadow: var(--rim-top), var(--depth-3);
+  animation: switcher-in 300ms var(--spring);
+}
+
+@keyframes switcher-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: none; }
+}
+
+.switcher-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s3);
+  width: 148px;
+  height: 148px;
+  padding: var(--s3);
+  border-radius: 22px;
+  color: var(--t2);
+  transition: background var(--d-quick) var(--ease-std);
+}
+
+.switcher-card:hover {
+  background: var(--well-2);
+}
+
+.switcher-card.selected {
+  background: var(--grad-soft);
+  color: var(--t1);
+  box-shadow: inset 0 0 0 1.5px oklch(0.74 0.16 var(--accent-h) / 0.9), var(--glow);
+}
+
+.switcher-icon {
+  width: 64px;
+  height: 64px;
+  font-size: 26px;
+  transition: transform 300ms var(--spring-pop);
+}
+
+.switcher-card.selected .switcher-icon {
+  transform: scale(1.08);
+}
+
+.switcher-title {
+  max-width: 100%;
+  font-size: var(--fs-cap);
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.switcher-app {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--track-micro);
+  text-transform: uppercase;
+  color: var(--t4);
+  margin-top: -8px;
+}

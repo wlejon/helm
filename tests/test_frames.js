@@ -31,7 +31,6 @@ function waitFor(pred, what) {
 
 settle();
 const helm = window.helm;
-helm.prefs.set('dockAutohide', false);
 settle(5);
 
 const env = Object.assign({}, process.env, { WAYLAND_DISPLAY: hostCompositorSocket() });
@@ -59,8 +58,8 @@ let failed = false;
 try {
   assert(helm.frames && helm.frames.enabled, 'frames are on with a compositor that draws them');
   const deco = C.getDecorations();
-  assert(deco.insets.top === 38 && deco.insets.left === 6 && deco.maximizedInsets.left === 0,
-    `decorations declared: ${JSON.stringify(deco)}`);
+  assert(deco.insets.top === 28 && deco.insets.left === 1 && deco.maximizedInsets.top === 0
+    && deco.maximizedInsets.left === 0, `decorations declared: slim trim, borderless maximized: ${JSON.stringify(deco)}`);
 
   const a = spawnClient('org.example.Notes', 'notes.txt');
   const b = spawnClient('org.example.Viewer', 'Viewer');
@@ -81,8 +80,22 @@ try {
   waitFor(() => win(a.id).frame.x === 200 && win(b.id).frame.x === 1000, 'placement');
   settle(5);
   const ra = frame(a.id).getBoundingClientRect();
-  assert(ra.left === 194 && ra.top === 292 && ra.width === 712 && ra.height === 524,
+  assert(ra.left === 199 && ra.top === 302 && ra.width === 702 && ra.height === 509,
     `frame a on its outer rect: ${JSON.stringify(ra)}`);
+  // The resize grips reach past the 1px rim, outside the frame's box: a
+  // press just left of a's rim starts a resize.
+  const resizes = [];
+  const realResize = C.beginResize;
+  C.beginResize = function (id, edges, o) {
+    resizes.push([id, edges]);
+    return realResize.call(C, id, edges, o);
+  };
+  assert(hostPointer('down', 196, 560) === true, 'a press beside the rim reaches the frame');
+  hostPointer('up', 196, 560);
+  C.beginResize = realResize;
+  assert(resizes.length === 1 && resizes[0][0] === a.id && resizes[0][1] === 'left',
+    `the left grip resizes: ${JSON.stringify(resizes)}`);
+  waitFor(() => !C.getDrag(), 'resize over');
 
   // Focus styling follows data-window-focused.
   C.focusWindow(a.id);
@@ -98,7 +111,7 @@ try {
   // A press on b's title bar raises and focuses b, and a drag moves it.
   const bo = win(b.id).outerFrame;
   const tx = bo.x + 250;
-  const ty = bo.y + 18;
+  const ty = bo.y + 14;
   assert(hostPointer('down', tx, ty) === true, 'a press on a title bar reaches the shell');
   waitFor(() => win(b.id).focused, 'b focused by its title bar');
   assert(C.getDrag() && C.getDrag().windowId === b.id, 'title press arms a move');
@@ -110,34 +123,79 @@ try {
   const bf = win(b.id).frame;
   assert(bf.x === 900 && bf.y === 260, `title drag moved the window: ${JSON.stringify(bf)}`);
   const rb = frame(b.id).getBoundingClientRect();
-  assert(rb.left === bf.x - 6 && rb.top === bf.y - 38, `frame followed: ${JSON.stringify(rb)}`);
+  assert(rb.left === bf.x - 1 && rb.top === bf.y - 28, `frame followed: ${JSON.stringify(rb)}`);
 
-  // Double-click on the title maximizes; the button then restores.
+  // Double-click on the title maximizes, borderless: the client's top-left
+  // pixel is the screen's, it fills everything above the bar, and its frame
+  // has no trim.
   const bo2 = win(b.id).outerFrame;
-  click(bo2.x + 200, bo2.y + 18);
-  click(bo2.x + 200, bo2.y + 18);
+  click(bo2.x + 200, bo2.y + 14);
+  click(bo2.x + 200, bo2.y + 14);
   waitFor(() => win(b.id).maximized, 'double-click on the title maximizes');
+  waitFor(() => win(b.id).frame.y === 0, 'the maximized window reaches the top');
   settle(5);
-  assert(frame(b.id).getAttribute('data-window-state') === 'maximized', 'maximized state on the frame');
-  assert(getComputedStyle(frame(b.id).querySelector('.wf-n')).display === 'none', 'no resize grips when maximized');
-  assert(frame(b.id).querySelector('.wf-max').title === 'Restore', 'maximize button turns to restore');
-  assert(click(...center(frame(b.id).querySelector('.wf-max'))) === true, 'button press reaches the shell');
-  waitFor(() => !win(b.id).maximized, 'restore button restores');
+  const barTop = document.getElementById('bar').getBoundingClientRect().top;
+  const mf = win(b.id).frame;
+  assert(mf.x === 0 && mf.y === 0 && mf.width === window.innerWidth && mf.y + mf.height === barTop,
+    `maximized fills the screen above the bar: ${JSON.stringify(mf)} (bar at ${barTop})`);
+  assert(win(b.id).borderless, 'maximized is borderless');
+  const fb = frame(b.id);
+  assert(fb.getAttribute('data-window-state') === 'maximized' && fb.hasAttribute('data-window-borderless'),
+    'maximized, borderless frame');
+  const fr = fb.getBoundingClientRect();
+  assert(fr.left === 0 && fr.top === 0 && fr.width === mf.width && fr.height === mf.height,
+    `the borderless frame is the client's rect: ${JSON.stringify(fr)}`);
+  for (const sel of ['.wf-bar', '.wf-chrome', '.wf-n']) {
+    assert(getComputedStyle(fb.querySelector(sel)).display === 'none', `no ${sel} on a borderless window`);
+  }
 
-  // Maximize button, then minimize, then close, all by pointer.
+  // Its top edge is the client's, bar the few pixels of the hot corner.
+  const W = window.innerWidth;
+  assert(hostPointer('move', W - 60, 2) === false, 'the client keeps its top edge');
+  assert(!fb.querySelector('.wf-corner').classList.contains('open'), 'controls shut away from the corner');
+  // Hovering the corner opens the controls over the client.
+  const corner = fb.querySelector('.wf-corner');
+  const openCorner = () => {
+    hostPointer('move', W - 40, 30);
+    hostPointer('move', W - 3, 3);
+    settle(30);
+    assert(corner.classList.contains('open'), 'hovering the top-right corner opens the controls');
+  };
+  openCorner();
+  const pillMax = corner.querySelector('.wf-max');
+  assert(pillMax.title === 'Restore', 'the corner offers restore');
+  assert(corner.querySelector('.wf-title').textContent === 'Viewer', 'the corner names the window');
+  assert(click(...center(pillMax)) === true, 'a press on the corner controls reaches the shell');
+  waitFor(() => !win(b.id).maximized, 'the corner restore button restores');
   settle(5);
-  click(...center(frame(b.id).querySelector('.wf-max')));
-  waitFor(() => win(b.id).maximized, 'maximize button maximizes');
+  assert(!fb.hasAttribute('data-window-borderless'), 'restored: the trim is back');
+
+  // Maximize button, then minimize, then close from the corner.
+  click(...center(fb.querySelector('.wf-bar .wf-max')));
+  waitFor(() => win(b.id).maximized && win(b.id).frame.y === 0, 'maximize button maximizes');
   settle(5);
-  click(...center(frame(b.id).querySelector('.wf-min')));
-  waitFor(() => win(b.id).minimized, 'minimize button minimizes');
+  openCorner();
+  click(...center(corner.querySelector('.wf-min')));
+  waitFor(() => win(b.id).minimized, 'the corner minimize button minimizes');
   settle(5);
-  assert(frame(b.id).style.display === 'none', 'a minimized window shows no frame');
+  assert(fb.style.display === 'none', 'a minimized window shows no frame');
   helm.windows.focus(b.id);
   waitFor(() => !win(b.id).minimized, 'b back');
   settle(5);
-  click(...center(frame(b.id).querySelector('.wf-close')));
-  waitFor(() => !C.getWindows().some((w) => w.id === b.id), 'close button closes');
+
+  // Super+. brings the same controls up from the keyboard.
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: '.', metaKey: true, bubbles: true }));
+  settle(30);
+  assert(helm.frames.controlsOpen && corner.classList.contains('open'), 'Super+. opens the corner controls');
+  assert(corner.hasAttribute('data-shell-keyboard'), 'the controls take the keyboard');
+  assert(document.activeElement && document.activeElement.classList.contains('wf-btn'), 'a control button has focus');
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  assert(!helm.frames.controlsOpen && !corner.hasAttribute('data-shell-keyboard'), 'Escape puts them away');
+  settle(30);
+
+  openCorner();
+  click(...center(corner.querySelector('.wf-close')));
+  waitFor(() => !C.getWindows().some((w) => w.id === b.id), 'the corner close button closes');
   settle(5);
   assert(!frame(b.id), 'a closed window loses its frame');
 
@@ -147,7 +205,7 @@ try {
   const preview = document.getElementById('snap-preview');
   const ao = win(a.id).outerFrame;
   const sx = ao.x + 250;
-  const sy = ao.y + 18;
+  const sy = ao.y + 14;
   assert(hostPointer('down', sx, sy) === true, 'press on a\'s title');
   waitFor(() => win(a.id).focused, 'a focused');
   for (let x = sx - 40; x > 2; x -= 60) hostPointer('move', x, sy + 100);

@@ -23,7 +23,6 @@ import { CalendarPopover } from './calendar.js';
 import { Osd } from './osd.js';
 import { LauncherController } from './launcher.js';
 import { LockController } from './lock.js';
-import { Dock } from './dock.js';
 import { Switcher } from './switcher.js';
 import { Frames } from './frames.js';
 import { SettingsApp } from './settings/app.js';
@@ -52,7 +51,6 @@ export class Shell {
     this.osd = new Osd();
     this.launcher = new LauncherController(this);
     this.lock = new LockController(this);
-    this.dock = new Dock(this);
     this.switcher = new Switcher(this);
     this.frames = new Frames(this);
     // The Settings app plugs in through registerSettingsApp() when it
@@ -84,7 +82,6 @@ export class Shell {
       ['launcher', () => this.launcher.init()],
       ['settings', () => this.settingsUi.init()],
       ['lock', () => this.lock.init()],
-      ['dock', () => this.dock.init()],
       ['switcher', () => this.switcher.init()],
       ['frames', () => this.frames.init()],
       ['activities', () => this.watchMedia()],
@@ -155,17 +152,17 @@ export class Shell {
     else this.openSettings(page, { origin: $('#island-right') });
   }
 
-  /** A transient pill under the clock island. */
+  /** A transient pill over the clock island. */
   hint(text, sub = '', glyph = 'info') {
     const el = $('#hint');
     el.replaceChildren(...[h('span.hint-glyph', icon(glyph)), h('span', text), sub ? h('span.hint-sub', sub) : null].filter(Boolean));
     el.classList.remove('hidden');
-    animate(el, [{ opacity: 0, transform: 'translateX(-50%) translateY(-14px) scale(0.9)' },
+    animate(el, [{ opacity: 0, transform: 'translateX(-50%) translateY(14px) scale(0.9)' },
       { opacity: 1, transform: 'translateX(-50%)' }], { duration: 420, easing: SPRING });
     clearTimeout(this.hintTimer);
     this.hintTimer = setTimeout(() => {
       animate(el, [{ opacity: 1, transform: 'translateX(-50%)' },
-        { opacity: 0, transform: 'translateX(-50%) translateY(-10px) scale(0.94)' }],
+        { opacity: 0, transform: 'translateX(-50%) translateY(10px) scale(0.94)' }],
       { duration: 220, easing: EASE_STD, fill: 'forwards' });
       this.hintTimer = setTimeout(() => el.classList.add('hidden'), 220);
     }, 2400);
@@ -211,13 +208,14 @@ export class Shell {
   }
 
   /**
-   * Reserves the band down to the bottom of the top islands, so maximised
-   * windows stop short of them. The dock reserves its own band (Dock).
+   * Reserves the bar's band along the bottom edge, so maximized and snapped
+   * windows end at its top edge and nothing else is held back: a maximized
+   * window starts at the screen's top-left pixel.
    */
   reserveEdges() {
-    windows.releaseEdge(this.topReservation);
-    const top = $('#top-panel').getBoundingClientRect();
-    this.topReservation = windows.reserveEdge('top', Math.round(top.bottom));
+    windows.releaseEdge(this.barReservation);
+    const bar = $('#bar').getBoundingClientRect();
+    this.barReservation = windows.reserveEdge('bottom', Math.round(window.innerHeight - bar.top));
   }
 
 
@@ -277,14 +275,21 @@ export class Shell {
   }
 
   appMenu(app, x, y) {
-    const pinned = (settings.get('pinnedApps') || []).includes(app.id);
     this.menus.show([
       { heading: app.name },
       { label: 'Open', icon: 'arrow-right', action: () => { this.launcher.close(); this.launcher.launch(app); } },
-      pinned
-        ? { label: 'Unpin from Dock', icon: 'pin', action: () => this.dock.setPinned(app.id, false) }
-        : { label: 'Pin to Dock', icon: 'pin', action: () => this.dock.setPinned(app.id, true) },
     ], x, y);
+  }
+
+  /**
+   * Super+.: the focused window's controls from the keyboard. A borderless
+   * window shows them in its corner (as hovering there does); a framed one
+   * already shows them in its title bar. Either way they take the keyboard
+   * until Escape, a click elsewhere, or a button.
+   */
+  windowControls() {
+    const w = windows.focused();
+    if (w) this.frames.showControls(w.id, { keyboard: true });
   }
 
   stepVolume(delta) {
@@ -327,6 +332,7 @@ export class Shell {
           fn();
         };
         if (this.menus.isOpen) return close(() => this.menus.close());
+        if (this.frames.controlsOpen) return close(() => this.frames.hideControls());
         if (this.settingsApp && this.settingsApp.isOpen) return close(() => this.settingsApp.close());
         if (this.launcher.isOpen) return close(() => this.launcher.close());
         if (panels.isOpen()) return close(() => panels.close());

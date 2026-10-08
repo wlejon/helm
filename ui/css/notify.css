@@ -1,18 +1,19 @@
 /* =============================================================================
-   NOTIFICATIONS AND OSD. Toasts fall out of the clock island and stack
-   beneath it; the same card, flattened into a well, fills the notification
+   NOTIFICATIONS AND OSD. Toasts rise out of the clock island and stack
+   above it; the same card, flattened into a well, fills the notification
    center. The OSD is the status island stretching to show a level.
    ============================================================================= */
 
 .toast-stack {
   position: fixed;
   z-index: var(--z-toast);
-  top: calc(var(--island-top) + var(--island-h) + 12px);
+  bottom: calc(var(--bar-h) + 12px);
   left: 50%;
   transform: translateX(-50%);
   width: 400px;
   display: flex;
-  flex-direction: column;
+  /* The newest (first) toast sits nearest the clock. */
+  flex-direction: column-reverse;
   gap: var(--s2);
   pointer-events: none;
   transition: opacity var(--d-state) var(--ease-std);
@@ -45,7 +46,7 @@
 }
 
 @keyframes toast-in {
-  from { opacity: 0; transform: translateY(-22px) scale(0.86); }
+  from { opacity: 0; transform: translateY(22px) scale(0.86); }
   to { opacity: 1; transform: none; }
 }
 
@@ -55,7 +56,7 @@
 
 @keyframes toast-out {
   from { opacity: 1; transform: none; }
-  to { opacity: 0; transform: translateY(-14px) scale(0.92); }
+  to { opacity: 0; transform: translateY(14px) scale(0.92); }
 }
 
 .nc-list .notif {
@@ -210,8 +211,8 @@
 .osd {
   position: fixed;
   z-index: var(--z-osd);
-  top: var(--island-top);
-  right: var(--edge);
+  bottom: var(--island-gap);
+  right: 6px;
   width: 320px;
   height: var(--island-h);
   display: flex;

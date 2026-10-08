@@ -13,13 +13,8 @@ const SCHEMA = {
   showSeconds: { type: 'bool', default: false },
   accentHue: { type: 'int', default: 255, min: 0, max: 360 },
   wallpaper: { type: 'string', default: 'aurora' },
-  pinnedApps: {
-    type: 'string_list',
-    default: ['helm.terminal', 'org.kde.dolphin.desktop', 'firefox.desktop', 'org.kde.kate.desktop'],
-  },
   dndEnabled: { type: 'bool', default: false },
   launchCounts: { type: 'string', default: '{}' },
-  dockAutohide: { type: 'bool', default: true },
   // Apps whose notifications skip the banner (they still reach the center),
   // and every app that has sent one, for Settings > Notifications.
   notifyQuiet: { type: 'string_list', default: [] },

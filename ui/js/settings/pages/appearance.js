@@ -1,6 +1,6 @@
 /**
  * Appearance: wallpaper (the gradient presets, or a picture found in the
- * usual wallpaper folders), the accent hue, the clock, the dock. All of it
+ * usual wallpaper folders), the accent hue, the clock. All of it
  * is helm.shell in bro.conf (js/settings.js); the shell watches each key.
  */
 
@@ -143,15 +143,14 @@ function preview(current) {
   else if (current && current.startsWith('/')) art.style.backgroundImage = `url("${current}")`;
   return h('div.st-preview',
     art,
-    h('div.st-preview-islands', h('span.l'), h('span.c'), h('span.r')),
-    h('div.st-preview-dock', h('span'), h('span'), h('span'), h('span')));
+    h('div.st-preview-islands', h('span.l'), h('span.c'), h('span.r')));
 }
 
 export default {
   id: 'appearance',
   title: 'Appearance',
   glyph: 'palette',
-  blurb: 'Wallpaper, accent colour, clock and dock',
+  blurb: 'Wallpaper, accent colour and clock',
   keywords: 'look theme style personalise personalize',
   available: () => true,
   items: [
@@ -160,7 +159,6 @@ export default {
     { id: 'accent', label: 'Accent colour', keywords: 'color colour hue highlight tint' },
     { id: 'clock-24h', label: '24-hour clock', keywords: 'time format am pm' },
     { id: 'clock-seconds', label: 'Show seconds in the clock', keywords: 'time' },
-    { id: 'dock-autohide', label: 'Hide the dock when a window covers it', keywords: 'dock autohide intellihide taskbar' },
   ],
 
   render(ctx) {
@@ -207,12 +205,7 @@ export default {
       secs, (on) => b.setPref('showSeconds', on)),
     ]);
 
-    const dock = section('Dock', switchRow({
-      anchor: 'dock-autohide', glyph: 'apps', title: 'Hide when a window covers it',
-      desc: 'The dock tucks away under windows and comes back at the bottom edge',
-    }, !!b.pref('dockAutohide'), (on) => b.setPref('dockAutohide', on)));
-
-    return [wall, pictures, accent, clock, dock];
+    return [wall, pictures, accent, clock];
   },
 
   topics: ['prefs'],

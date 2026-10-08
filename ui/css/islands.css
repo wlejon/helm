@@ -1,7 +1,12 @@
 /* =============================================================================
-   ISLANDS: the three floating pills along the top edge, the wallpaper, the
-   transient hint pill. #top-panel itself is an invisible full-width strip
-   that lets clicks through between the islands.
+   THE BAR: one slim strip along the bottom edge holding the three islands
+   (launcher, workspaces and focused app on the left; the clock in the
+   middle; tray and status on the right), each of which grows up into its
+   panel. Also the wallpaper and the transient hint pill.
+
+   The bar reserves its band (Shell.reserveEdges), so maximized windows end
+   at its top edge. Client windows are not behind the bar's glass as HTML is,
+   so it is tinted nearly opaque rather than relying on blur.
    ============================================================================= */
 
 .desktop-wallpaper {
@@ -13,26 +18,30 @@
   background-position: center;
 }
 
-.islands-top {
+.bar {
   position: fixed;
   left: 0;
   right: 0;
-  top: 0;
-  height: calc(var(--island-top) + var(--island-h) + 6px);
+  bottom: 0;
+  height: var(--bar-h);
   z-index: var(--z-islands);
-  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.035), transparent),
+    oklch(0.15 0.026 var(--accent-h) / 0.93);
+  backdrop-filter: var(--blur-island);
+  border-top: 1px solid var(--rim);
+  box-shadow: var(--rim-top), 0 -8px 30px rgb(0 0 0 / 0.28);
 }
 
 .island {
   position: absolute;
-  top: var(--island-top);
+  bottom: var(--island-gap);
   height: var(--island-h);
   display: flex;
   align-items: center;
   gap: 2px;
-  padding: 0 5px;
+  padding: 0 2px;
   border-radius: var(--r-chip);
-  pointer-events: auto;
   color: var(--t1);
   white-space: nowrap;
   transition: background var(--d-state) var(--ease-std), opacity var(--d-state) var(--ease-std),
@@ -45,11 +54,11 @@
 }
 
 .island-left {
-  left: var(--edge);
+  left: 6px;
 }
 
 .island-right {
-  right: var(--edge);
+  right: 6px;
 }
 
 .island-center {
@@ -80,8 +89,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: var(--r-chip);
   transition: transform var(--d-quick) var(--ease-std), box-shadow var(--d-state) var(--ease-std);
 }
@@ -175,7 +184,7 @@
   display: flex;
   align-items: center;
   gap: var(--s2);
-  height: 32px;
+  height: 28px;
   max-width: 260px;
   padding: 0 var(--s3) 0 6px;
   margin-left: 2px;
@@ -366,8 +375,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: var(--r-chip);
   color: var(--t2);
   transition: background var(--d-quick) var(--ease-std);
@@ -391,7 +400,7 @@
   display: flex;
   align-items: center;
   gap: 11px;
-  height: 32px;
+  height: 28px;
   padding: 0 var(--s3);
   border-radius: var(--r-chip);
   color: var(--t2);
@@ -427,12 +436,12 @@
   color: var(--warn);
 }
 
-/* -- Hint: a transient pill under the clock ----------------------------- */
+/* -- Hint: a transient pill over the clock ------------------------------ */
 
 .hint {
   position: fixed;
   z-index: var(--z-hint);
-  top: calc(var(--island-top) + var(--island-h) + 12px);
+  bottom: calc(var(--bar-h) + 12px);
   left: 50%;
   transform: translateX(-50%);
   display: flex;

@@ -1,18 +1,20 @@
 /* =============================================================================
    PANELS: the glass that grows out of an island (js/morph.js animates the
    box; the body inside is laid out at its final width and clipped while
-   the box grows). Spaces (left), the clock panel (center), quick settings
+   the box grows up out of the bar). Spaces (left), the clock panel (center), quick settings
    (right), and the now-playing card they share.
    ============================================================================= */
 
+/* A panel stands on its island's bottom edge (js/morph.js places it there),
+   so a change in its height grows or shrinks it upward. */
 .panel {
   position: fixed;
-  top: var(--island-top);
+  bottom: var(--island-gap);
   left: 0;
   z-index: var(--z-panel);
   display: flex;
   justify-content: center;
-  align-items: flex-start;
+  align-items: flex-end;
   overflow: hidden;
   border-radius: var(--r-panel);
 }
@@ -25,10 +27,11 @@
   justify-content: flex-end;
 }
 
-/* During a morph the body is pinned to its island's side (js/morph.js). */
+/* During a morph the body is pinned to its island's side and to the bottom,
+   where the glass grows from (js/morph.js). */
 .morphing > .morph-body {
   position: absolute;
-  top: 0;
+  bottom: 0;
 }
 
 .morphing[data-align="left"] > .morph-body {

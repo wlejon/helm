@@ -49,6 +49,8 @@ export const HOTKEYS = [
     run: (s, chord) => s.switcher.step(chord.startsWith('Alt') ? 'Alt' : 'Meta', -1) },
   { id: 'close', group: 'Windows and workspaces', label: 'Close the focused window', chords: ['Super+Q'],
     run: (s) => s.closeFocused() },
+  { id: 'window-controls', group: 'Windows and workspaces', label: 'Window controls (minimize, restore, close)',
+    chords: ['Super+.'], run: (s) => s.windowControls() },
   { id: 'snap-left', group: 'Windows and workspaces', label: 'Snap the window to the left half',
     chords: ['Super+ArrowLeft'], run: (s) => s.snapFocused('left') },
   { id: 'snap-right', group: 'Windows and workspaces', label: 'Snap the window to the right half',

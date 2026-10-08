@@ -60,7 +60,7 @@ export class LauncherController {
       { name: 'Settings', desc: 'Sound, network, Bluetooth, displays, power, appearance', icon: 'settings', handoff: true, run: (o) => s.openSettings(null, o) },
       { name: 'Spaces', desc: 'Workspaces and their windows', icon: 'layers', run: () => s.spaces.toggle() },
       { name: 'Accent Colour', desc: 'Cycle the shell accent', icon: 'sparkles', run: () => s.cycleAccent() },
-      { name: 'Appearance', desc: 'Wallpaper, accent colour, clock, dock', icon: 'palette', handoff: true, run: (o) => s.openSettings('appearance', o) },
+      { name: 'Appearance', desc: 'Wallpaper, accent colour, clock', icon: 'palette', handoff: true, run: (o) => s.openSettings('appearance', o) },
       { name: 'Keyboard Shortcuts', desc: 'Every shell hotkey', icon: 'keyboard', handoff: true, run: (o) => s.openSettings('keyboard', o) },
       { name: 'Lock Screen', desc: 'Lock this session', icon: 'lock', run: () => s.lock.lock() },
       { name: 'Clipboard History', desc: 'Recent copied items', icon: 'clipboard', keep: true, run: () => this.openClipboard() },
@@ -74,7 +74,7 @@ export class LauncherController {
     ];
   }
 
-  /** Open, growing out of `origin` (the island mark or the dock button). */
+  /** Open, growing out of `origin` (the bar's launcher mark, usually). */
   open(origin) {
     if (this.isOpen) return;
     this.shell.closeTransient();

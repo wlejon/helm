@@ -65,12 +65,12 @@ export class Menus {
     this.show(items, r.left, r.bottom + 6, opts);
   }
 
-  /** A menu opening upward from above an anchor element (the dock). */
+  /** A menu opening upward from above an anchor element (in the bar). */
   showAbove(items, anchor, opts) {
     this.show(items, 0, 0, opts);
     const r = anchor.getBoundingClientRect();
     const m = this.el.getBoundingClientRect();
-    // Clear the whole surface the anchor sits on (the dock's glass), not just the anchor.
+    // Clear the whole surface the anchor sits on (the bar), not just the anchor.
     const base = opts && opts.above ? opts.above.getBoundingClientRect().top : r.top;
     this.el.style.left = `${Math.round(clamp(r.left + r.width / 2 - m.width / 2, 6, window.innerWidth - m.width - 6))}px`;
     this.el.style.top = `${Math.round(base - m.height - 10)}px`;
@@ -91,7 +91,7 @@ export class Menus {
     const root = attempt('tray.getMenu', () => tray.getMenu(item.id));
     if (!root || !root.children || root.children.length === 0) {
       const r = anchor.getBoundingClientRect();
-      attempt('tray.contextMenu', () => tray.contextMenu(item.id, Math.round(r.left), Math.round(r.bottom)));
+      attempt('tray.contextMenu', () => tray.contextMenu(item.id, Math.round(r.left), Math.round(r.top)));
       return;
     }
     attempt('tray.menuAboutToShow', () => tray.menuAboutToShow(item.id, root.id));
@@ -118,6 +118,6 @@ export class Menus {
       }
     };
     walk(root.children, 0);
-    this.showBelow(items, anchor);
+    this.showAbove(items, anchor, { above: document.getElementById('bar') });
   }
 }

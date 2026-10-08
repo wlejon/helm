@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="css/panels.css">
   <link rel="stylesheet" href="css/notify.css">
   <link rel="stylesheet" href="css/launcher.css">
-  <link rel="stylesheet" href="css/dock.css">
+  <link rel="stylesheet" href="css/switcher.css">
   <link rel="stylesheet" href="css/frames.css">
   <link rel="stylesheet" href="css/settings.css">
   <link rel="stylesheet" href="css/settings-pages.css">
@@ -25,18 +25,20 @@
        level and never takes the pointer itself. -->
   <div class="window-frames" id="window-frames"></div>
 
-  <!-- Shell overlays (z-index >= 1000) draw over client windows. Older bro
-       builds route DRM input by the ids top-panel, launcher-modal and
-       lock-screen and by classes containing quick-popup / toast; keep them.
-       Every overlay that takes keys carries data-shell-keyboard. -->
-  <div class="islands-top" id="top-panel">
-    <div class="island island-left glass" id="island-left">
+  <!-- Shell overlays (z-index >= 1000) draw over client windows, and bro
+       gives them the pointer. Every overlay that takes keys carries
+       data-shell-keyboard. -->
+  <!-- The bar along the bottom edge: three islands, each growing up into
+       its panel (js/islands.js). Its band is reserved, so maximized windows
+       end above it. -->
+  <div class="bar" id="bar">
+    <div class="island island-left" id="island-left">
       <button class="isl-btn isl-logo" id="isl-launcher" title="Applications (Super)"><i data-icon="helm"></i></button>
       <div class="ws-strip" id="workspaces"></div>
       <button class="isl-focused hidden" id="isl-focused" title="Spaces (Super+W)"></button>
     </div>
 
-    <button class="island island-center glass" id="island-center" title="Calendar and notifications (Super+N)">
+    <button class="island island-center" id="island-center" title="Calendar and notifications (Super+N)">
       <span class="clock-date"></span>
       <span class="clock-time"></span>
       <span class="live hidden" id="live-activity"></span>
@@ -44,7 +46,7 @@
       <i data-icon="bell-off" class="dnd-glyph hidden"></i>
     </button>
 
-    <div class="island island-right glass" id="island-right">
+    <div class="island island-right" id="island-right">
       <div class="tray" id="tray"></div>
       <button class="isl-status" id="isl-status" title="Quick settings (Super+S)"></button>
     </div>
@@ -56,11 +58,8 @@
   <section class="panel quick-popup glass deep hidden" id="quick-settings" data-shell-keyboard></section>
 
   <!-- Where a dragged window will land when it snaps: over every window,
-       under the dock and islands, never hit. -->
+       under the bar, never hit. -->
   <div class="snap-preview hidden" id="snap-preview"></div>
-
-  <nav class="dock" id="dock"></nav>
-  <div class="dock-edge hidden" id="dock-edge"></div>
 
   <div class="toast-stack" id="toast-stack"></div>
   <div class="osd glass hidden" id="osd"></div>

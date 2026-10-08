@@ -5,7 +5,10 @@
 **Helm** is the standalone desktop environment shell application for the [bro ecosystem](https://github.com/wlejon/bro).
 
 Built on top of `bro_engine`, `bro_bronze_host`, and `bronze`, Helm provides the primary human interface to the desktop operating system:
-floating glass islands instead of a bar. The left island holds the launcher mark, the workspaces and the focused app, and grows into **Spaces** (a miniature of every workspace and the windows on this one). The center island holds the clock, the unread count and a **live activity** (what is playing, or a recording and its running time), and grows into the calendar and notification center. The right island holds the tray and status, grows into quick settings (volume and outputs, brightness, network and Wi-Fi, Bluetooth, night light, Focus / Do Not Disturb, now playing, power with confirm), and stretches into the volume and brightness OSD. Toasts fall out of the clock island. There is a launcher with app grid, search, calculator, actions and clipboard history that grows out of whatever opened it, a floating auto-hiding dock, an Alt+Tab window switcher, and a lock screen with credential verification.
+one slim bar along the bottom edge, and nothing else between you and your windows. The bar holds three islands, each growing up into its panel. The left island holds the launcher mark, the workspaces and the focused app, and grows into **Spaces** (a miniature of every workspace and the windows on this one). The center island holds the clock, the unread count and a **live activity** (what is playing, or a recording and its running time), and grows into the calendar and notification center. The right island holds the tray and status, grows into quick settings (volume and outputs, brightness, network and Wi-Fi, Bluetooth, night light, Focus / Do Not Disturb, now playing, power with confirm), and stretches into the volume and brightness OSD. Toasts rise out of the clock island. There is a launcher with app grid, search, calculator, actions and clipboard history that grows out of whatever opened it, an Alt+Tab window switcher, and a lock screen with credential verification.
+
+### Windows
+Server-side decorated windows get a slim frame (`js/frames.js`): a 28 px title bar and a 1 px rim, with resize grips reaching a few pixels past it. A **maximized window is borderless**: its top-left pixel is the screen's, it fills everything above the bar, and it has no title bar or rim, so it reads as the desktop itself. Its controls (title, minimize, restore, close) open in a compact pill when the pointer reaches the window's top-right corner, or from the keyboard with `Super+.`. The corner is a `data-window-overlay` in the window's frame, which bro paints over the client and hit-tests first; nothing about it is specific to maximize, so any window the compositor gives a zero band gets it.
 
 ### Design: deep glass
 - **Material.** Dark, heavily blurred glass tinted toward the accent hue, in three depths: islands, panels, modal (`css/tokens.css`). Edges are a 1px rim with a top highlight; depth comes from long soft shadows; emphasis from glows.
@@ -17,7 +20,7 @@ floating glass islands instead of a bar. The left island holds the launcher mark
 ### Settings
 One deep-glass window over a dimmed desk, grown out of whatever opened it (the quick settings gear, the launcher, `Super+,`) and folded back into it on close. A sidebar holds who you are, a search field and the pages; search covers every setting on every page and is also offered in the launcher, and picking a result opens its page and lights the setting up. Each page controls real system state through bro, and a page or control whose API is missing on this machine is hidden rather than faked:
 
-- **Appearance**: wallpaper (gradient presets, your Pictures folder and the system wallpapers), accent colour, 24-hour clock, dock behaviour. Shell preferences in bro.conf (`helm.shell`).
+- **Appearance**: wallpaper (gradient presets, your Pictures folder and the system wallpapers), accent colour, 24-hour clock. Shell preferences in bro.conf (`helm.shell`).
 - **Sound**: output volume and mute, input level and mute, the default output and input device, and per-app volume and mute (`bro.sys.audio`, `bro.pulse`).
 - **Network**: connection status, each wired link's addresses, DNS and speed, Wi-Fi scan, join (with password) and disconnect (`bro.sys.network`).
 - **Bluetooth**: adapter power, discovery, pair, connect, disconnect and forget (`bro.sys.bluetooth`).
@@ -51,15 +54,16 @@ helm/
 │   └── paths.cpp
 ├── ui/
 │   ├── bro.json            # Desktop shell manifest (asks for "shell": true)
-│   ├── index.html          # Shell DOM: wallpaper, islands, panels, dock, overlays
+│   ├── index.html          # Shell DOM: wallpaper, window frames, the bar, panels, overlays
 │   ├── css/
 │   │   ├── tokens.css      # Deep glass: accent gradient, glass depths, type, space, motion
 │   │   ├── base.css        # Reset and shared controls: buttons, sliders, switches, rows, menus
-│   │   ├── islands.css     # Top islands, live activity, hint pill, wallpaper layer
+│   │   ├── islands.css     # The bottom bar and its islands, live activity, hint pill, wallpaper layer
 │   │   ├── panels.css      # Morphing panels: quick settings, clock panel, spaces, now playing
 │   │   ├── notify.css      # Toasts, notification cards, OSD
 │   │   ├── launcher.css    # Launcher
-│   │   ├── dock.css        # Dock and window switcher
+│   │   ├── switcher.css    # Alt+Tab window switcher
+│   │   ├── frames.css      # Window frames, borderless corner controls, snap preview
 │   │   ├── lock.css        # Lock screen
 │   │   ├── settings.css    # Settings window, sidebar, search and shared rows/widgets
 │   │   └── settings-pages.css # Settings: the parts one page draws
@@ -67,7 +71,7 @@ helm/
 │       ├── shell.js        # Builds every surface, hotkeys, Settings hook, edges, window.helm
 │       ├── hotkeys.js      # The one hotkey table: shell keys, native grabs, Keyboard page
 │       ├── morph.js        # Shared-element morphs and the one-open-panel manager
-│       ├── islands.js      # The three top islands
+│       ├── islands.js      # The bar's three islands
 │       ├── activities.js   # Live activities shown in the clock island
 │       ├── spaces.js       # Workspaces overview (left island's panel)
 │       ├── quicksettings.js# Quick settings (right island's panel)
@@ -75,7 +79,7 @@ helm/
 │       ├── notify.js       # Notification server, toasts, history (bro.sys.notifications)
 │       ├── osd.js          # Volume / brightness OSD, stretched out of the status island
 │       ├── launcher.js     # Launcher: grid, search, calculator, actions, clipboard
-│       ├── dock.js         # Dock: pinned + running apps, intellihide
+│       ├── frames.js       # Window frames, borderless corner controls (Super+.), snap preview
 │       ├── switcher.js     # Alt+Tab window switcher
 │       ├── lock.js         # Lock screen and password auth (bro.cred)
 │       ├── util.js         # DOM builder, app icons, time formatting
@@ -99,7 +103,8 @@ helm/
 └── tests/
     ├── test_shell_boot.js      # Boot, islands, panels, launcher, Settings hook, hotkeys, live activities, lock fails closed
     ├── test_notifications.js   # Toasts, history, actions, Do Not Disturb, center panel
-    ├── test_dock.js            # Dock, menus, intellihide, spaces, Alt+Tab over stand-in windows
+    ├── test_bar.js             # The bar's islands, spaces, Alt+Tab over stand-in windows
+    ├── test_frames.js          # Frames, borderless maximize and its corner controls, snapping, over real Wayland clients
     ├── test_settings.js        # Settings: open/close, navigation, search, launcher, missing APIs (writes stubbed)
     └── test_shell_broker.js    # Windows shell broker bindings (skips elsewhere)
 ```
@@ -173,7 +178,7 @@ ssh HOST bro-ctl -o - screenshot --scale=0.5 > shot.png    # what is on screen
 ssh HOST bro-ctl click '#island-center'                     # input by selector or x,y
 ssh HOST bro-ctl key super+s                                # hotkeys go through the real input path
 ssh HOST bro-ctl eval 'helm.windows.windows().length'       # JS in the shell's realm
-ssh HOST bro-ctl dom '#dock' 3                              # layout tree; also rect, style, inspect
+ssh HOST bro-ctl dom '#bar' 3                               # layout tree; also rect, style, inspect
 ssh HOST bro-ctl trace 5                                    # frame pacing over the last 5 s
 printf 'click #island-center\nsleep 1\nkey escape\n' > steps
 ssh HOST 'bro-ctl record 3 /tmp/rec & sleep 0.2; bro-ctl batch' < steps
@@ -196,6 +201,8 @@ ssh HOST cat /tmp/rec/summary.txt                           # every frame, vblan
 | `Super+,` / `Ctrl+,` | Settings |
 | `Super+1`..`9` | Switch workspace |
 | `Super+Q` | Close the focused window |
+| `Super+.` | The focused window's controls (minimize, restore, close) |
+| `Super+Arrows` | Snap left / right, maximize, restore or minimize |
 | `Alt+Tab` / `Super+Tab` | Window switcher (release to switch) |
 | Volume, media and brightness keys | Adjust, with an on-screen display |
 | `Escape` | Close the open menu, Settings, launcher or panel |

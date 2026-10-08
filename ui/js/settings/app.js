@@ -76,7 +76,7 @@ export class SettingsApp {
     for (const topic of ['audio', 'streams', 'network', 'bluetooth', 'power', 'display']) {
       system.on(topic, () => this.onTopic(topic));
     }
-    for (const key of ['wallpaper', 'accentHue', 'use24h', 'showSeconds', 'dockAutohide', 'notifyQuiet', 'notifyApps']) {
+    for (const key of ['wallpaper', 'accentHue', 'use24h', 'showSeconds', 'notifyQuiet', 'notifyApps']) {
       this.shell.prefs.watch(key, () => this.onTopic('prefs'));
     }
     this.shell.notify.onDndChange(() => this.onTopic('notify'));
