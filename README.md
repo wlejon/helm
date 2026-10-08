@@ -166,6 +166,21 @@ BRO_TRUSTED_APP_DIR="$PWD/ui" ./build/helm-headless ui/ tests/test_shell_boot.js
 ```
 Use a scratch `XDG_CONFIG_HOME` and `HELM_CONFIG_DIR` when running by hand, so the run does not write your real settings (ctest sets both). Tests that drive Settings call `helm.settingsUi.stubWrites()` first, so they never change the real volume, network, Bluetooth, power state or default apps.
 
+### How an agent drives helm
+`helm --drm` serves bro's agent control socket (`$XDG_RUNTIME_DIR/bro-control/display.sock`, owner-only, never on the network), and `ninja -C build bro-ctl` builds its client. Everything works from another machine through ssh as the session's user; [bro's docs/agent-control.md](../bro/docs/agent-control.md) has the full command list.
+```bash
+ssh HOST bro-ctl -o - screenshot --scale=0.5 > shot.png    # what is on screen
+ssh HOST bro-ctl click '#island-center'                     # input by selector or x,y
+ssh HOST bro-ctl key super+s                                # hotkeys go through the real input path
+ssh HOST bro-ctl eval 'helm.windows.windows().length'       # JS in the shell's realm
+ssh HOST bro-ctl dom '#dock' 3                              # layout tree; also rect, style, inspect
+ssh HOST bro-ctl trace 5                                    # frame pacing over the last 5 s
+printf 'click #island-center\nsleep 1\nkey escape\n' > steps
+ssh HOST 'bro-ctl record 3 /tmp/rec & sleep 0.2; bro-ctl batch' < steps
+ssh HOST cat /tmp/rec/summary.txt                           # every frame, vblank-stamped
+```
+`record` keeps every presented frame with the vblank it landed on (`contact.png` is a sheet of them; stalls and missed vblanks are marked), and `trace` breaks each frame into input, JS, layout, raster, GPU and flip time, so a stutter can be found and explained without anyone watching the screen. `bro-ctl profile 2` adds a perf profile (`pacman -S perf`).
+
 ---
 
 ## Keyboard Shortcuts
