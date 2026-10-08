@@ -1,5 +1,8 @@
 /* =============================================================================
-   BASE: reset, typography, and the components every surface shares.
+   BASE: reset, type, and the controls every surface shares. Every
+   interactive control has the same four states: hover lifts the well one
+   step, pressed sinks it and scales to 0.97, focus-visible draws the
+   gradient ring, disabled drops to 38% and stops responding.
    ============================================================================= */
 
 *, *::before, *::after {
@@ -15,10 +18,11 @@ html, body {
 }
 
 body {
-  background: var(--bg-desktop);
+  background: oklch(0.12 0.02 var(--accent-h));
   font-family: var(--font-ui);
-  font-size: var(--fs-md);
-  color: var(--text-1);
+  font-size: var(--fs-body);
+  line-height: 1.35;
+  color: var(--t1);
   user-select: none;
   -webkit-user-select: none;
   cursor: default;
@@ -29,109 +33,175 @@ button {
   color: inherit;
   background: none;
   border: none;
+  outline: none;
   cursor: default;
 }
 
 input {
   font: inherit;
   color: inherit;
+  outline: none;
 }
 
 .hidden {
   display: none !important;
 }
 
+.grow {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A label in small caps, the shell's section voice. */
+.micro {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  letter-spacing: var(--track-micro);
+  text-transform: uppercase;
+  color: var(--t3);
+}
+
+.num {
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+
 /* Icons ---------------------------------------------------------------- */
 
 .icon {
-  width: var(--icon-md);
-  height: var(--icon-md);
+  width: 18px;
+  height: 18px;
   flex: none;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.8;
+  stroke-width: 1.75;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-.icon.filled {
-  fill: currentColor;
+/* Glass ------------------------------------------------------------------
+   The shared material. .glass is an island; .glass.deep a panel. */
+
+.glass {
+  background: var(--glass-island);
+  backdrop-filter: var(--blur-island);
+  border: 1px solid var(--rim);
+  box-shadow: var(--rim-top), var(--depth-1);
 }
 
-/* Buttons --------------------------------------------------------------- */
+.glass.deep {
+  background: var(--glass-panel);
+  backdrop-filter: var(--blur-panel);
+  box-shadow: var(--rim-top), var(--depth-2);
+}
+
+/* Icon button: a round well ---------------------------------------------*/
 
 .icon-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--r-full);
-  color: var(--text-2);
-  transition: background var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-chip);
+  color: var(--t2);
+  transition: background var(--d-quick) var(--ease-std), color var(--d-quick) var(--ease-std),
+    transform var(--d-quick) var(--ease-std);
 }
 
 .icon-btn:hover {
-  background: var(--fill-2);
-  color: var(--text-1);
+  background: var(--well-3);
+  color: var(--t1);
 }
 
 .icon-btn:active {
-  background: var(--fill-3);
+  background: var(--well-2);
+  transform: scale(0.94);
 }
 
-.icon-btn.round-fill {
-  background: var(--fill-2);
+.icon-btn:focus-visible {
+  box-shadow: var(--focus-ring);
 }
 
-.icon-btn.round-fill:hover {
-  background: var(--fill-3);
+.icon-btn.filled {
+  background: var(--well-2);
 }
+
+.icon-btn.filled:hover {
+  background: var(--well-4);
+}
+
+.icon-btn:disabled {
+  opacity: 0.38;
+  background: none;
+  transform: none;
+}
+
+/* Text buttons ---------------------------------------------------------*/
 
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--s2);
-  height: 30px;
-  padding: 0 var(--s3);
-  border-radius: var(--r-full);
-  background: var(--fill-2);
-  color: var(--text-1);
-  font-size: var(--fs-sm);
-  font-weight: 500;
-  transition: background var(--t-fast) var(--ease-out);
+  height: 32px;
+  padding: 0 var(--s4);
+  border-radius: var(--r-chip);
+  background: var(--well-2);
+  color: var(--t1);
+  font-size: var(--fs-cap);
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background var(--d-quick) var(--ease-std), transform var(--d-quick) var(--ease-std),
+    box-shadow var(--d-state) var(--ease-std);
 }
 
 .btn:hover {
-  background: var(--fill-3);
+  background: var(--well-4);
+}
+
+.btn:active {
+  transform: scale(0.97);
+  background: var(--well-3);
+}
+
+.btn:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+.btn:disabled {
+  opacity: 0.38;
+  transform: none;
 }
 
 .btn.primary {
-  background: var(--accent);
+  background: var(--grad);
   color: var(--on-accent);
+  box-shadow: var(--glow);
 }
 
 .btn.primary:hover {
-  background: var(--accent-strong);
-}
-
-.btn.danger {
-  background: var(--danger);
-  color: white;
+  box-shadow: var(--glow-strong);
 }
 
 .btn.ghost {
   background: transparent;
-  color: var(--text-2);
+  color: var(--t2);
 }
 
 .btn.ghost:hover {
-  background: var(--fill-2);
-  color: var(--text-1);
+  background: var(--well-2);
+  color: var(--t1);
 }
 
-/* Slider: a div track the JS drives (see controls.js) ------------------ */
+/* Slider -----------------------------------------------------------------
+   A thick track with a gradient fill that carries its own glyph, and a
+   glowing knob at the leading edge. controls.js sizes the fill. */
 
 .slider-row {
   display: flex;
@@ -142,10 +212,12 @@ input {
 .slider {
   position: relative;
   flex: 1;
-  height: 24px;
-  border-radius: var(--r-full);
-  background: var(--fill-2);
+  height: 30px;
+  border-radius: var(--r-chip);
+  background: var(--sink);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.30), inset 0 0 0 1px var(--hairline);
   overflow: hidden;
+  transition: height var(--d-state) var(--ease-out);
 }
 
 .slider-fill {
@@ -154,239 +226,288 @@ input {
   top: 0;
   bottom: 0;
   width: 50%;
-  min-width: 28px;
-  border-radius: var(--r-full);
-  background: var(--text-1);
+  min-width: 30px;
+  border-radius: var(--r-chip);
+  background: var(--grad);
+  box-shadow: 0 0 18px oklch(0.70 0.18 var(--accent-h) / 0.45);
+}
+
+.slider-knob {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--r-chip);
+  background: oklch(0.99 0.01 var(--accent-h));
+  box-shadow: 0 1px 6px rgb(0 0 0 / 0.35);
+  transition: transform var(--d-quick) var(--ease-std);
+}
+
+.slider:active .slider-knob {
+  transform: scale(0.88);
 }
 
 .slider-icon {
   position: absolute;
-  left: 6px;
-  top: 5px;
+  left: 9px;
+  top: 6px;
   width: 18px;
   height: 18px;
-  color: var(--surface-1);
+  color: var(--on-accent);
   pointer-events: none;
 }
 
+.slider-value {
+  min-width: 38px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: var(--fs-cap);
+  color: var(--t3);
+}
+
 .slider.muted .slider-fill {
-  background: var(--text-3);
+  background: var(--well-4);
+  box-shadow: none;
 }
 
-/* Toggle tiles (quick settings) ----------------------------------------- */
-
-.tile {
-  display: flex;
-  align-items: center;
-  gap: var(--s3);
-  height: 56px;
-  padding: 0 var(--s2) 0 var(--s3);
-  border-radius: var(--r-lg);
-  background: var(--fill-2);
-  color: var(--text-1);
-  text-align: left;
-  transition: background var(--t-fast) var(--ease-out);
+.slider.disabled {
+  opacity: 0.38;
 }
 
-.tile:hover {
-  background: var(--fill-3);
-}
+/* Switch ---------------------------------------------------------------*/
 
-.tile .tile-glyph {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--r-full);
-  background: var(--fill-3);
+.switch {
+  position: relative;
   flex: none;
+  width: 40px;
+  height: 24px;
+  border-radius: var(--r-chip);
+  background: var(--well-3);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+  transition: background var(--d-state) var(--ease-std), box-shadow var(--d-state) var(--ease-std);
 }
 
-.tile.on .tile-glyph {
-  background: var(--accent);
-  color: var(--on-accent);
+.switch-knob {
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--r-chip);
+  background: var(--t2);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.4);
+  transition: transform var(--d-enter) var(--spring-pop), background var(--d-state) var(--ease-std);
 }
 
-.tile .tile-text {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  overflow: hidden;
+.switch.on {
+  background: var(--grad);
+  box-shadow: var(--glow);
 }
 
-.tile .tile-title {
-  font-size: var(--fs-md);
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.switch.on .switch-knob {
+  transform: translateX(16px);
+  background: white;
 }
 
-.tile .tile-sub {
-  font-size: var(--fs-xs);
-  color: var(--text-3);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.switch:focus-visible {
+  box-shadow: var(--focus-ring);
 }
 
-.tile .tile-more {
-  color: var(--text-3);
-  width: 26px;
-  height: 26px;
-  border-radius: var(--r-full);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.tile .tile-more:hover {
-  background: var(--fill-3);
-  color: var(--text-1);
-}
-
-.tile .tile-more .icon {
-  width: 16px;
-  height: 16px;
-}
-
-/* Popovers ---------------------------------------------------------------- */
-
-.popover {
-  position: fixed;
-  top: calc(var(--bar-h) + 6px);
-  z-index: var(--z-popover);
-  background: var(--glass-1);
-  backdrop-filter: var(--blur-pop);
-  border: 1px solid var(--hairline-strong);
-  border-radius: var(--r-xl);
-  box-shadow: var(--shadow-pop), var(--edge-light);
-  color: var(--text-1);
-}
-
-.popover.open {
-  animation: pop-in var(--t-med) var(--ease-out);
-}
-
-.popover.leaving {
-  opacity: 0;
-  transform: translateY(-4px) scale(0.98);
-  transition: opacity 120ms ease, transform 120ms ease;
-}
-
-@keyframes pop-in {
-  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.section-label {
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-3);
-}
-
-/* Lists inside popovers --------------------------------------------------- */
+/* List rows (Wi-Fi, outputs, devices) -----------------------------------*/
 
 .list-row {
   display: flex;
   align-items: center;
   gap: var(--s3);
-  min-height: 38px;
-  padding: 0 var(--s3);
-  border-radius: var(--r-md);
-  color: var(--text-1);
-  font-size: var(--fs-md);
-  text-align: left;
   width: 100%;
+  min-height: 40px;
+  padding: 0 var(--s3);
+  border-radius: var(--r-ctl);
+  color: var(--t2);
+  text-align: left;
+  font-size: var(--fs-body);
+  transition: background var(--d-quick) var(--ease-std), color var(--d-quick) var(--ease-std);
 }
 
 .list-row:hover {
-  background: var(--fill-2);
+  background: var(--well-2);
+  color: var(--t1);
 }
 
-.list-row .grow {
-  flex: 1;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+.list-row:active {
+  background: var(--well);
+}
+
+.list-row:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+.list-row.selected {
+  color: var(--t1);
+  background: var(--grad-soft);
 }
 
 .list-row .meta {
-  font-size: var(--fs-xs);
-  color: var(--text-3);
+  color: var(--t3);
+  font-size: var(--fs-cap);
 }
 
-.list-row.selected .check {
-  color: var(--accent);
+.list-row .check {
+  color: var(--a-text);
 }
 
-/* Context menus ------------------------------------------------------------ */
+/* Inputs ---------------------------------------------------------------*/
+
+.field {
+  flex: 1;
+  height: 38px;
+  padding: 0 var(--s4);
+  border-radius: var(--r-chip);
+  background: var(--sink);
+  border: 1px solid var(--rim);
+  color: var(--t1);
+  transition: border-color var(--d-state) var(--ease-std), box-shadow var(--d-state) var(--ease-std);
+}
+
+.field:focus {
+  border-color: oklch(0.70 0.18 var(--accent-h) / 0.7);
+  box-shadow: 0 0 0 3px var(--a1-soft);
+}
+
+/* Empty states: a glyph in a soft gradient disc, a line, a hint ---------*/
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  padding: var(--s6) var(--s4);
+  color: var(--t3);
+  text-align: center;
+}
+
+.empty-glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  margin-bottom: var(--s1);
+  border-radius: var(--r-chip);
+  background: var(--grad-soft);
+  box-shadow: inset 0 0 0 1px var(--rim);
+  color: var(--a-text);
+}
+
+.empty-glyph .icon {
+  width: 22px;
+  height: 22px;
+}
+
+.empty-title {
+  color: var(--t2);
+  font-size: var(--fs-body);
+  font-weight: 600;
+}
+
+.empty-hint {
+  font-size: var(--fs-cap);
+  color: var(--t4);
+}
+
+/* Context menus --------------------------------------------------------*/
 
 .menu {
   position: fixed;
   z-index: var(--z-menu);
-  min-width: 200px;
-  padding: 5px;
-  background: var(--glass-2);
-  backdrop-filter: var(--blur-pop);
-  border: 1px solid var(--hairline-strong);
-  border-radius: var(--r-md);
-  box-shadow: var(--shadow-pop), var(--edge-light);
-  animation: pop-in var(--t-fast) var(--ease-out);
+  min-width: 220px;
+  max-width: 360px;
+  padding: 6px;
+  border-radius: var(--r-card);
+  background: var(--glass-solid);
+  backdrop-filter: var(--blur-panel);
+  border: 1px solid var(--rim-strong);
+  box-shadow: var(--rim-top), var(--depth-2);
+  animation: menu-in var(--d-enter) var(--spring);
+}
+
+@keyframes menu-in {
+  from { opacity: 0; transform: scale(0.94) translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+.menu-label {
+  padding: 8px 12px 6px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  letter-spacing: var(--track-micro);
+  text-transform: uppercase;
+  color: var(--t3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .menu-item {
   display: flex;
   align-items: center;
-  gap: var(--s2);
+  gap: var(--s3);
   width: 100%;
-  height: 30px;
-  padding: 0 var(--s2);
-  border-radius: var(--r-xs);
-  font-size: var(--fs-md);
-  color: var(--text-1);
+  height: 34px;
+  padding: 0 var(--s3);
+  border-radius: 12px;
+  color: var(--t1);
   text-align: left;
+  white-space: nowrap;
+  transition: background var(--d-quick) var(--ease-std);
+}
+
+.menu-item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .menu-item .icon {
   width: 16px;
   height: 16px;
-  color: var(--text-2);
+  color: var(--t3);
 }
 
 .menu-item:hover {
-  background: var(--accent);
-  color: var(--on-accent);
+  background: var(--grad-soft);
 }
 
 .menu-item:hover .icon {
-  color: var(--on-accent);
+  color: var(--a-text);
 }
 
 .menu-item.danger {
-  color: var(--danger);
+  color: oklch(0.80 0.12 22);
+}
+
+.menu-item.danger:hover {
+  background: var(--danger-soft);
+}
+
+.menu-item.danger .icon {
+  color: oklch(0.80 0.12 22);
 }
 
 .menu-sep {
   height: 1px;
-  margin: 4px 6px;
+  margin: 5px 10px;
   background: var(--hairline);
 }
 
-.menu-label {
-  padding: 6px var(--s2) 4px;
-  font-size: var(--fs-xs);
-  color: var(--text-3);
-}
-
-/* App icons ---------------------------------------------------------------- */
+/* App icons --------------------------------------------------------------*/
 
 .app-icon-img {
-  display: inline-flex;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex: none;
   overflow: hidden;
 }
@@ -394,56 +515,39 @@ input {
 .app-icon-img img {
   width: 100%;
   height: 100%;
-}
-
-.app-icon-shell {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-  border-radius: 24%;
-  background: linear-gradient(160deg, oklch(0.36 0.02 265), oklch(0.20 0.015 265));
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
-  color: oklch(0.86 0.12 150);
-}
-
-.app-icon-shell .icon {
-  width: 56%;
-  height: 56%;
-  stroke-width: 2;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
 }
 
 .app-icon-fallback {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 24%;
-  background: linear-gradient(160deg,
-    oklch(0.66 0.13 var(--fallback-h, 260)),
-    oklch(0.48 0.13 var(--fallback-h, 260)));
+  border-radius: 28%;
+  background: linear-gradient(145deg, oklch(0.62 0.13 var(--fallback-h)), oklch(0.44 0.14 var(--fallback-h)));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 2px 6px rgb(0 0 0 / 0.3);
   color: white;
   font-weight: 700;
 }
 
-kbd {
-  display: inline-flex;
+.app-icon-shell {
+  display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 5px;
-  border-radius: 5px;
-  background: var(--fill-2);
-  border: 1px solid var(--hairline);
-  font-family: var(--font-ui);
-  font-size: var(--fs-2xs);
-  font-weight: 600;
-  color: var(--text-3);
+  border-radius: 28%;
+  background: linear-gradient(160deg, oklch(0.30 0.03 var(--accent-h)), oklch(0.16 0.02 var(--accent-h)));
+  box-shadow: inset 0 0 0 1px var(--rim-strong), 0 2px 6px rgb(0 0 0 / 0.3);
+  color: oklch(0.86 0.12 160);
 }
 
-.badge-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: var(--r-full);
-  background: var(--accent);
+/* Scrollbars: a faint thumb on no track. The engine draws them outside
+   ancestor clipping, so scrollers stop scrolling while their glass morphs. */
+* {
+  scrollbar-color: rgb(255 255 255 / 0.18) transparent;
+}
+
+.morphing .launcher-results,
+.morphing .nc-list {
+  overflow: hidden;
 }

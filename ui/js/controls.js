@@ -18,7 +18,8 @@ export class Slider {
     this.onInput = onInput;
     this.onCommit = onCommit;
     this.dragging = false;
-    this.fill = h('div.slider-fill');
+    this.knob = h('span.slider-knob');
+    this.fill = h('div.slider-fill', this.knob);
     this.glyph = iconName ? icon(iconName, 'slider-icon') : null;
     this.el = h('div.slider', { role: 'slider' }, this.fill, this.glyph);
 
@@ -81,7 +82,7 @@ export class Slider {
 export class Switch {
   constructor({ on = false, onChange }) {
     this.on = on;
-    this.el = h('button.switch', { role: 'switch' });
+    this.el = h('button.switch', { role: 'switch' }, h('span.switch-knob'));
     this.el.classList.toggle('on', on);
     this.el.addEventListener('click', (e) => {
       e.stopPropagation();

@@ -27,7 +27,7 @@ export class Dock {
 
   init() {
     this.el = $('#dock');
-    this.inner = h('div.dock-inner');
+    this.inner = h('div.dock-inner.glass');
     this.tip = h('div.dock-tip.hidden');
     this.edge = $('#dock-edge');
     this.el.replaceChildren(this.inner);
@@ -89,8 +89,8 @@ export class Dock {
       for (const g of running) items.push(this.item(g.app, g.key, g, false));
     }
     items.push(h('div.dock-sep'));
-    const grid = h('button.dock-item.dock-apps', h('span.dock-apps-glyph', icon('grid')));
-    grid.addEventListener('click', () => this.shell.launcher.toggle());
+    const grid = h('button.dock-item.dock-apps', h('span.dock-apps-glyph', icon('apps')));
+    grid.addEventListener('click', () => this.shell.launcher.toggle(grid));
     this.tooltip(grid, 'Applications');
     items.push(grid);
 
@@ -164,7 +164,7 @@ export class Dock {
         icon: 'x', danger: true, action: () => wins.forEach((w) => windows.close(w.id)),
       });
     }
-    this.shell.menus.showAbove(items, anchor, { onClose: () => this.updateVisibility() });
+    this.shell.menus.showAbove(items, anchor, { above: this.inner, onClose: () => this.updateVisibility() });
     this.updateVisibility();
   }
 
@@ -193,7 +193,7 @@ export class Dock {
       const r = el.getBoundingClientRect();
       const t = this.tip.getBoundingClientRect();
       this.tip.style.left = `${Math.round(r.left + r.width / 2 - t.width / 2)}px`;
-      this.tip.style.top = `${Math.round(r.top - t.height - 10)}px`;
+      this.tip.style.top = `${Math.round(this.inner.getBoundingClientRect().top - t.height - 10)}px`;
     });
     el.addEventListener('pointerleave', () => this.hideTip());
   }

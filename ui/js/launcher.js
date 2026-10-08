@@ -9,8 +9,13 @@ import { icon } from './icons.js';
 import { settings } from './settings.js';
 import { appdb } from './appdb.js';
 import { evaluate, formatNumber } from './calc.js';
+import { animate, morphIn, morphOut, rectOf, EASE_OUT } from './morph.js';
 
 const GRID_COLS = 6;
+const WIDTH = 776;
+const HEIGHT = 612;
+const PROMPT = 'Search apps and actions, or = to calculate';
+const CLIP_PROMPT = 'Search clipboard history';
 
 export class LauncherController {
   constructor(shell) {
@@ -25,13 +30,23 @@ export class LauncherController {
   init() {
     this.el = $('#launcher-modal');
     this.input = h('input.launcher-input#launcher-input', {
-      type: 'text', placeholder: 'Search apps, actions, or type = to calculate',
-      autocomplete: 'off', spellcheck: 'false',
+      type: 'text', autocomplete: 'off', spellcheck: 'false', 'aria-label': PROMPT,
     });
-    this.body = h('div.launcher-body#launcher-results');
-    this.window = h('div.launcher-window',
-      h('div.launcher-search', icon('search', 'launcher-search-icon'), this.input),
-      this.body);
+    // Our own prompt: the engine hides placeholders while an input has focus.
+    this.ghost = h('span.launcher-ghost', PROMPT);
+    this.chip = h('span.launcher-chip.hidden', icon('clipboard'), 'Clipboard');
+    this.body = h('div.launcher-results#launcher-results');
+    this.foot = h('div.launcher-foot',
+      keyHint('↑↓←→', 'move'), keyHint('↵', 'open'), keyHint('=', 'calculate'), keyHint('esc', 'close'),
+      h('span.grow'), h('span.launcher-count'));
+    this.inner = h('div.launcher-body',
+      h('div.launcher-search',
+        h('span.launcher-search-glyph', icon('search')),
+        h('div.launcher-field', this.ghost, this.input),
+        this.chip),
+      this.body,
+      this.foot);
+    this.window = h('div.launcher.glass.deep', this.inner);
     this.el.replaceChildren(h('div.launcher-scrim#launcher-backdrop'), this.window);
     $('#launcher-backdrop').addEventListener('pointerdown', () => this.close());
     this.input.addEventListener('input', () => this.refresh());
@@ -43,11 +58,13 @@ export class LauncherController {
     const s = this.shell;
     return [
       { name: 'Settings', desc: 'Sound, displays, network, power, appearance', icon: 'settings', run: () => s.openSettings() },
+      { name: 'Spaces', desc: 'Workspaces and their windows', icon: 'layers', run: () => s.spaces.toggle() },
+      { name: 'Accent Colour', desc: 'Cycle the shell accent', icon: 'sparkles', run: () => s.cycleAccent() },
       { name: 'Appearance', desc: 'Wallpaper, accent colour, clock, dock', icon: 'palette', run: () => s.openSettings('appearance') },
       { name: 'Lock Screen', desc: 'Lock this session', icon: 'lock', run: () => s.lock.lock() },
       { name: 'Clipboard History', desc: 'Recent copied items', icon: 'clipboard', keep: true, run: () => this.openClipboard() },
-      { name: 'Notifications', desc: 'Open the notification center', icon: 'bell', run: () => s.calendar.toggle($('#bar-clock')) },
-      { name: 'Quick Settings', desc: 'Sound, network, Bluetooth, power', icon: 'layout', run: () => s.quick.toggle($('#bar-status')) },
+      { name: 'Notifications', desc: 'Open the notification center', icon: 'bell', run: () => s.calendar.toggle() },
+      { name: 'Quick Settings', desc: 'Sound, network, Bluetooth, power', icon: 'layout', run: () => s.quick.toggle() },
       { name: 'Do Not Disturb', desc: s.notify.dnd ? 'Turn off' : 'Turn on', icon: 'bell-off', run: () => s.notify.setDnd(!s.notify.dnd) },
       { name: 'Sleep', desc: 'Suspend the computer', icon: 'moon', run: () => s.system.request('suspend') },
       { name: 'Restart', desc: 'Restart the computer', icon: 'restart', run: () => s.system.request('reboot') },
@@ -56,23 +73,48 @@ export class LauncherController {
     ];
   }
 
-  open() {
+  /** Open, growing out of `origin` (the island mark or the dock button). */
+  open(origin) {
     if (this.isOpen) return;
     this.shell.closeTransient();
     this.isOpen = true;
     this.clipMode = false;
     this.input.value = '';
     this.el.classList.remove('hidden', 'leaving');
+    this.place();
     this.refresh();
     this.input.focus();
+    this.origin = origin && origin.getBoundingClientRect ? origin : null;
+    const from = this.origin ? rectOf(this.origin) : null;
+    if (from && from.width > 0) {
+      morphIn(this.window, from, { body: this.inner, fromRadius: from.height / 2, toRadius: 32, duration: 520 });
+    } else {
+      animate(this.window, [{ opacity: 0, transform: 'scale(0.94) translateY(12px)' }, { opacity: 1, transform: 'none' }],
+        { duration: 320, easing: EASE_OUT });
+    }
     window.dispatchEvent(new CustomEvent('helm:overlay'));
   }
 
-  openClipboard() {
-    if (!this.isOpen) this.open();
+  /** Center the window; morphs need its box in pixels. */
+  place() {
+    const vw = window.innerWidth || 1920;
+    const vh = window.innerHeight || 1080;
+    const w = Math.min(WIDTH, vw - 32);
+    const ht = Math.min(HEIGHT, vh - 140);
+    Object.assign(this.window.style, {
+      left: `${Math.round((vw - w) / 2)}px`,
+      top: `${Math.round(Math.max(70, (vh - ht) / 2 - 40))}px`,
+      width: `${w}px`,
+      height: `${ht}px`,
+    });
+    // The body keeps its final size while the box morphs around it.
+    Object.assign(this.inner.style, { width: `${w}px`, height: `${ht}px` });
+  }
+
+  openClipboard(origin) {
+    if (!this.isOpen) this.open(origin);
     this.clipMode = true;
     this.input.value = '';
-    this.input.placeholder = 'Search clipboard history';
     this.refresh();
     this.input.focus();
   }
@@ -81,18 +123,25 @@ export class LauncherController {
     if (!this.isOpen) return;
     this.isOpen = false;
     this.input.blur();
-    this.input.placeholder = 'Search apps, actions, or type = to calculate';
     this.el.classList.add('leaving');
-    setTimeout(() => {
+    const done = () => {
       if (!this.isOpen) this.el.classList.add('hidden');
       this.el.classList.remove('leaving');
-    }, 140);
+    };
+    const to = this.origin && this.origin.isConnected !== false ? rectOf(this.origin) : null;
+    if (to && to.width > 0) {
+      morphOut(this.window, to, { body: this.inner, duration: 300, done });
+    } else {
+      animate(this.window, [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(0.96) translateY(8px)' }],
+        { duration: 180, easing: 'ease-in', fill: 'forwards' });
+      setTimeout(done, 180);
+    }
     window.dispatchEvent(new CustomEvent('helm:overlay'));
   }
 
-  toggle() {
+  toggle(origin) {
     if (this.isOpen) this.close();
-    else this.open();
+    else this.open(origin);
   }
 
   // -- Ranking -----------------------------------------------------------------
@@ -136,6 +185,9 @@ export class LauncherController {
 
   refresh() {
     const q = this.input.value.trim();
+    this.ghost.textContent = this.clipMode ? CLIP_PROMPT : PROMPT;
+    this.ghost.classList.toggle('hidden', this.input.value.length > 0);
+    this.chip.classList.toggle('hidden', !this.clipMode);
     if (this.clipMode) return this.renderClipboard(q.toLowerCase());
     if (!q) return this.renderGrid();
     return this.renderList(q);
@@ -147,10 +199,10 @@ export class LauncherController {
     const sections = [];
     const freq = this.frequent(GRID_COLS);
     if (freq.length) {
-      sections.push(h('div.launcher-section', 'Frequent'));
+      sections.push(h('div.launcher-section.micro', 'Frequent'));
       sections.push(this.gridOf(freq));
     }
-    sections.push(h('div.launcher-section', 'All Apps'));
+    sections.push(h('div.launcher-section.micro', `All apps · ${appdb.apps.length}`));
     sections.push(this.gridOf(appdb.apps));
     this.body.replaceChildren(...sections);
     this.select(0, false);
@@ -186,7 +238,7 @@ export class LauncherController {
     if (calc != null) {
       const text = formatNumber(calc);
       rows.push(this.row({
-        kind: 'calc', glyph: icon('calculator'), title: text, desc: `${q.replace(/^=/, '')} =`, badge: 'Copy',
+        kind: 'calc', glyph: h('span.row-glyph.calc-glyph', icon('calculator')), title: text, desc: `${q.replace(/^=/, '')} =`, badge: 'Copy',
         run: () => this.copy(text),
       }));
     }
@@ -197,7 +249,7 @@ export class LauncherController {
       .sort((x, y) => y.s - x.s)
       .slice(0, 8);
     if (apps.length) {
-      rows.push(h('div.launcher-section', 'Applications'));
+      rows.push(h('div.launcher-section.micro', 'Applications'));
       for (const { a } of apps) {
         rows.push(this.row({
           kind: 'app', app: a, glyph: appIcon(a.icon, a.name, 64, 'row-app-icon'),
@@ -212,7 +264,7 @@ export class LauncherController {
       .sort((x, y) => y.s - x.s)
       .slice(0, 4);
     if (acts.length) {
-      rows.push(h('div.launcher-section', 'Actions'));
+      rows.push(h('div.launcher-section.micro', 'Actions'));
       for (const { x } of acts) {
         rows.push(this.row({
           kind: 'action', glyph: h('span.row-glyph', icon(x.icon)), title: x.name, desc: x.desc,
@@ -222,7 +274,7 @@ export class LauncherController {
     }
 
     if (this.entries.length === 0) {
-      rows.push(h('div.launcher-empty', icon('search'), `No results for “${q}”`));
+      rows.push(emptyState('search', `Nothing matches “${q}”`, 'Try another word, or start with = to calculate'));
     }
     this.body.replaceChildren(...rows);
     this.select(0, false);
@@ -233,7 +285,7 @@ export class LauncherController {
     this.entries = [];
     const clip = api('clip');
     const items = clip ? attempt('clip.getHistory', () => clip.getHistory(), []) || [] : [];
-    const rows = [h('div.launcher-section', 'Clipboard')];
+    const rows = [h('div.launcher-section.micro', 'Clipboard')];
     for (const it of items) {
       const text = (it.previewText || it.text || '').replace(/\s+/g, ' ').trim();
       if (ql && !text.toLowerCase().includes(ql)) continue;
@@ -248,7 +300,8 @@ export class LauncherController {
       }));
     }
     if (this.entries.length === 0) {
-      rows.push(h('div.launcher-empty', icon('clipboard'), clip ? 'Clipboard history is empty' : 'Clipboard history is unavailable'));
+      rows.push(clip ? emptyState('clipboard', 'Nothing copied yet', 'Text you copy shows up here')
+        : emptyState('clipboard', 'Clipboard history is unavailable', 'This session has no clipboard service'));
     }
     this.body.replaceChildren(...rows);
     this.select(0, false);
@@ -261,7 +314,8 @@ export class LauncherController {
       h('span.row-text',
         h('span.row-title', entry.title),
         entry.desc ? h('span.row-desc', entry.desc) : null),
-      h('span.row-badge', entry.badge || (entry.kind === 'app' ? 'Open' : 'Run')));
+      h('span.row-badge', h('span.row-key', '↵'), entry.badge || (entry.kind === 'app' ? 'Open' : 'Run')));
+    el.classList.add(`kind-${entry.kind}`);
     el.addEventListener('click', () => this.runEntry(entry));
     el.addEventListener('pointermove', () => this.selected !== index && this.select(index, false));
     if (entry.app) {
@@ -276,6 +330,8 @@ export class LauncherController {
   }
 
   select(i, scroll = true) {
+    const count = $('.launcher-count', this.foot);
+    if (count) count.textContent = this.entries.length ? `${Math.min(i, this.entries.length - 1) + 1} / ${this.entries.length}` : '';
     if (this.entries.length === 0) return;
     const prev = this.entries[this.selected];
     if (prev && prev.el) prev.el.classList.remove('selected');
@@ -338,6 +394,15 @@ export class LauncherController {
     if (clip) attempt('clip.setText', () => clip.setText(text));
     this.shell.notify.post({ summary: `Copied ${text}`, icon: 'calculator' });
   }
+}
+
+function keyHint(k, label) {
+  return h('span.key-hint', h('kbd', k), label);
+}
+
+function emptyState(glyph, title, hint) {
+  return h('div.launcher-empty.empty', h('div.empty-glyph', icon(glyph)),
+    h('div.empty-title', title), h('div.empty-hint', hint));
 }
 
 function fuzzy(q, s) {

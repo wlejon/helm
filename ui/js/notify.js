@@ -165,8 +165,9 @@ export class NotificationCenter {
 
   card(item, { onDismiss, withTime = true } = {}) {
     const actions = item.actions.filter((a) => a.key !== 'default');
+    const glyph = this.iconFor(item);
     const el = h('div.notif',
-      h('div.notif-icon', this.iconFor(item)),
+      h('div.notif-icon', glyph),
       h('div.notif-main',
         h('div.notif-top',
           h('span.notif-app', item.appName),
@@ -183,6 +184,8 @@ export class NotificationCenter {
         })) : null),
       h('button.notif-close', { title: 'Dismiss' }, icon('x')));
     el.classList.toggle('critical', item.urgency === 'critical');
+    el.classList.toggle('glyph', glyph.tagName !== 'IMG' && glyph.tagName !== 'img');
+    el.classList.toggle('actionable', item.actions.some((a) => a.key === 'default'));
     $('.notif-close', el).addEventListener('click', (e) => {
       e.stopPropagation();
       (onDismiss || (() => this.remove(item.id)))();
@@ -197,7 +200,8 @@ export class NotificationCenter {
 
   toast(item) {
     const existing = this.toasts.get(item.id);
-    const el = this.card(item, { onDismiss: () => this.remove(item.id), withTime: false });
+    const el = this.card(item, { onDismiss: () => this.dropToast(item.id), withTime: false });
+    el.classList.add('toast');
     if (existing) {
       clearTimeout(existing.timer);
       existing.el.replaceWith(el);
@@ -230,7 +234,7 @@ export class NotificationCenter {
     this.toasts.delete(id);
     clearTimeout(entry.timer);
     entry.el.classList.add('leaving');
-    setTimeout(() => entry.el.remove(), 200);
+    setTimeout(() => entry.el.remove(), 240);
   }
 }
 

@@ -68,8 +68,10 @@ export class Menus {
     this.show(items, 0, 0, opts);
     const r = anchor.getBoundingClientRect();
     const m = this.el.getBoundingClientRect();
+    // Clear the whole surface the anchor sits on (the dock's glass), not just the anchor.
+    const base = opts && opts.above ? opts.above.getBoundingClientRect().top : r.top;
     this.el.style.left = `${Math.round(clamp(r.left + r.width / 2 - m.width / 2, 6, window.innerWidth - m.width - 6))}px`;
-    this.el.style.top = `${Math.round(r.top - m.height - 8)}px`;
+    this.el.style.top = `${Math.round(base - m.height - 10)}px`;
   }
 
   close() {

@@ -3,7 +3,8 @@
  * Subscribers are told whenever the player, its status or its track change.
  */
 
-import { api, attempt, listen } from './util.js';
+import { h, api, attempt, listen } from './util.js';
+import { icon } from './icons.js';
 
 export class MediaController {
   constructor() {
@@ -98,4 +99,23 @@ export class MediaController {
     const m = api('mpris');
     if (m && this.player) attempt('mpris.previous', () => m.previous(this.player.id));
   }
+}
+
+/** The now-playing card quick settings and the clock panel share. */
+export function mediaCard(m) {
+  const art = m.artPath ? h('img', { src: m.artPath }) : icon('music');
+  const card = h('div.media-card',
+    h('div.media-glow'),
+    h('div.media-art', art),
+    h('div.media-meta',
+      h('span.micro', m.playing ? 'Now playing' : 'Paused'),
+      h('span.media-title', m.title),
+      m.artist && m.artist !== m.title ? h('span.media-artist', m.artist) : null),
+    h('div.media-controls',
+      h('button.icon-btn', { title: 'Previous', onclick: () => m.previous() }, icon('skip-back')),
+      h('button.icon-btn.media-play', { title: m.playing ? 'Pause' : 'Play', onclick: () => m.playPause() },
+        icon(m.playing ? 'pause' : 'play')),
+      h('button.icon-btn', { title: 'Next', onclick: () => m.next() }, icon('skip-forward'))));
+  card.classList.toggle('playing', m.playing);
+  return card;
 }

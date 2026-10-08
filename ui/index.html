@@ -5,75 +5,55 @@
   <title>Helm Desktop</title>
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/base.css">
-  <link rel="stylesheet" href="css/bar.css">
-  <link rel="stylesheet" href="css/popovers.css">
+  <link rel="stylesheet" href="css/islands.css">
+  <link rel="stylesheet" href="css/panels.css">
+  <link rel="stylesheet" href="css/notify.css">
   <link rel="stylesheet" href="css/launcher.css">
   <link rel="stylesheet" href="css/dock.css">
-  <link rel="stylesheet" href="css/settings.css">
-  <link rel="stylesheet" href="css/settings-views.css">
   <link rel="stylesheet" href="css/lock.css">
 </head>
 <body class="desktop-root">
   <!-- Desktop level (z-index < 1000): drawn under client windows. -->
   <div class="desktop-wallpaper" id="wallpaper"></div>
 
-  <!-- Shell overlays (z-index >= 1000): drawn over client windows. The ids
-       top-panel, launcher-modal and lock-screen are named by bro's DRM input
-       routing; keep them. -->
-  <header class="bar" id="top-panel">
-    <div class="bar-left">
-      <button class="bar-btn bar-logo" id="bar-launcher" title="Applications (Super)"><i data-icon="helm"></i></button>
-      <div class="workspaces" id="workspaces"></div>
-      <div class="bar-focused" id="bar-focused"></div>
+  <!-- Shell overlays (z-index >= 1000) draw over client windows. Older bro
+       builds route DRM input by the ids top-panel, launcher-modal and
+       lock-screen and by classes containing quick-popup / toast; keep them.
+       Every overlay that takes keys carries data-shell-keyboard. -->
+  <div class="islands-top" id="top-panel">
+    <div class="island island-left glass" id="island-left">
+      <button class="isl-btn isl-logo" id="isl-launcher" title="Applications (Super)"><i data-icon="helm"></i></button>
+      <div class="ws-strip" id="workspaces"></div>
+      <button class="isl-focused hidden" id="isl-focused" title="Spaces (Super+W)"></button>
     </div>
-    <div class="bar-center">
-      <button class="bar-btn bar-clock" id="bar-clock" title="Calendar and notifications">
-        <span class="clock-date"></span>
-        <span class="clock-time"></span>
-        <i data-icon="bell-off" class="dnd-glyph hidden"></i>
-        <span class="badge-dot hidden"></span>
-      </button>
-    </div>
-    <div class="bar-right">
-      <button class="bar-btn bar-media hidden" id="bar-media"></button>
-      <div class="tray" id="tray"></div>
-      <button class="bar-btn bar-status" id="bar-status" title="Quick settings"></button>
-    </div>
-  </header>
 
-  <section class="popover qs hidden" id="quick-settings" data-shell-keyboard></section>
-  <section class="popover cal-pop hidden" id="calendar-popover" data-shell-keyboard></section>
+    <button class="island island-center glass" id="island-center" title="Calendar and notifications (Super+N)">
+      <span class="clock-date"></span>
+      <span class="clock-time"></span>
+      <span class="live hidden" id="live-activity"></span>
+      <span class="nc-count hidden"></span>
+      <i data-icon="bell-off" class="dnd-glyph hidden"></i>
+    </button>
+
+    <div class="island island-right glass" id="island-right">
+      <div class="tray" id="tray"></div>
+      <button class="isl-status" id="isl-status" title="Quick settings (Super+S)"></button>
+    </div>
+  </div>
+
+  <!-- Panels grow out of the island that owns them (see js/morph.js). -->
+  <section class="panel quick-popup glass deep hidden" id="spaces-panel" data-shell-keyboard></section>
+  <section class="panel quick-popup glass deep hidden" id="center-panel" data-shell-keyboard></section>
+  <section class="panel quick-popup glass deep hidden" id="quick-settings" data-shell-keyboard></section>
 
   <nav class="dock" id="dock"></nav>
   <div class="dock-edge hidden" id="dock-edge"></div>
 
   <div class="toast-stack" id="toast-stack"></div>
-  <div class="osd hidden" id="osd"></div>
+  <div class="osd glass hidden" id="osd"></div>
+  <div class="hint glass hidden" id="hint"></div>
 
-  <!-- data-shell-keyboard: while visible, keys go to the shell rather than
-       the focused window. -->
   <div class="switcher hidden" id="switcher" data-shell-keyboard></div>
-
-  <div class="settings-overlay hidden" id="settings-modal" data-shell-keyboard role="dialog" aria-label="Settings">
-    <div class="settings-backdrop" id="settings-backdrop"></div>
-    <div class="settings-window">
-      <header class="settings-header">
-        <div class="settings-header-left"><span class="settings-app-title">Settings</span></div>
-        <div class="settings-header-search">
-          <label class="settings-search-box">
-            <span class="settings-search-icon"><i data-icon="search"></i></span>
-            <input type="text" class="settings-search-field" id="settings-search-input"
-                   placeholder="Search settings" autocomplete="off" spellcheck="false">
-          </label>
-        </div>
-        <button class="settings-close-button" id="settings-close-btn" title="Close (Esc)"><i data-icon="x"></i></button>
-      </header>
-      <div class="settings-body">
-        <nav class="settings-sidebar" id="settings-sidebar-list" aria-label="Settings categories"></nav>
-        <main class="settings-content-viewport" id="settings-content-viewport"></main>
-      </div>
-    </div>
-  </div>
 
   <div class="launcher-overlay hidden" id="launcher-modal" data-shell-keyboard></div>
 

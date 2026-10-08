@@ -1,0 +1,470 @@
+/* =============================================================================
+   ISLANDS: the three floating pills along the top edge, the wallpaper, the
+   transient hint pill. #top-panel itself is an invisible full-width strip
+   that lets clicks through between the islands.
+   ============================================================================= */
+
+.desktop-wallpaper {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-desktop);
+  background-color: oklch(0.12 0.02 var(--accent-h));
+  background-size: cover;
+  background-position: center;
+}
+
+.islands-top {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: calc(var(--island-top) + var(--island-h) + 6px);
+  z-index: var(--z-islands);
+  pointer-events: none;
+}
+
+.island {
+  position: absolute;
+  top: var(--island-top);
+  height: var(--island-h);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 5px;
+  border-radius: var(--r-chip);
+  pointer-events: auto;
+  color: var(--t1);
+  white-space: nowrap;
+  transition: background var(--d-state) var(--ease-std), opacity var(--d-state) var(--ease-std),
+    transform var(--d-state) var(--ease-out);
+}
+
+.island.morphed {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.island-left {
+  left: var(--edge);
+}
+
+.island-right {
+  right: var(--edge);
+}
+
+.island-center {
+  left: 50%;
+  transform: translateX(-50%);
+  gap: var(--s3);
+  padding: 0 var(--s5);
+}
+
+.island-center:hover {
+  background: oklch(0.22 0.03 var(--accent-h) / 0.66);
+}
+
+.island-center:active {
+  transform: translateX(-50%) scale(0.98);
+}
+
+.island-center:focus-visible,
+.isl-status:focus-visible,
+.isl-btn:focus-visible,
+.isl-focused:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+/* -- Left: the launcher mark, workspaces, the focused app ---------------- */
+
+.isl-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-chip);
+  transition: transform var(--d-quick) var(--ease-std), box-shadow var(--d-state) var(--ease-std);
+}
+
+/* The mark: a gradient disc with a soft halo, the one bright thing on the
+   bar. */
+.isl-logo {
+  background: var(--grad);
+  color: white;
+  box-shadow: 0 2px 14px oklch(0.70 0.18 var(--accent-h) / 0.55), inset 0 1px 0 rgb(255 255 255 / 0.35);
+}
+
+.isl-logo .icon {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2;
+}
+
+.isl-logo:hover {
+  box-shadow: 0 2px 22px oklch(0.70 0.18 var(--accent-h) / 0.85), inset 0 1px 0 rgb(255 255 255 / 0.4);
+}
+
+.isl-logo:active {
+  transform: scale(0.92);
+}
+
+.ws-strip {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 6px 0 8px;
+}
+
+.ws {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--r-chip);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--t4);
+  transition: width var(--d-enter) var(--spring-pop), background var(--d-state) var(--ease-std),
+    color var(--d-state) var(--ease-std), box-shadow var(--d-state) var(--ease-std);
+}
+
+.ws > span:first-child {
+  margin-top: -3px;
+}
+
+.ws:hover {
+  background: var(--well-3);
+  color: var(--t1);
+}
+
+.ws.occupied {
+  color: var(--t2);
+}
+
+.ws-dot {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  width: 4px;
+  height: 3px;
+  margin-left: -2px;
+  border-radius: 2px;
+  background: var(--t3);
+  opacity: 0;
+}
+
+.ws.occupied .ws-dot {
+  opacity: 1;
+}
+
+.ws.active {
+  width: 42px;
+  background: var(--grad);
+  color: white;
+  box-shadow: 0 2px 12px oklch(0.70 0.18 var(--accent-h) / 0.45);
+}
+
+.ws.active .ws-dot {
+  background: rgb(255 255 255 / 0.75);
+}
+
+.isl-focused {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  height: 32px;
+  max-width: 260px;
+  padding: 0 var(--s3) 0 6px;
+  margin-left: 2px;
+  border-radius: var(--r-chip);
+  color: var(--t2);
+  font-size: var(--fs-body);
+  font-weight: 600;
+  transition: background var(--d-quick) var(--ease-std), color var(--d-quick) var(--ease-std);
+}
+
+.isl-focused:hover {
+  background: var(--well-3);
+  color: var(--t1);
+}
+
+.isl-focused .app-icon {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  font-size: 11px;
+}
+
+.isl-focused .focused-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* -- Center: clock, live activity, notification count ------------------- */
+
+.clock-date {
+  font-size: var(--fs-cap);
+  font-weight: 500;
+  color: var(--t3);
+}
+
+.clock-time {
+  font-size: 14.5px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  color: var(--t1);
+}
+
+.nc-count {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--r-chip);
+  background: var(--grad);
+  color: white;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 0 12px oklch(0.70 0.18 var(--accent-h) / 0.6);
+  animation: chip-pop var(--d-enter) var(--spring-pop);
+}
+
+@keyframes chip-pop {
+  from { transform: scale(0.4); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+.dnd-glyph {
+  width: 15px;
+  height: 15px;
+  color: var(--t3);
+}
+
+/* Live activity: what the machine is doing right now, inside the clock
+   island. Media shows art, a dancing equalizer and the track; a
+   recording shows a pulsing dot and its running time. */
+.live {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  max-width: 300px;
+  padding-left: var(--s3);
+  border-left: 1px solid var(--hairline);
+  animation: live-in var(--d-morph) var(--spring);
+}
+
+@keyframes live-in {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: none; }
+}
+
+.live-art {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border-radius: 7px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--grad);
+  color: white;
+}
+
+.live-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.live-art .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.live-title {
+  font-size: var(--fs-cap);
+  font-weight: 500;
+  color: var(--t2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.eq {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 14px;
+  flex: none;
+}
+
+.eq-bar {
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  background: linear-gradient(0deg, var(--a1), var(--a2));
+  transform-origin: 50% 100%;
+  animation: eq 900ms ease-in-out infinite alternate;
+}
+
+.eq-bar:nth-child(2) { animation-duration: 640ms; animation-delay: -200ms; }
+.eq-bar:nth-child(3) { animation-duration: 780ms; animation-delay: -420ms; }
+.eq-bar:nth-child(4) { animation-duration: 560ms; animation-delay: -120ms; }
+
+@keyframes eq {
+  from { transform: scaleY(0.25); }
+  to { transform: scaleY(1); }
+}
+
+.live.paused .eq-bar {
+  animation: none;
+  transform: scaleY(0.25);
+  opacity: 0.6;
+}
+
+.rec-dot {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: var(--r-chip);
+  background: var(--rec);
+  box-shadow: 0 0 10px var(--rec);
+  animation: rec-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes rec-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 12px var(--rec); }
+  50% { opacity: 0.45; box-shadow: 0 0 2px var(--rec); }
+}
+
+.rec-time {
+  font-family: var(--font-mono);
+  font-size: var(--fs-cap);
+  font-weight: 600;
+  color: oklch(0.80 0.12 25);
+}
+
+/* -- Right: tray and status --------------------------------------------- */
+
+.tray {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.tray:empty {
+  display: none;
+}
+
+.tray-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-chip);
+  color: var(--t2);
+  transition: background var(--d-quick) var(--ease-std);
+}
+
+.tray-item:hover {
+  background: var(--well-3);
+}
+
+.tray-item img,
+.tray-item .tray-img {
+  width: 18px;
+  height: 18px;
+}
+
+.tray:not(:empty) + .isl-status {
+  margin-left: 2px;
+}
+
+.isl-status {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  height: 32px;
+  padding: 0 var(--s3);
+  border-radius: var(--r-chip);
+  color: var(--t2);
+  transition: background var(--d-quick) var(--ease-std), color var(--d-quick) var(--ease-std);
+}
+
+.isl-status:hover {
+  background: var(--well-3);
+  color: var(--t1);
+}
+
+.isl-status:active {
+  background: var(--well-2);
+}
+
+.isl-status .icon {
+  width: 17px;
+  height: 17px;
+}
+
+.isl-status .dim {
+  color: var(--t4);
+}
+
+.isl-status .battery-text {
+  margin-left: -6px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.isl-status .battery-text.low {
+  color: var(--warn);
+}
+
+/* -- Hint: a transient pill under the clock ----------------------------- */
+
+.hint {
+  position: fixed;
+  z-index: var(--z-hint);
+  top: calc(var(--island-top) + var(--island-h) + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  height: 42px;
+  padding: 0 var(--s5) 0 6px;
+  border-radius: var(--r-chip);
+  background: var(--glass-solid);
+  box-shadow: var(--rim-top), var(--depth-2);
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.hint-glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-chip);
+  background: var(--grad);
+  color: white;
+  box-shadow: var(--glow);
+}
+
+.hint-glyph .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.hint-sub {
+  color: var(--t3);
+}

@@ -1,6 +1,6 @@
 /**
  * Small shared helpers: a DOM builder, safe access to the bro namespaces,
- * time formatting, and the popover manager every panel surface shares.
+ * time formatting and app icons.
  */
 
 import { icon } from './icons.js';
@@ -174,81 +174,3 @@ export function appIcon(name, label, size = 64, cls = 'app-icon') {
   for (const ch of String(label || name || '')) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
   return h(`div.${cls}.app-icon-fallback`, { style: { '--fallback-h': String(hash % 360) } }, letter);
 }
-
-// ---------------------------------------------------------------------------
-// Popovers: one open at a time, anchored under a bar button, closed by an
-// outside click or Escape.
-// ---------------------------------------------------------------------------
-
-class PopoverManager {
-  constructor() {
-    this.current = null;
-    this.anchor = null;
-    this.onCloseFns = new Map();
-    document.addEventListener('pointerdown', (e) => {
-      if (!this.current) return;
-      if (this.current.contains(e.target)) return;
-      if (this.anchor && this.anchor.contains(e.target)) return;
-      this.close();
-    }, true);
-  }
-
-  isOpen(el) {
-    return this.current === el;
-  }
-
-  toggle(el, anchor, opts) {
-    if (this.current === el) this.close();
-    else this.open(el, anchor, opts);
-  }
-
-  open(el, anchor, { align = 'center', onClose } = {}) {
-    if (this.current && this.current !== el) this.close();
-    this.current = el;
-    this.anchor = anchor || null;
-    if (onClose) this.onCloseFns.set(el, onClose);
-    el.classList.remove('hidden', 'leaving');
-    el.classList.add('open');
-    if (anchor) {
-      anchor.classList.add('active');
-      this.place(el, anchor, align);
-    }
-    window.dispatchEvent(new CustomEvent('helm:overlay'));
-  }
-
-  place(el, anchor, align) {
-    const r = anchor.getBoundingClientRect();
-    const w = el.getBoundingClientRect().width || el.offsetWidth;
-    const vw = window.innerWidth;
-    if (align === 'right') {
-      el.style.left = 'auto';
-      el.style.right = `${Math.round(Math.max(8, vw - r.right))}px`;
-      return;
-    }
-    let left = align === 'left' ? r.left : r.left + r.width / 2 - w / 2;
-    left = clamp(left, 8, vw - w - 8);
-    el.style.right = 'auto';
-    el.style.left = `${Math.round(left)}px`;
-  }
-
-  close() {
-    const el = this.current;
-    if (!el) return;
-    this.current = null;
-    if (this.anchor) this.anchor.classList.remove('active');
-    this.anchor = null;
-    el.classList.remove('open');
-    el.classList.add('leaving');
-    setTimeout(() => {
-      if (!el.classList.contains('open')) {
-        el.classList.remove('leaving');
-        el.classList.add('hidden');
-      }
-    }, 140);
-    const fn = this.onCloseFns.get(el);
-    if (fn) fn();
-    window.dispatchEvent(new CustomEvent('helm:overlay'));
-  }
-}
-
-export const popovers = new PopoverManager();

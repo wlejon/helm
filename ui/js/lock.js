@@ -39,13 +39,18 @@ export class LockController {
 
   render() {
     this.timeEl = h('div.lock-time');
-    this.dateEl = h('div.lock-date');
+    this.dateEl = h('div.lock-date.micro');
     this.input = h('input.lock-input#lock-password', {
-      type: 'password', placeholder: 'Password', autocomplete: 'current-password',
+      type: 'password', autocomplete: 'current-password', 'aria-label': 'Password',
     });
+    // Our own prompt: the engine hides placeholders while an input has focus.
+    this.ghost = h('span.lock-ghost', 'Enter password');
+    this.input.addEventListener('input', () => this.syncGhost());
     this.submitBtn = h('button.lock-go#lock-submit', { type: 'submit', title: 'Unlock' }, icon('arrow-right'));
     this.errorEl = h('div.lock-error.hidden#lock-error-msg');
-    this.form = h('form.lock-form#lock-form', h('div.lock-field', this.input, this.submitBtn), this.errorEl);
+    this.form = h('form.lock-form#lock-form',
+      h('div.lock-field', h('span.lock-field-glyph', icon('lock')), h('div.lock-entry', this.ghost, this.input), this.submitBtn),
+      this.errorEl);
     this.form.addEventListener('submit', (e) => {
       e.preventDefault();
       this.verify(this.input.value);
@@ -53,12 +58,17 @@ export class LockController {
     this.el.replaceChildren(
       h('div.lock-bg#lock-bg'),
       h('div.lock-scrim'),
-      h('div.lock-top', this.timeEl, this.dateEl),
+      h('div.lock-top', this.dateEl, this.timeEl),
       h('div.lock-auth',
-        h('div.lock-avatar', initials(this.username)),
+        h('div.avatar.lock-avatar', h('span.avatar-in', initials(this.username))),
         h('div.lock-user#lock-username', this.username),
-        this.form));
+        this.form),
+      h('div.lock-foot.micro', icon('lock'), h('span', this.shell.hostname ? `Locked · ${this.shell.hostname}` : 'Locked')));
     this.renderClock();
+  }
+
+  syncGhost() {
+    this.ghost.classList.toggle('hidden', this.input.value.length > 0);
   }
 
   renderClock() {
@@ -75,6 +85,7 @@ export class LockController {
     this.renderClock();
     this.errorEl.classList.add('hidden');
     this.input.value = '';
+    this.syncGhost();
     this.el.classList.remove('hidden', 'leaving');
     this.el.classList.add('entering');
     setTimeout(() => this.el.classList.remove('entering'), 400);
@@ -89,6 +100,7 @@ export class LockController {
   unlock() {
     this.isLocked = false;
     this.input.value = '';
+    this.syncGhost();
     this.errorEl.classList.add('hidden');
     this.el.classList.add('leaving');
     setTimeout(() => {
@@ -133,6 +145,7 @@ export class LockController {
     this.errorEl.textContent = msg;
     this.errorEl.classList.remove('hidden');
     this.input.value = '';
+    this.syncGhost();
     this.form.classList.remove('shake');
     // Restart the animation on repeated failures.
     void this.form.offsetWidth;

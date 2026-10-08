@@ -54,7 +54,8 @@ export class Switcher {
       const name = app ? app.name : w.appId || 'Window';
       const card = h('div.switcher-card',
         appIcon(app ? app.icon : w.appId, name, 64, 'switcher-icon'),
-        h('div.switcher-title', w.title || name));
+        h('div.switcher-title', w.title || name),
+        w.title && w.title !== name ? h('div.switcher-app', name) : null);
       card.classList.toggle('selected', i === this.index);
       card.addEventListener('click', () => {
         this.index = i;

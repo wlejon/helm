@@ -1,0 +1,277 @@
+/* =============================================================================
+   NOTIFICATIONS AND OSD. Toasts fall out of the clock island and stack
+   beneath it; the same card, flattened into a well, fills the notification
+   center. The OSD is the status island stretching to show a level.
+   ============================================================================= */
+
+.toast-stack {
+  position: fixed;
+  z-index: var(--z-toast);
+  top: calc(var(--island-top) + var(--island-h) + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  pointer-events: none;
+  transition: opacity var(--d-state) var(--ease-std);
+}
+
+.toast-stack.suppressed {
+  opacity: 0;
+}
+
+.toast-stack.suppressed .notif {
+  pointer-events: none;
+}
+
+.notif {
+  position: relative;
+  display: flex;
+  gap: var(--s3);
+  padding: var(--s3) var(--s4) var(--s3) var(--s3);
+  border-radius: 22px;
+  pointer-events: auto;
+  transition: background var(--d-quick) var(--ease-std), transform var(--d-quick) var(--ease-std);
+}
+
+.notif.toast {
+  background: var(--glass-panel);
+  backdrop-filter: var(--blur-panel);
+  border: 1px solid var(--rim);
+  box-shadow: var(--rim-top), var(--depth-2);
+  animation: toast-in var(--d-morph) var(--spring);
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-22px) scale(0.86); }
+  to { opacity: 1; transform: none; }
+}
+
+.notif.toast.leaving {
+  animation: toast-out 240ms var(--ease-exit) forwards;
+}
+
+@keyframes toast-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(-14px) scale(0.92); }
+}
+
+.nc-list .notif {
+  background: var(--well);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+}
+
+.nc-list .notif:hover {
+  background: var(--well-2);
+}
+
+.notif.actionable:active {
+  transform: scale(0.985);
+}
+
+.notif.critical {
+  box-shadow: inset 0 0 0 1px oklch(0.66 0.22 25 / 0.75), 0 10px 40px oklch(0.60 0.22 25 / 0.35);
+}
+
+.notif-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+  overflow: hidden;
+}
+
+.notif-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.notif.glyph .notif-icon {
+  background: var(--grad);
+  color: white;
+  box-shadow: 0 4px 14px oklch(0.70 0.18 var(--accent-h) / 0.35);
+}
+
+.notif.critical.glyph .notif-icon {
+  background: linear-gradient(135deg, oklch(0.64 0.21 22), oklch(0.58 0.22 5));
+}
+
+.notif-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.notif-top {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding-right: 18px;
+}
+
+.notif-app {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  letter-spacing: var(--track-micro);
+  text-transform: uppercase;
+  color: var(--t3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notif-time {
+  font-size: 11px;
+  color: var(--t4);
+  white-space: nowrap;
+}
+
+.notif-time::before {
+  content: "· ";
+}
+
+.notif-summary {
+  font-size: var(--fs-body);
+  font-weight: 650;
+  color: var(--t1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notif-body {
+  font-size: var(--fs-cap);
+  line-height: 1.4;
+  color: var(--t2);
+  line-clamp: 3;
+  -webkit-line-clamp: 3;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.notif-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: var(--s2);
+}
+
+.notif-actions .btn {
+  height: 28px;
+  padding: 0 var(--s3);
+  flex: 1;
+}
+
+.notif-close {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--r-chip);
+  background: var(--well-3);
+  color: var(--t2);
+  opacity: 0;
+  transition: opacity var(--d-quick) var(--ease-std), background var(--d-quick) var(--ease-std);
+}
+
+.notif-close .icon {
+  width: 13px;
+  height: 13px;
+  stroke-width: 2.2;
+}
+
+.notif:hover .notif-close,
+.notif-close:focus-visible {
+  opacity: 1;
+}
+
+.notif-close:hover {
+  background: var(--well-4);
+  color: var(--t1);
+}
+
+/* =============================================================================
+   OSD: the status island, stretched
+   ============================================================================= */
+
+.osd {
+  position: fixed;
+  z-index: var(--z-osd);
+  top: var(--island-top);
+  right: var(--edge);
+  width: 320px;
+  height: var(--island-h);
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: 0 var(--s4) 0 var(--s3);
+  border-radius: var(--r-chip);
+  background: var(--glass-solid);
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.osd-glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-chip);
+  background: var(--grad);
+  color: white;
+  box-shadow: var(--glow);
+}
+
+.osd-glyph .icon {
+  width: 15px;
+  height: 15px;
+}
+
+.osd-bar {
+  position: relative;
+  flex: 1;
+  height: 6px;
+  border-radius: var(--r-chip);
+  background: var(--well-3);
+  overflow: hidden;
+}
+
+.osd-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: var(--r-chip);
+  background: var(--grad);
+  box-shadow: 0 0 10px var(--a1);
+  transition: width 160ms var(--ease-out);
+}
+
+.osd-value {
+  width: 30px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: var(--fs-cap);
+  font-weight: 600;
+  color: var(--t1);
+}
+
+.osd.muted .osd-glyph {
+  background: var(--well-4);
+  box-shadow: none;
+}

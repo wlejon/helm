@@ -5,48 +5,66 @@
 
 import { settings } from './settings.js';
 
+/*
+ * bro sizes every radial gradient to its farthest corner (an explicit size
+ * is ignored), so each glow's extent is set by where its stops end.
+ */
+const glow = (x, y, color, reach, core = 0) =>
+  `radial-gradient(ellipse at ${x}% ${y}%, ${color} ${core}%, transparent ${reach}%)`;
+
 export const WALLPAPERS = {
   aurora: {
     label: 'Aurora',
     css: [
-      'radial-gradient(65% 85% at 10% 12%, oklch(0.38 0.12 285 / 0.85) 0%, transparent 62%)',
-      'radial-gradient(60% 80% at 92% 88%, oklch(0.42 0.09 205 / 0.75) 0%, transparent 64%)',
-      'radial-gradient(40% 55% at 72% 18%, oklch(0.34 0.10 320 / 0.45) 0%, transparent 70%)',
-      'linear-gradient(160deg, oklch(0.17 0.025 275), oklch(0.12 0.015 245))',
+      glow(15, 16, 'oklch(0.50 0.22 292 / 0.95)', 46),
+      glow(88, 86, 'oklch(0.54 0.14 190 / 0.85)', 44),
+      glow(78, 8, 'oklch(0.48 0.21 345 / 0.60)', 30),
+      glow(34, 104, 'oklch(0.40 0.17 255 / 0.75)', 34),
+      'linear-gradient(160deg, oklch(0.12 0.045 282), oklch(0.075 0.025 250))',
     ],
   },
   dusk: {
     label: 'Dusk',
     css: [
-      'radial-gradient(80% 70% at 85% 100%, oklch(0.62 0.17 45 / 0.9) 0%, transparent 60%)',
-      'radial-gradient(70% 80% at 10% 90%, oklch(0.48 0.18 350 / 0.85) 0%, transparent 62%)',
-      'radial-gradient(60% 60% at 40% 10%, oklch(0.35 0.12 290 / 0.8) 0%, transparent 70%)',
-      'linear-gradient(180deg, oklch(0.17 0.04 290), oklch(0.20 0.05 330))',
+      glow(82, 100, 'oklch(0.70 0.18 50 / 0.95)', 48),
+      glow(10, 92, 'oklch(0.56 0.22 355 / 0.90)', 46),
+      glow(46, 6, 'oklch(0.42 0.18 295 / 0.85)', 40),
+      'linear-gradient(180deg, oklch(0.10 0.04 290), oklch(0.14 0.06 330))',
     ],
   },
   ocean: {
     label: 'Ocean',
     css: [
-      'radial-gradient(75% 85% at 20% 85%, oklch(0.52 0.12 210 / 0.9) 0%, transparent 60%)',
-      'radial-gradient(65% 75% at 85% 15%, oklch(0.45 0.13 250 / 0.85) 0%, transparent 65%)',
-      'radial-gradient(40% 50% at 60% 60%, oklch(0.55 0.10 175 / 0.45) 0%, transparent 70%)',
-      'linear-gradient(170deg, oklch(0.15 0.03 240), oklch(0.12 0.02 220))',
+      glow(16, 86, 'oklch(0.60 0.14 205 / 0.95)', 48),
+      glow(88, 12, 'oklch(0.50 0.18 258 / 0.90)', 44),
+      glow(62, 60, 'oklch(0.60 0.12 175 / 0.45)', 26),
+      'linear-gradient(170deg, oklch(0.10 0.04 245), oklch(0.07 0.03 220))',
     ],
   },
   forest: {
     label: 'Forest',
     css: [
-      'radial-gradient(70% 80% at 15% 20%, oklch(0.45 0.11 160 / 0.9) 0%, transparent 60%)',
-      'radial-gradient(70% 80% at 90% 90%, oklch(0.50 0.12 120 / 0.7) 0%, transparent 62%)',
-      'linear-gradient(165deg, oklch(0.16 0.03 170), oklch(0.12 0.02 140))',
+      glow(14, 18, 'oklch(0.54 0.15 160 / 0.95)', 46),
+      glow(90, 90, 'oklch(0.58 0.15 115 / 0.70)', 42),
+      glow(70, 22, 'oklch(0.46 0.10 200 / 0.50)', 28),
+      'linear-gradient(165deg, oklch(0.10 0.035 170), oklch(0.07 0.025 140))',
+    ],
+  },
+  ember: {
+    label: 'Ember',
+    css: [
+      glow(50, 110, 'oklch(0.68 0.21 38 / 0.95)', 50),
+      glow(8, 28, 'oklch(0.46 0.19 10 / 0.70)', 36),
+      glow(90, 18, 'oklch(0.42 0.17 300 / 0.65)', 34),
+      'linear-gradient(180deg, oklch(0.09 0.03 300), oklch(0.13 0.06 20))',
     ],
   },
   graphite: {
     label: 'Graphite',
     css: [
-      'radial-gradient(90% 90% at 50% 0%, oklch(0.32 0.01 265 / 0.9) 0%, transparent 70%)',
-      'radial-gradient(60% 60% at 80% 100%, oklch(0.26 0.02 265 / 0.8) 0%, transparent 70%)',
-      'linear-gradient(180deg, oklch(0.20 0.006 265), oklch(0.12 0.006 265))',
+      glow(50, -6, 'oklch(0.38 0.02 265 / 0.95)', 56),
+      glow(86, 104, 'oklch(0.30 0.06 265 / 0.85)', 40),
+      'linear-gradient(180deg, oklch(0.17 0.008 265), oklch(0.10 0.008 265))',
     ],
   },
 };

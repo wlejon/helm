@@ -37,8 +37,32 @@ items()[1].click();
 settle(2);
 assert(focused[focused.length - 1] === 1, 'clicking a running app focuses it');
 
-// Bar follows focus.
-assert(document.getElementById('bar-focused').textContent.includes('Firefox'), 'bar names the focused app');
+// The left island follows focus and workspaces.
+assert(document.getElementById('isl-focused').textContent.includes('Firefox'), 'left island names the focused app');
+assert(document.querySelector('#workspaces .ws.active.occupied') !== null, 'active workspace is marked occupied');
+
+// The dock's apps button opens the launcher out of itself.
+const appsBtn = document.querySelector('#dock .dock-apps');
+appsBtn.click();
+settle(2);
+assert(helm.launcher.isOpen && helm.launcher.origin === appsBtn, 'apps button opens the launcher from the dock');
+helm.launcher.close();
+settle(30);
+
+// Context menu on a dock item.
+items()[0].dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 900, clientY: 1000 }));
+settle(2);
+assert(helm.menus.isOpen, 'right click opens the app menu');
+assert(Array.from(document.querySelectorAll('.menu .menu-item')).some((b) => /New Window/.test(b.textContent)), 'menu offers a new window');
+helm.menus.close();
+
+// Spaces lists the windows of the active space.
+helm.spaces.toggle();
+settle(2);
+assert(document.querySelectorAll('#spaces-panel .sp-row').length === 3, 'spaces lists this space\'s windows');
+assert(document.querySelectorAll('#spaces-panel .sp-win').length === 3, 'the space card draws a miniature per window');
+helm.spaces.toggle();
+settle(30);
 
 // Autohide tucks the dock when a window covers it.
 W[0].frame = { x: 0, y: 34, width: 1920, height: 1046 };

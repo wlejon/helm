@@ -1,22 +1,25 @@
 /* =============================================================================
-   DOCK + WINDOW SWITCHER
+   DOCK and SWITCHER. The dock is the bottom island: icons lift on hover,
+   running apps carry a light bar beneath them that glows for the focused
+   one. The Alt+Tab switcher is a row of cards on modal glass.
    ============================================================================= */
 
 .dock {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 8px;
+  bottom: var(--edge);
   z-index: var(--z-dock);
   display: flex;
   justify-content: center;
   pointer-events: none;
-  transition: transform var(--t-slow) var(--ease-out), opacity var(--t-slow) var(--ease-out);
+  transition: transform 420ms var(--spring), opacity 260ms var(--ease-std);
 }
 
 .dock.tucked {
-  transform: translateY(calc(100% + 16px));
+  transform: translateY(calc(100% + 24px));
   opacity: 0;
+  transition: transform 300ms var(--ease-std), opacity 260ms var(--ease-std);
 }
 
 .dock-inner {
@@ -24,13 +27,10 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  height: var(--dock-h);
-  padding: 0 8px;
-  border-radius: var(--r-xl);
-  background: var(--glass-1);
-  backdrop-filter: var(--blur-pop);
-  border: 1px solid var(--hairline-strong);
-  box-shadow: var(--shadow-pop), var(--edge-light);
+  height: 66px;
+  padding: 0 9px;
+  border-radius: 26px;
+  box-shadow: var(--rim-top), var(--depth-2);
 }
 
 .dock.tucked .dock-inner {
@@ -39,81 +39,93 @@
 
 .dock-item {
   position: relative;
-  width: 52px;
-  height: 52px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--r-md);
-  transition: background var(--t-fast) var(--ease-out), transform var(--t-med) var(--ease-spring);
+  width: 54px;
+  height: 54px;
+  border-radius: 18px;
+  transition: background var(--d-quick) var(--ease-std);
 }
 
 .dock-item:hover {
-  background: var(--fill-2);
-  transform: translateY(-2px);
+  background: var(--well-2);
 }
 
-.dock-item:active {
-  transform: translateY(0) scale(0.94);
+.dock-item:focus-visible {
+  box-shadow: var(--focus-ring);
 }
 
 .dock-icon {
-  width: 40px;
-  height: 40px;
-  font-size: 17px;
+  width: var(--dock-icon);
+  height: var(--dock-icon);
+  font-size: 19px;
+  transition: transform 360ms var(--spring-pop);
+}
+
+.dock-item:hover .dock-icon {
+  transform: translateY(-5px) scale(1.1);
+}
+
+.dock-item:active .dock-icon {
+  transform: translateY(-2px) scale(0.94);
+  transition-duration: 90ms;
 }
 
 .dock-item.launching .dock-icon {
-  animation: dock-bounce 900ms var(--ease-out) infinite;
+  animation: dock-launch 900ms var(--ease-std) infinite;
 }
 
-@keyframes dock-bounce {
-  0%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-7px); }
-  70% { transform: translateY(0); }
+@keyframes dock-launch {
+  0%, 100% { transform: none; }
+  40% { transform: translateY(-9px); }
+  70% { transform: translateY(-2px); }
 }
 
+/* Running: a short bar per window; the focused app's bar widens and glows */
 .dock-dots {
   position: absolute;
-  bottom: 1px;
   left: 0;
   right: 0;
+  bottom: -1px;
   display: flex;
   justify-content: center;
   gap: 3px;
 }
 
 .dock-dot {
-  width: 4px;
-  height: 4px;
-  border-radius: var(--r-full);
-  background: var(--text-3);
+  width: 5px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--t3);
+  transition: width var(--d-enter) var(--spring-pop), background var(--d-state) var(--ease-std);
 }
 
 .dock-item.focused .dock-dot {
-  background: var(--text-1);
-}
-
-.dock-item.focused .dock-dots .dock-dot:first-child {
   width: 12px;
+  background: linear-gradient(90deg, var(--a1), var(--a2));
+  box-shadow: 0 0 8px var(--a1);
 }
 
 .dock-sep {
   width: 1px;
-  height: 32px;
-  margin: 0 4px;
-  background: var(--hairline-strong);
+  height: 34px;
+  margin: 0 5px;
+  background: linear-gradient(180deg, transparent, var(--rim-strong), transparent);
 }
 
 .dock-apps-glyph {
-  width: 40px;
-  height: 40px;
-  border-radius: 24%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--fill-2);
-  color: var(--text-1);
+  width: var(--dock-icon);
+  height: var(--dock-icon);
+  border-radius: 15px;
+  background: var(--well-2);
+  box-shadow: inset 0 0 0 1px var(--rim);
+  color: var(--t1);
+  transition: transform 360ms var(--spring-pop), background var(--d-state) var(--ease-std),
+    box-shadow var(--d-state) var(--ease-std);
 }
 
 .dock-apps-glyph .icon {
@@ -121,22 +133,40 @@
   height: 20px;
 }
 
+.dock-apps:hover .dock-apps-glyph {
+  background: var(--grad);
+  box-shadow: var(--glow);
+  transform: translateY(-5px) scale(1.1);
+}
+
+.dock-apps:hover {
+  background: transparent;
+}
+
 .dock-tip {
   position: fixed;
   z-index: var(--z-menu);
-  padding: 5px 10px;
-  border-radius: var(--r-sm);
-  background: var(--glass-2);
-  backdrop-filter: var(--blur-pop);
-  border: 1px solid var(--hairline-strong);
-  box-shadow: var(--shadow-card);
-  font-size: var(--fs-sm);
-  font-weight: 500;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: var(--r-chip);
+  background: var(--glass-solid);
+  border: 1px solid var(--rim);
+  box-shadow: var(--depth-1);
+  font-size: var(--fs-cap);
+  font-weight: 600;
   white-space: nowrap;
   pointer-events: none;
+  animation: tip-in 200ms var(--ease-out);
 }
 
-/* A thin strip along the bottom edge that brings a tucked dock back. */
+@keyframes tip-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* A strip along the bottom edge that brings a tucked dock back. */
 .dock-edge {
   position: fixed;
   left: 25%;
@@ -146,7 +176,9 @@
   z-index: var(--z-dock);
 }
 
-/* Window switcher ------------------------------------------------------------ */
+/* =============================================================================
+   Switcher
+   ============================================================================= */
 
 .switcher {
   position: fixed;
@@ -155,56 +187,77 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  pointer-events: none;
+  background: oklch(0.08 0.02 var(--accent-h) / 0.35);
 }
 
 .switcher-panel {
-  pointer-events: auto;
   display: flex;
-  gap: 8px;
-  padding: 14px;
-  max-width: 90vw;
-  border-radius: var(--r-xl);
-  background: var(--glass-1);
-  backdrop-filter: var(--blur-pop);
-  border: 1px solid var(--hairline-strong);
-  box-shadow: var(--shadow-modal), var(--edge-light);
-  animation: pop-in var(--t-fast) var(--ease-out);
+  gap: var(--s2);
+  max-width: calc(100vw - 80px);
+  padding: var(--s3);
+  border-radius: 30px;
+  background: var(--glass-modal);
+  backdrop-filter: var(--blur-panel);
+  border: 1px solid var(--rim);
+  box-shadow: var(--rim-top), var(--depth-3);
+  animation: switcher-in 300ms var(--spring);
+}
+
+@keyframes switcher-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: none; }
 }
 
 .switcher-card {
-  width: 128px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 16px 8px 12px;
-  border-radius: var(--r-lg);
-  border: 2px solid transparent;
+  justify-content: center;
+  gap: var(--s3);
+  width: 148px;
+  height: 148px;
+  padding: var(--s3);
+  border-radius: 22px;
+  color: var(--t2);
+  transition: background var(--d-quick) var(--ease-std);
+}
+
+.switcher-card:hover {
+  background: var(--well-2);
 }
 
 .switcher-card.selected {
-  background: var(--fill-2);
-  border-color: var(--accent);
+  background: var(--grad-soft);
+  color: var(--t1);
+  box-shadow: inset 0 0 0 1.5px oklch(0.74 0.16 var(--accent-h) / 0.9), var(--glow);
 }
 
 .switcher-icon {
   width: 64px;
   height: 64px;
   font-size: 26px;
+  transition: transform 300ms var(--spring-pop);
+}
+
+.switcher-card.selected .switcher-icon {
+  transform: scale(1.08);
 }
 
 .switcher-title {
-  width: 100%;
-  font-size: var(--fs-sm);
+  max-width: 100%;
+  font-size: var(--fs-cap);
+  font-weight: 600;
   text-align: center;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: var(--text-2);
 }
 
-.switcher-card.selected .switcher-title {
-  color: var(--text-1);
-  font-weight: 600;
+.switcher-app {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--track-micro);
+  text-transform: uppercase;
+  color: var(--t4);
+  margin-top: -8px;
 }

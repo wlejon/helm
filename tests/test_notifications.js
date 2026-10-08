@@ -21,6 +21,9 @@ settle(2);
 assert(notify.items.length === 1, 'posted notification enters history');
 assert(stack.querySelectorAll('.notif').length === 1, 'posted notification shows a toast');
 assert(notify.unread === 1, 'unread count rises');
+const count = document.querySelector('#island-center .nc-count');
+assert(!count.classList.contains('hidden') && count.textContent === '1', 'the clock island shows the unread count');
+assert(stack.querySelector('.notif').classList.contains('toast'), 'toasts carry the toast class');
 
 // A foreign notification with actions, then replaced in place.
 notify.receive({ id: 501, appName: 'Mail', summary: 'New mail', body: '<b>Bob</b> &amp; co',
@@ -39,6 +42,16 @@ advanceTime(6000);
 settle(20);
 assert(stack.querySelectorAll('.notif').length === 0, 'toasts expire');
 assert(notify.items.length === 2, 'history keeps expired notifications');
+
+// Dismissing a toast keeps the notification in history.
+notify.post({ summary: 'Dismiss me' });
+settle(2);
+stack.querySelector('.notif .notif-close').click();
+settle(20);
+assert(stack.querySelectorAll('.notif').length === 0, 'dismissed toast leaves');
+assert(notify.items.some((x) => x.summary === 'Dismiss me'), 'dismissed toast stays in history');
+notify.remove(notify.items.find((x) => x.summary === 'Dismiss me').id);
+settle(20);
 
 // Critical notifications stay up.
 notify.receive({ id: 502, appName: 'Power', summary: 'Battery low', urgency: 'critical', actions: [] }, false);
@@ -63,16 +76,24 @@ notify.post({ summary: 'Quiet' });
 settle(2);
 assert(stack.querySelectorAll('.notif').length === 0, 'no toast under Do Not Disturb');
 assert(notify.items.length === before + 1, 'history still records it');
-assert(!document.querySelector('#bar-clock .dnd-glyph').classList.contains('hidden'), 'bar shows the DND glyph');
+assert(!document.querySelector('#island-center .dnd-glyph').classList.contains('hidden'), 'the clock island shows the DND glyph');
+assert(document.querySelector('#island-center .nc-count').classList.contains('hidden'), 'the unread count hides under Do Not Disturb');
 notify.setDnd(false);
 
 // Notification center lists history; Clear all empties it.
-window.helm.calendar.toggle(document.getElementById('bar-clock'));
+window.helm.calendar.toggle();
 settle(2);
-assert(document.querySelectorAll('#calendar-popover .nc-list .notif').length === notify.items.length, 'center lists history');
+assert(document.querySelectorAll('#center-panel .nc-list .notif').length === notify.items.length, 'center lists history');
 assert(notify.unread === 0, 'opening the center marks everything read');
+assert(stack.classList.contains('suppressed'), 'toasts give way while the center is open');
+notify.post({ summary: 'While open' });
+settle(2);
+assert(document.querySelectorAll('#center-panel .nc-list .notif').length === notify.items.length, 'center updates live');
 notify.clearAll();
 settle(2);
-assert(document.querySelector('#calendar-popover .nc-empty') !== null, 'center shows the empty state');
+assert(document.querySelector('#center-panel .nc-empty') !== null, 'center shows the empty state');
+window.helm.calendar.toggle();
+settle(30);
+assert(!stack.classList.contains('suppressed'), 'toasts come back when the center closes');
 
 console.log('test_notifications: all assertions passed');
