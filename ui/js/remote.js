@@ -33,7 +33,7 @@ class RemoteHost {
     if (this.forced || settings.get('remoteHost') === true) {
       // Hardware video where the machine has it (VA-API); Raw, uncompressed,
       // only for a machine without (a development box on a fast link).
-      const codecs = ['h264', 'hevc', 'raw'];
+      const codecs = ['hevc', 'h264', 'raw'];
       const s = attempt('remote.host', () => this.remote.host({ socket: this.socket, codecs }));
       if (s) console.log(`helm: hosting the screen on ${s.socketPath}`);
     } else {
