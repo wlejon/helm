@@ -91,7 +91,9 @@ export class NotificationCenter {
       if (!replaced) this.unread++;
     }
 
-    const showToast = !this.dnd || item.urgency === 'critical';
+    this.remember(item);
+    const critical = item.urgency === 'critical';
+    const showToast = critical || (!this.dnd && !this.isQuiet(item.appName));
     if (showToast) this.toast(item);
     this.emit();
   }
@@ -147,6 +149,31 @@ export class NotificationCenter {
     if (on) for (const id of Array.from(this.toasts.keys())) this.dropToast(id);
     for (const fn of this.dndSubs) attempt('dnd subscriber', () => fn(on));
     this.emit();
+  }
+
+  // -- Per-app banners ---------------------------------------------------------
+
+  /** Apps that have sent a notification, for Settings (local ones aside). */
+  knownApps() {
+    return settings.get('notifyApps') || [];
+  }
+
+  remember(item) {
+    if (item.local) return;
+    const known = this.knownApps();
+    if (known.includes(item.appName)) return;
+    settings.set('notifyApps', [...known, item.appName].slice(-60));
+  }
+
+  isQuiet(appName) {
+    return (settings.get('notifyQuiet') || []).includes(appName);
+  }
+
+  /** Quiet apps still land in the center; they just skip the banner. */
+  setQuiet(appName, quiet) {
+    const cur = (settings.get('notifyQuiet') || []).filter((x) => x !== appName);
+    settings.set('notifyQuiet', quiet ? [...cur, appName] : cur);
+    if (quiet) for (const it of this.items) if (it.appName === appName) this.dropToast(it.id);
   }
 
   // -- Cards -----------------------------------------------------------------

@@ -57,10 +57,11 @@ export class LauncherController {
   get actions() {
     const s = this.shell;
     return [
-      { name: 'Settings', desc: 'Sound, displays, network, power, appearance', icon: 'settings', run: () => s.openSettings() },
+      { name: 'Settings', desc: 'Sound, network, Bluetooth, displays, power, appearance', icon: 'settings', handoff: true, run: (o) => s.openSettings(null, o) },
       { name: 'Spaces', desc: 'Workspaces and their windows', icon: 'layers', run: () => s.spaces.toggle() },
       { name: 'Accent Colour', desc: 'Cycle the shell accent', icon: 'sparkles', run: () => s.cycleAccent() },
-      { name: 'Appearance', desc: 'Wallpaper, accent colour, clock, dock', icon: 'palette', run: () => s.openSettings('appearance') },
+      { name: 'Appearance', desc: 'Wallpaper, accent colour, clock, dock', icon: 'palette', handoff: true, run: (o) => s.openSettings('appearance', o) },
+      { name: 'Keyboard Shortcuts', desc: 'Every shell hotkey', icon: 'keyboard', handoff: true, run: (o) => s.openSettings('keyboard', o) },
       { name: 'Lock Screen', desc: 'Lock this session', icon: 'lock', run: () => s.lock.lock() },
       { name: 'Clipboard History', desc: 'Recent copied items', icon: 'clipboard', keep: true, run: () => this.openClipboard() },
       { name: 'Notifications', desc: 'Open the notification center', icon: 'bell', run: () => s.calendar.toggle() },
@@ -119,10 +120,16 @@ export class LauncherController {
     this.input.focus();
   }
 
-  close() {
+  close({ instant = false } = {}) {
     if (!this.isOpen) return;
     this.isOpen = false;
     this.input.blur();
+    if (instant) {
+      this.el.classList.add('hidden');
+      this.el.classList.remove('leaving');
+      window.dispatchEvent(new CustomEvent('helm:overlay'));
+      return;
+    }
     this.el.classList.add('leaving');
     const done = () => {
       if (!this.isOpen) this.el.classList.add('hidden');
@@ -268,7 +275,20 @@ export class LauncherController {
       for (const { x } of acts) {
         rows.push(this.row({
           kind: 'action', glyph: h('span.row-glyph', icon(x.icon)), title: x.name, desc: x.desc,
-          run: x.run, keep: x.keep,
+          run: x.run, keep: x.keep, handoff: x.handoff,
+        }));
+      }
+    }
+
+    // Settings that match land straight on the setting.
+    const found = this.shell.settingsUi ? this.shell.settingsUi.find(q).slice(0, 3) : [];
+    if (found.length) {
+      rows.push(h('div.launcher-section.micro', 'Settings'));
+      for (const r of found) {
+        rows.push(this.row({
+          kind: 'setting', glyph: h('span.row-glyph', icon(r.page.glyph)),
+          title: r.item ? r.item.label : r.page.title, desc: r.item ? `Settings › ${r.page.title}` : r.page.blurb,
+          handoff: true, run: (o) => this.shell.openSettings(r.page.id, { ...o, anchor: r.item ? r.item.id : null }),
         }));
       }
     }
@@ -380,6 +400,14 @@ export class LauncherController {
   }
 
   runEntry(entry) {
+    // A handoff hands the launcher's glass to what it opens: Settings grows
+    // out of the launcher's rect while the launcher goes without animating.
+    if (entry.handoff) {
+      const from = rectOf(this.window);
+      this.close({ instant: true });
+      entry.run({ from, home: this.origin || $('#isl-launcher') });
+      return;
+    }
     if (!entry.keep) this.close();
     entry.run();
   }

@@ -20,6 +20,10 @@ const SCHEMA = {
   dndEnabled: { type: 'bool', default: false },
   launchCounts: { type: 'string', default: '{}' },
   dockAutohide: { type: 'bool', default: true },
+  // Apps whose notifications skip the banner (they still reach the center),
+  // and every app that has sent one, for Settings > Notifications.
+  notifyQuiet: { type: 'string_list', default: [] },
+  notifyApps: { type: 'string_list', default: [] },
 };
 
 class Settings {

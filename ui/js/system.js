@@ -3,8 +3,8 @@
  * returns a plain snapshot; subscribers hear 'audio', 'network', 'bluetooth',
  * 'power' and 'display' when something changes.
  *
- * Audio prefers bro.pulse and falls back to bro.sys.audio. Volumes are the
- * 0..1 cubic scale both use (the same scale pactl/wpctl print as percent).
+ * Audio prefers bro.sys.audio (PipeWire) and falls back to bro.pulse.
+ * Volumes are 0..1, the scale wpctl prints.
  */
 
 import { api, attempt, listen } from './util.js';
@@ -21,13 +21,18 @@ class SystemState {
     const sys = api('sys');
     const displays = api('displays');
 
-    if (pulse) {
+    if (sys && sys.audio) {
+      for (const ev of ['deviceAdded', 'deviceRemoved', 'deviceChanged', 'defaultChanged']) {
+        listen(sys.audio, ev, () => this.changed('audio'));
+      }
+    } else if (pulse) {
       for (const ev of ['sinkAdded', 'sinkUpdated', 'sinkRemoved', 'defaultSinkChanged']) {
         listen(pulse, ev, () => this.changed('audio'));
       }
-    } else if (sys && sys.audio) {
-      for (const ev of ['deviceAdded', 'deviceRemoved', 'deviceChanged', 'defaultChanged']) {
-        listen(sys.audio, ev, () => this.changed('audio'));
+    }
+    if (pulse) {
+      for (const ev of ['streamAdded', 'streamUpdated', 'streamRemoved']) {
+        listen(pulse, ev, () => this.changed('streams'));
       }
     }
     if (sys && sys.network) {
@@ -68,72 +73,136 @@ class SystemState {
   }
 
   // -- Audio --------------------------------------------------------------
+  //
+  // bro.sys.audio (PipeWire) first: it reads the same volumes wpctl prints
+  // and covers inputs too. bro.pulse is the fallback for outputs, and the
+  // only source of per-application streams.
 
-  audio() {
-    const pulse = api('pulse');
-    if (pulse) {
-      const sinks = attempt('pulse.getSinks', () => pulse.getSinks(), []) || [];
-      const def = attempt('pulse.getDefaultSink', () => pulse.getDefaultSink())
-        || sinks.find((s) => s.isDefault) || sinks[0];
-      if (def) {
-        return {
-          available: true,
-          id: def.id,
-          volume: def.volume ?? 0,
-          muted: !!def.isMuted,
-          name: def.description || def.name || 'Output',
-          outputs: sinks.map((s) => ({ id: s.id, name: s.description || s.name, isDefault: s.id === def.id })),
-        };
-      }
-    }
+  /** Every output or input device: { id, name, volume, muted, isDefault, hasVolume, formFactor }. */
+  devices(direction = 'output') {
     const sys = api('sys');
     if (sys && sys.audio) {
       const st = attempt('sys.audio.getState', () => sys.audio.getState());
-      const outs = st && Array.isArray(st.devices) ? st.devices.filter((d) => d.direction === 'output') : [];
-      const def = outs.find((d) => d.id === st.defaultOutput) || outs.find((d) => d.isDefault) || outs[0];
-      if (def) {
-        return {
-          available: true,
-          id: def.id,
-          volume: def.volume ?? 0,
-          muted: !!def.muted,
-          name: def.description || def.deviceName || 'Output',
-          outputs: outs.map((d) => ({ id: d.id, name: d.description || d.deviceName, isDefault: d.id === def.id })),
-        };
+      if (st && Array.isArray(st.devices)) {
+        const def = direction === 'output' ? st.defaultOutput : st.defaultInput;
+        const list = st.devices.filter((d) => d.direction === direction);
+        const hasDef = list.some((d) => d.id === def);
+        return list.map((d, i) => ({
+          id: d.id,
+          name: d.description || d.deviceName || d.id,
+          volume: d.volume ?? 0,
+          muted: !!d.muted,
+          isDefault: hasDef ? d.id === def : (list.some((x) => x.isDefault) ? !!d.isDefault : i === 0),
+          hasVolume: d.hasVolume !== false,
+          formFactor: d.formFactor || '',
+          backend: 'sys',
+        }));
       }
     }
-    return { available: false, id: null, volume: 0, muted: false, name: 'No output', outputs: [] };
+    const pulse = api('pulse');
+    if (pulse && direction === 'output') {
+      const sinks = attempt('pulse.getSinks', () => pulse.getSinks(), []) || [];
+      const def = attempt('pulse.getDefaultSink', () => pulse.getDefaultSink());
+      return sinks.map((s, i) => ({
+        id: s.id,
+        name: s.description || s.name,
+        volume: s.volume ?? 0,
+        muted: !!s.isMuted,
+        isDefault: def ? s.id === def.id : (sinks.some((x) => x.isDefault) ? !!s.isDefault : i === 0),
+        hasVolume: true,
+        formFactor: '',
+        backend: 'pulse',
+      }));
+    }
+    return [];
+  }
+
+  audio() {
+    const outs = this.devices('output');
+    const def = outs.find((d) => d.isDefault) || outs[0];
+    if (!def) return { available: false, id: null, volume: 0, muted: false, name: 'No output', outputs: [] };
+    return {
+      available: true,
+      id: def.id,
+      volume: def.volume,
+      muted: def.muted,
+      name: def.name,
+      outputs: outs.map((o) => ({ id: o.id, name: o.name, isDefault: o.id === def.id })),
+    };
+  }
+
+  /** The default input, shaped like audio(). */
+  microphone() {
+    const ins = this.devices('input');
+    const def = ins.find((d) => d.isDefault) || ins[0];
+    if (!def) return { available: false, id: null, volume: 0, muted: false, name: 'No input', inputs: [] };
+    return { available: true, id: def.id, volume: def.volume, muted: def.muted, name: def.name, inputs: ins };
+  }
+
+  setDeviceVolume(id, v) {
+    const sys = api('sys');
+    if (sys && sys.audio) attempt('sys.audio.setVolume', () => sys.audio.setVolume(id, v));
+    else attempt('pulse.setSinkVolume', () => api('pulse').setSinkVolume(id, v));
+    this.changed('audio');
+  }
+
+  setDeviceMuted(id, m) {
+    const sys = api('sys');
+    if (sys && sys.audio) attempt('sys.audio.setMute', () => sys.audio.setMute(id, m));
+    else attempt('pulse.setSinkMuted', () => api('pulse').setSinkMuted(id, m));
+    this.changed('audio');
+  }
+
+  setDefaultDevice(id, direction = 'output') {
+    const sys = api('sys');
+    if (sys && sys.audio) {
+      attempt('sys.audio.setDefault', () => (direction === 'output'
+        ? sys.audio.setDefaultSink(id) : sys.audio.setDefaultSource(id)));
+    } else if (direction === 'output') {
+      attempt('pulse.setDefaultSink', () => api('pulse').setDefaultSink(id));
+    }
+    this.changed('audio');
   }
 
   setVolume(v) {
     const a = this.audio();
     if (!a.available) return;
-    const pulse = api('pulse');
-    if (pulse) {
-      attempt('pulse.setSinkVolume', () => pulse.setSinkVolume(a.id, v));
-      if (a.muted && v > 0) attempt('pulse.setSinkMuted', () => pulse.setSinkMuted(a.id, false));
-    } else {
-      const sys = api('sys');
-      attempt('sys.audio.setVolume', () => sys.audio.setVolume(a.id, v));
-      if (a.muted && v > 0) attempt('sys.audio.setMute', () => sys.audio.setMute(a.id, false));
-    }
-    this.changed('audio');
+    this.setDeviceVolume(a.id, v);
+    if (a.muted && v > 0) this.setDeviceMuted(a.id, false);
   }
 
   setMuted(m) {
     const a = this.audio();
     if (!a.available) return;
-    const pulse = api('pulse');
-    if (pulse) attempt('pulse.setSinkMuted', () => pulse.setSinkMuted(a.id, m));
-    else attempt('sys.audio.setMute', () => api('sys').audio.setMute(a.id, m));
-    this.changed('audio');
+    this.setDeviceMuted(a.id, m);
   }
 
   setOutput(id) {
+    this.setDefaultDevice(id, 'output');
+  }
+
+  /** Applications playing sound (bro.pulse), or null when that is missing. */
+  streams() {
     const pulse = api('pulse');
-    if (pulse) attempt('pulse.setDefaultSink', () => pulse.setDefaultSink(id));
-    else attempt('sys.audio.setDefaultSink', () => api('sys').audio.setDefaultSink(id));
-    this.changed('audio');
+    if (!pulse) return null;
+    const list = attempt('pulse.getStreams', () => pulse.getStreams(), []) || [];
+    return list.map((st) => ({
+      id: st.id,
+      name: st.appId || st.name || 'Application',
+      icon: st.icon || '',
+      volume: st.volume ?? 0,
+      muted: !!st.isMuted,
+    }));
+  }
+
+  setStreamVolume(id, v) {
+    attempt('pulse.setStreamVolume', () => api('pulse').setStreamVolume(id, v));
+    this.changed('streams');
+  }
+
+  setStreamMuted(id, m) {
+    attempt('pulse.setStreamMuted', () => api('pulse').setStreamMuted(id, m));
+    this.changed('streams');
   }
 
   // -- Network ------------------------------------------------------------

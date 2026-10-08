@@ -130,11 +130,15 @@ assert(bro.decor.getDefaultMetrics().captionHeight > 0, 'bro.decor returns frame
 
 const key = (opts) => window.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, ...opts }));
 
-// Settings hook: without an app, a hint; with one registered, it opens.
+// Settings hook: the real app registers at boot; without one, a hint; with
+// another registered, it opens that.
+const realSettings = helm.settingsApp;
+assert(realSettings && realSettings === helm.settingsUi, 'the Settings app registers itself at boot');
+helm.registerSettingsApp(null);
 const hint = document.getElementById('hint');
 key({ key: ',', metaKey: true });
 settle(2);
-assert(!hint.classList.contains('hidden'), 'Super+, without a Settings app shows the coming-soon hint');
+assert(!hint.classList.contains('hidden'), 'Super+, without a Settings app shows a hint');
 const opened = [];
 const app = { isOpen: false, open(p) { this.isOpen = true; opened.push(p); }, close() { this.isOpen = false; } };
 helm.registerSettingsApp(app);
@@ -149,6 +153,7 @@ assert(!app.isOpen, 'Escape closes it');
 helm.registerSettingsApp(null);
 settle(200);
 assert(hint.classList.contains('hidden'), 'the hint goes away by itself');
+helm.registerSettingsApp(realSettings);
 
 // Hotkeys
 key({ key: ' ', ctrlKey: true });

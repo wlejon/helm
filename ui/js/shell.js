@@ -5,7 +5,7 @@
 
 import { h, $, api, attempt } from './util.js';
 import { icon } from './icons.js';
-import { panels, animate, SPRING, EASE_STD } from './morph.js';
+import { panels, animate, rectOf, SPRING, EASE_STD } from './morph.js';
 import { Activities } from './activities.js';
 import { hydrateIcons } from './icons.js';
 import { settings } from './settings.js';
@@ -25,6 +25,8 @@ import { LauncherController } from './launcher.js';
 import { LockController } from './lock.js';
 import { Dock } from './dock.js';
 import { Switcher } from './switcher.js';
+import { SettingsApp } from './settings/app.js';
+import { chordOf, hotkeyFor, nativeChords } from './hotkeys.js';
 
 export class Shell {
   constructor() {
@@ -49,9 +51,10 @@ export class Shell {
     this.lock = new LockController(this);
     this.dock = new Dock(this);
     this.switcher = new Switcher(this);
-    // A Settings app plugs in through registerSettingsApp(); shell
-    // preferences live on this.prefs.
+    // The Settings app plugs in through registerSettingsApp() when it
+    // starts; shell preferences live on this.prefs.
     this.settingsApp = null;
+    this.settingsUi = new SettingsApp(this);
     this.panels = panels;
     this.overlays = new Set();
   }
@@ -75,6 +78,7 @@ export class Shell {
       ['calendar', () => this.calendar.init()],
       ['osd', () => this.osd.init()],
       ['launcher', () => this.launcher.init()],
+      ['settings', () => this.settingsUi.init()],
       ['lock', () => this.lock.init()],
       ['dock', () => this.dock.init()],
       ['switcher', () => this.switcher.init()],
@@ -91,9 +95,11 @@ export class Shell {
     // Toasts give way while the clock panel (which lists them) or the
     // launcher is up.
     window.addEventListener('helm:overlay', () => {
-      $('#toast-stack').classList.toggle('suppressed', this.calendar.isOpen || this.launcher.isOpen);
+      const settingsOpen = !!(this.settingsApp && this.settingsApp.isOpen);
+      $('#toast-stack').classList.toggle('suppressed', this.calendar.isOpen || this.launcher.isOpen || settingsOpen);
       this.setModalActive('panel', panels.isOpen());
       this.setModalActive('launcher', this.launcher.isOpen);
+      this.setModalActive('settings', settingsOpen);
     });
     this.booted = true;
     window.dispatchEvent(new CustomEvent('helm:ready', { detail: { shell: this } }));
@@ -114,27 +120,33 @@ export class Shell {
   // -- Settings hook ------------------------------------------------------------
 
   /**
-   * The Settings app plugs in here: app is { open(page), close(), isOpen }.
-   * Every entry point (the quick settings gear, the launcher actions,
-   * Super+,) goes through openSettings / toggleSettings.
+   * The Settings app plugs in here: app is { open(page, opts), close(),
+   * isOpen } (js/settings/app.js registers itself at boot). Every entry
+   * point (the quick settings gear, the launcher actions, Super+,) goes
+   * through openSettings / toggleSettings.
+   *
+   * opts: { origin } the element Settings grows out of, or { from } its rect
+   * when that element is about to go away; { home } where it folds back to.
+   * The origin's rect is read before the transient surfaces close.
    */
   registerSettingsApp(app) {
     this.settingsApp = app || null;
   }
 
-  openSettings(page) {
+  openSettings(page, { origin = null, from = null, home = null, anchor = null } = {}) {
+    const start = from || (origin && origin.getBoundingClientRect ? rectOf(origin) : null);
     this.closeTransient();
     if (this.settingsApp) {
-      attempt('settings open', () => this.settingsApp.open(page));
+      attempt('settings open', () => this.settingsApp.open(page || null, { from: start, home: home || origin, anchor }));
       return;
     }
-    this.hint('Settings is being rebuilt', 'coming soon', 'settings');
+    this.hint('Settings is not available', 'it did not start', 'settings');
   }
 
   toggleSettings(page) {
     const app = this.settingsApp;
     if (app && app.isOpen) attempt('settings close', () => app.close());
-    else this.openSettings(page);
+    else this.openSettings(page, { origin: $('#island-right') });
   }
 
   /** A transient pill under the clock island. */
@@ -217,68 +229,24 @@ export class Shell {
    * the keyboard. Under DRM bro matches every key against them before any
    * window or the shell's DOM sees it: a matched chord reaches nobody else,
    * so the keydown handler below never sees it twice. Elsewhere (windowed,
-   * headless) that handler is what runs them.
+   * headless) that handler is what runs them. Both read js/hotkeys.js.
    */
   registerNativeHotkeys() {
     const win = api('window');
     this.nativeHotkeys = [];
     this.nativeSuperTap = false;
     if (!win || typeof win.registerGlobalHotkey !== 'function') return;
-    const reg = (accel, fn, options) => {
+    for (const { entry, chord, accel } of nativeChords(win.displayMode === 'drm')) {
+      const options = entry.grab ? { grab: true } : undefined;
       const id = attempt(`registerGlobalHotkey ${accel}`, () => win.registerGlobalHotkey(accel, () => {
-        if (!this.lock.isLocked) fn();
+        if (!this.lock.isLocked) entry.run(this, chord);
       }, options));
-      if (id) this.nativeHotkeys.push(id);
-      return !!id;
-    };
-
-    if (win.displayMode !== 'drm') {
-      const chords = [
-        ['CommandOrControl+Space', () => this.launcher.toggle(this.launcherOrigin())],
-        ['Alt+Space', () => this.launcher.toggle(this.launcherOrigin())],
-        ['CommandOrControl+Shift+N', () => this.calendar.toggle()],
-        ['CommandOrControl+Alt+L', () => this.lock.lock()],
-        ['CommandOrControl+Alt+V', () => this.launcher.openClipboard(this.launcherOrigin())],
-        ['CommandOrControl+,', () => this.toggleSettings()],
-      ];
-      for (const [accel, fn] of chords) reg(accel, fn);
-      return;
+      if (!id) continue;
+      this.nativeHotkeys.push(id);
+      // Super pressed and released alone (a Super+key chord or a Super+drag
+      // is not a tap). The keydown handler leaves Meta alone when this holds.
+      if (chord === 'Super') this.nativeSuperTap = true;
     }
-
-    // Super pressed and released alone (a Super+key chord or a Super+drag
-    // is not a tap). The keydown handler leaves Meta alone when this holds.
-    this.nativeSuperTap = reg('Super', () => this.launcher.toggle(this.launcherOrigin()));
-    const chords = [
-      ['Ctrl+Space', () => this.launcher.toggle(this.launcherOrigin())],
-      ['Alt+Space', () => this.launcher.toggle(this.launcherOrigin())],
-      ['Super+V', () => this.launcher.openClipboard(this.launcherOrigin())],
-      ['Ctrl+Alt+V', () => this.launcher.openClipboard(this.launcherOrigin())],
-      ['Super+L', () => this.lock.lock()],
-      ['Ctrl+Alt+L', () => this.lock.lock()],
-      ['Super+N', () => this.calendar.toggle()],
-      ['Ctrl+Shift+N', () => this.calendar.toggle()],
-      ['Super+S', () => this.quick.toggle()],
-      ['Super+W', () => this.spaces.toggle()],
-      ['Super+,', () => this.toggleSettings()],
-      ['Super+Q', () => this.closeFocused()],
-      ['VolumeUp', () => this.stepVolume(0.05)],
-      ['VolumeDown', () => this.stepVolume(-0.05)],
-      ['VolumeMute', () => this.toggleMute()],
-      ['MediaPlayPause', () => this.media.playPause()],
-      ['MediaNextTrack', () => this.media.next()],
-      ['MediaPreviousTrack', () => this.media.previous()],
-    ];
-    for (let i = 1; i <= 9; i++) chords.push([`Super+${i}`, () => windows.switchToIndex(i - 1)]);
-    for (const [accel, fn] of chords) reg(accel, fn);
-
-    // The switcher: each Tab steps; the grab keeps the keyboard with the
-    // shell until the modifier is released, and that keyup commits
-    // (Switcher.onKeyUp).
-    const grab = { grab: true };
-    reg('Alt+Tab', () => this.switcher.step('Alt', 1), grab);
-    reg('Alt+Shift+Tab', () => this.switcher.step('Alt', -1), grab);
-    reg('Super+Tab', () => this.switcher.step('Meta', 1), grab);
-    reg('Super+Shift+Tab', () => this.switcher.step('Meta', -1), grab);
   }
 
   closeFocused() {
@@ -332,52 +300,24 @@ export class Shell {
 
   registerHotkeys() {
     window.addEventListener('keydown', (e) => {
-      if (this.lock.isLocked) return;
-      const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
-      const sup = e.metaKey;
-      const run = (fn) => {
+      if (this.lock.isLocked || e.defaultPrevented) return;
+      const chord = chordOf(e);
+      // Super's keydown opens the launcher unless the host delivers the tap.
+      const entry = chord === 'Super' && this.nativeSuperTap ? null : hotkeyFor(chord);
+      if (entry) {
         e.preventDefault();
-        fn();
-      };
-
-      // Media and hardware keys
-      if (k === 'AudioVolumeUp') return run(() => this.stepVolume(0.05));
-      if (k === 'AudioVolumeDown') return run(() => this.stepVolume(-0.05));
-      if (k === 'AudioVolumeMute') return run(() => this.toggleMute());
-      if (k === 'MediaPlayPause') return run(() => this.media.playPause());
-      if (k === 'MediaTrackNext') return run(() => this.media.next());
-      if (k === 'MediaTrackPrevious') return run(() => this.media.previous());
-      if (k === 'BrightnessUp' || k === 'MonBrightnessUp') return run(() => this.stepBrightness(0.05));
-      if (k === 'BrightnessDown' || k === 'MonBrightnessDown') return run(() => this.stepBrightness(-0.05));
-
-      // Super alone, Ctrl/Alt+Space: launcher (Super: on its own keydown,
-      // unless the host delivers the Super tap itself)
-      const superAlone = k === 'Meta' && !e.ctrlKey && !e.altKey && !e.shiftKey && !this.nativeSuperTap;
-      if (superAlone || (k === ' ' && (e.ctrlKey || e.altKey))) {
-        return run(() => this.launcher.toggle(this.launcherOrigin()));
+        entry.run(this, chord);
+        return;
       }
-      // Super+V, Ctrl+Alt+V: clipboard history
-      if (k === 'v' && (sup || (e.ctrlKey && e.altKey))) return run(() => this.launcher.openClipboard(this.launcherOrigin()));
-      // Super+L, Ctrl+Alt+L: lock
-      if (k === 'l' && (sup || (e.ctrlKey && e.altKey))) return run(() => this.lock.lock());
-      // Super+N, Ctrl+Shift+N: notification center
-      if (k === 'n' && (sup || (e.ctrlKey && e.shiftKey))) return run(() => this.calendar.toggle());
-      // Super+S: quick settings
-      if (k === 's' && sup) return run(() => this.quick.toggle());
-      // Super+W: spaces
-      if (k === 'w' && sup) return run(() => this.spaces.toggle());
-      // Super+1..9: workspaces
-      if (sup && /^[1-9]$/.test(k)) return run(() => windows.switchToIndex(Number(k) - 1));
-      // Super+, / Ctrl+,: settings
-      if (k === ',' && (sup || e.ctrlKey)) return run(() => this.toggleSettings());
-      // Super+Q: close the focused window
-      if (k === 'q' && sup) return run(() => this.closeFocused());
-
-      if (k === 'Escape') {
-        if (this.menus.isOpen) return run(() => this.menus.close());
-        if (this.settingsApp && this.settingsApp.isOpen) return run(() => this.settingsApp.close());
-        if (this.launcher.isOpen) return run(() => this.launcher.close());
-        if (panels.isOpen()) return run(() => panels.close());
+      if (e.key === 'Escape') {
+        const close = (fn) => {
+          e.preventDefault();
+          fn();
+        };
+        if (this.menus.isOpen) return close(() => this.menus.close());
+        if (this.settingsApp && this.settingsApp.isOpen) return close(() => this.settingsApp.close());
+        if (this.launcher.isOpen) return close(() => this.launcher.close());
+        if (panels.isOpen()) return close(() => panels.close());
       }
     });
   }

@@ -85,7 +85,7 @@ export class QuickSettings {
         h('span.qs-user-name', user),
         h('span.micro', this.shell.hostname || 'local session')),
       h('div.qs-head-actions',
-        h('button.icon-btn.filled', { title: 'Settings (Super+,)', onclick: () => this.shell.openSettings() }, icon('settings')),
+        h('button.icon-btn.filled', { title: 'Settings (Super+,)', onclick: (e) => this.shell.openSettings(null, { origin: e.currentTarget, home: '#island-right' }) }, icon('settings')),
         h('button.icon-btn.filled', { title: 'Lock (Super+L)', onclick: () => { this.close(); this.shell.lock.lock(); } }, icon('lock'))));
 
     // Levels

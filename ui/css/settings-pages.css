@@ -1,0 +1,488 @@
+/* =============================================================================
+   Settings pages: the parts only one page draws (battery, Wi-Fi join,
+   appearance swatches and wallpapers, displays, keyboard, default apps,
+   about). The window, sidebar, search and shared widgets are settings.css.
+   ============================================================================= */
+
+/* Battery bar */
+.st-battery {
+  position: relative;
+  width: 140px;
+  height: 12px;
+  border-radius: var(--r-chip);
+  background: var(--sink);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+  overflow: hidden;
+}
+
+.st-battery-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: var(--r-chip);
+  background: var(--grad);
+}
+
+/* Empty and error states */
+.st-empty-wrap {
+  display: flex;
+  justify-content: center;
+  padding: var(--s8) 0;
+}
+
+.st-empty .empty-glyph {
+  width: 60px;
+  height: 60px;
+}
+
+.st-empty .empty-glyph .icon {
+  width: 26px;
+  height: 26px;
+}
+
+.st-empty .empty-hint {
+  max-width: 380px;
+  line-height: 1.45;
+}
+
+/* Inline join (Wi-Fi password) */
+.st-join {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  padding: var(--s1) var(--s5) var(--s4) 72px;
+  background: linear-gradient(120deg, var(--a1-soft), transparent 70%);
+}
+
+.st-join-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+
+.st-field .field {
+  height: 38px;
+}
+
+/* Appearance ------------------------------------------------------------*/
+
+.st-wall-hero {
+  display: flex;
+  gap: var(--s5);
+  padding: var(--s4);
+  border-radius: var(--r-card);
+  background: var(--well);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+}
+
+.st-preview {
+  position: relative;
+  width: 264px;
+  height: 149px;
+  flex: none;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.45), inset 0 0 0 1px var(--rim-strong);
+}
+
+.st-preview-art {
+  position: absolute;
+  inset: 0;
+  background-color: oklch(0.12 0.02 var(--accent-h));
+  background-size: cover;
+  background-position: center;
+}
+
+.st-preview-islands {
+  position: absolute;
+  left: 7px;
+  right: 7px;
+  top: 6px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.st-preview-islands span {
+  height: 8px;
+  border-radius: 4px;
+  background: oklch(0.17 0.025 var(--accent-h) / 0.75);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
+}
+
+.st-preview-islands .l { width: 40px; }
+.st-preview-islands .c { width: 52px; }
+.st-preview-islands .r { width: 34px; }
+
+.st-preview-dock {
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  display: flex;
+  gap: 3px;
+  padding: 3px 4px;
+  transform: translateX(-50%);
+  border-radius: 5px;
+  background: oklch(0.17 0.025 var(--accent-h) / 0.75);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
+}
+
+.st-preview-dock span {
+  width: 8px;
+  height: 8px;
+  border-radius: 2.5px;
+  background: rgb(255 255 255 / 0.35);
+}
+
+.st-walls {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s3);
+  flex: 1;
+  min-width: 0;
+}
+
+.st-walls.pictures {
+  grid-template-columns: repeat(4, 1fr);
+  padding: var(--s4);
+  border-radius: var(--r-card);
+  background: var(--well);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+}
+
+.st-wall {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 4px 6px;
+  border-radius: 14px;
+  text-align: left;
+  transition: background var(--d-quick) var(--ease-std), transform var(--d-quick) var(--ease-std);
+}
+
+.st-wall:hover {
+  background: var(--well-2);
+}
+
+.st-wall:active {
+  transform: scale(0.97);
+}
+
+.st-wall:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+.st-wall-art {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 58px;
+  border-radius: 10px;
+  overflow: hidden;
+  background-color: var(--sink);
+  background-size: cover;
+  background-position: center;
+  box-shadow: inset 0 0 0 1px var(--rim);
+  color: var(--t4);
+}
+
+.st-walls.pictures .st-wall-art {
+  height: 74px;
+}
+
+.st-wall-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.st-wall.on .st-wall-art {
+  box-shadow: 0 0 0 2px oklch(0.10 0.02 var(--accent-h)), 0 0 0 4px var(--a1), var(--glow);
+}
+
+.st-wall-label {
+  padding: 0 4px;
+  font-size: var(--fs-cap);
+  font-weight: 550;
+  color: var(--t2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.st-wall.on .st-wall-label {
+  color: var(--t1);
+}
+
+.st-wall-check {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--r-chip);
+  background: var(--grad);
+  color: white;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.4);
+}
+
+.st-wall-check .icon {
+  width: 12px;
+  height: 12px;
+  stroke-width: 3;
+}
+
+.st-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+
+.st-swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 64px;
+  padding: 6px 0;
+  border-radius: var(--r-ctl);
+  transition: background var(--d-quick) var(--ease-std);
+}
+
+.st-swatch:hover {
+  background: var(--well-2);
+}
+
+.st-swatch:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+.st-swatch-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-chip);
+  color: white;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.3), 0 4px 12px rgb(0 0 0 / 0.35);
+  transition: transform var(--d-enter) var(--spring-pop);
+}
+
+.st-swatch-dot .icon {
+  width: 17px;
+  height: 17px;
+  stroke-width: 2.8;
+}
+
+.st-swatch.on .st-swatch-dot {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 2px oklch(0.10 0.02 var(--accent-h)), 0 0 0 4px var(--t1), 0 6px 18px rgb(0 0 0 / 0.4);
+}
+
+.st-swatch-name {
+  font-size: 11.5px;
+  color: var(--t3);
+}
+
+.st-swatch.on .st-swatch-name {
+  color: var(--t1);
+  font-weight: 600;
+}
+
+
+/* Displays ----------------------------------------------------------------*/
+
+.st-row-art {
+  justify-content: center;
+  padding: 0;
+}
+
+.st-arrange {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  background: radial-gradient(ellipse at 50% 50%, oklch(0.70 0.18 var(--accent-h) / 0.10) 0%, transparent 70%);
+}
+
+.st-arrange-inner {
+  position: relative;
+}
+
+.st-screen {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 3px;
+  border-radius: 10px;
+  background: linear-gradient(160deg, oklch(0.30 0.05 var(--accent-h)), oklch(0.18 0.04 var(--accent-h)));
+  box-shadow: inset 0 0 0 1px var(--rim-strong), 0 10px 30px rgb(0 0 0 / 0.4);
+}
+
+.st-screen.primary {
+  background: linear-gradient(160deg, oklch(0.52 0.15 var(--accent-h)), oklch(0.36 0.14 var(--accent-h2)));
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.22), var(--glow);
+}
+
+.st-screen-name {
+  font-weight: 650;
+  font-size: var(--fs-body);
+}
+
+.st-screen-mode {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  color: rgb(255 255 255 / 0.72);
+}
+
+/* Keyboard ---------------------------------------------------------------*/
+
+.st-row-key {
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+.st-chords {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+
+.st-or {
+  font-size: 11px;
+  color: var(--t4);
+}
+
+.st-keys {
+  display: flex;
+  gap: 4px;
+}
+
+.st-keys kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--well-3), var(--well-2));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.10), inset 0 0 0 1px var(--rim), 0 2px 0 rgb(0 0 0 / 0.35);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--t1);
+}
+
+/* Default apps -------------------------------------------------------------*/
+
+.st-picker {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  width: 250px;
+  height: 40px;
+  padding: 0 var(--s3) 0 6px;
+  border-radius: var(--r-chip);
+  background: var(--well-2);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+  text-align: left;
+  font-weight: 550;
+  transition: background var(--d-quick) var(--ease-std);
+}
+
+.st-picker:hover {
+  background: var(--well-4);
+}
+
+.st-picker:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+.st-picker .st-app-icon {
+  width: 28px;
+  height: 28px;
+}
+
+/* About ---------------------------------------------------------------------*/
+
+.st-about {
+  display: flex;
+  align-items: center;
+  gap: var(--s5);
+  padding: var(--s5) var(--s5);
+  border-radius: var(--r-card);
+  background: linear-gradient(120deg, oklch(0.70 0.18 var(--accent-h) / 0.22), oklch(0.68 0.20 var(--accent-h2) / 0.12) 55%, var(--well));
+  box-shadow: inset 0 0 0 1px oklch(0.75 0.16 var(--accent-h) / 0.22), var(--rim-top);
+}
+
+.st-about-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 76px;
+  height: 76px;
+  flex: none;
+  border-radius: 24px;
+  background: var(--grad);
+  color: var(--on-accent);
+  box-shadow: var(--glow-strong), inset 0 1px 0 rgb(255 255 255 / 0.3);
+}
+
+.st-about-mark .icon {
+  width: 40px;
+  height: 40px;
+  stroke-width: 1.5;
+}
+
+.st-about-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.st-about-host {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.st-about-os {
+  font-size: var(--fs-title);
+  color: var(--t2);
+}
+
+.st-about-dev {
+  font-size: var(--fs-cap);
+  color: var(--t3);
+}
+
+.st-row-info .st-row-text {
+  flex: none;
+  width: 150px;
+}
+
+.st-row-info .st-row-control {
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-end;
+}
+
+.st-value {
+  color: var(--t2);
+  text-align: right;
+  white-space: pre-line;
+  line-height: 1.5;
+}
+
