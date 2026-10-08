@@ -33,6 +33,8 @@ helm/
 │   │   ├── popovers.css    # Quick settings, calendar + notification center, toasts, OSD
 │   │   ├── launcher.css    # Launcher overlay
 │   │   ├── dock.css        # Dock and window switcher
+│   │   ├── settings.css    # Settings window, cards, rows, controls
+│   │   ├── settings-views.css # Layout inside the settings pages
 │   │   └── lock.css        # Lock screen
 │   └── js/
 │       ├── shell.js        # Builds every surface, global hotkeys, window.helm
@@ -55,11 +57,16 @@ helm/
 │       ├── calc.js         # Arithmetic evaluator for the launcher
 │       ├── dock.js         # Dock: pinned + running apps, intellihide
 │       ├── switcher.js     # Alt+Tab window switcher
-│       └── lock.js         # Lock screen and password auth (bro.cred)
+│       ├── lock.js         # Lock screen and password auth (bro.cred)
+│       ├── dom.js          # DOM builder used by the Settings app
+│       └── settings/       # Settings app: controller, shared components, one view per page
+│                           # (sound, displays, network, power, appearance, keyboard, about)
 └── tests/
     ├── test_shell_boot.js      # Boot, bar, popovers, launcher, hotkeys, lock fails closed
     ├── test_notifications.js   # Toasts, history, actions, Do Not Disturb
-    └── test_dock.js            # Dock, intellihide, Alt+Tab over stand-in windows
+    ├── test_dock.js            # Dock, intellihide, Alt+Tab over stand-in windows
+    ├── test_settings.js        # Settings pages, search, entry points
+    └── test_shell_broker.js    # Windows shell broker bindings (skips elsewhere)
 ```
 
 ### Trusted Desktop Permissions
@@ -125,6 +132,7 @@ Use a scratch `XDG_CONFIG_HOME` and `HELM_CONFIG_DIR` when running by hand, so t
 | `Super+L` / `Ctrl+Alt+L` | Lock |
 | `Super+N` / `Ctrl+Shift+N` | Calendar and notification center |
 | `Super+S` | Quick settings |
+| `Super+,` / `Ctrl+,` | Settings |
 | `Super+1`..`9` | Switch workspace |
 | `Super+Q` | Close the focused window |
 | `Alt+Tab` / `Super+Tab` | Window switcher (release to switch) |

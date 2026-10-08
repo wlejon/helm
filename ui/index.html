@@ -9,6 +9,8 @@
   <link rel="stylesheet" href="css/popovers.css">
   <link rel="stylesheet" href="css/launcher.css">
   <link rel="stylesheet" href="css/dock.css">
+  <link rel="stylesheet" href="css/settings.css">
+  <link rel="stylesheet" href="css/settings-views.css">
   <link rel="stylesheet" href="css/lock.css">
 </head>
 <body class="desktop-root">
@@ -51,6 +53,27 @@
   <!-- data-shell-keyboard: while visible, keys go to the shell rather than
        the focused window. -->
   <div class="switcher hidden" id="switcher" data-shell-keyboard></div>
+
+  <div class="settings-overlay hidden" id="settings-modal" data-shell-keyboard role="dialog" aria-label="Settings">
+    <div class="settings-backdrop" id="settings-backdrop"></div>
+    <div class="settings-window">
+      <header class="settings-header">
+        <div class="settings-header-left"><span class="settings-app-title">Settings</span></div>
+        <div class="settings-header-search">
+          <label class="settings-search-box">
+            <span class="settings-search-icon"><i data-icon="search"></i></span>
+            <input type="text" class="settings-search-field" id="settings-search-input"
+                   placeholder="Search settings" autocomplete="off" spellcheck="false">
+          </label>
+        </div>
+        <button class="settings-close-button" id="settings-close-btn" title="Close (Esc)"><i data-icon="x"></i></button>
+      </header>
+      <div class="settings-body">
+        <nav class="settings-sidebar" id="settings-sidebar-list" aria-label="Settings categories"></nav>
+        <main class="settings-content-viewport" id="settings-content-viewport"></main>
+      </div>
+    </div>
+  </div>
 
   <div class="launcher-overlay hidden" id="launcher-modal" data-shell-keyboard></div>
 

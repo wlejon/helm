@@ -66,6 +66,7 @@ export class QuickSettings {
         h('span.qs-user-name', user),
         h('span.qs-user-sub', this.shell.hostname || 'Local session')),
       h('div.qs-head-actions',
+        h('button.icon-btn.round-fill', { title: 'Settings', onclick: () => this.shell.openSettings() }, icon('settings')),
         h('button.icon-btn.round-fill', { title: 'Lock', onclick: () => { this.close(); this.shell.lock.lock(); } }, icon('lock'))));
 
     // Sliders

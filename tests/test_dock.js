@@ -18,8 +18,8 @@ helm.windows.focus = (id) => {
   for (const w of W) w.focused = w.id === id;
   helm.windows.changed('focus');
 };
-helm.settings.set('pinnedApps', ['helm.terminal', 'firefox.desktop']);
-helm.settings.set('dockAutohide', false);
+helm.prefs.set('pinnedApps', ['helm.terminal', 'firefox.desktop']);
+helm.prefs.set('dockAutohide', false);
 helm.windows.changed('windows');
 settle(5);
 
@@ -42,7 +42,7 @@ assert(document.getElementById('bar-focused').textContent.includes('Firefox'), '
 
 // Autohide tucks the dock when a window covers it.
 W[0].frame = { x: 0, y: 34, width: 1920, height: 1046 };
-helm.settings.set('dockAutohide', true);
+helm.prefs.set('dockAutohide', true);
 helm.windows.changed('windows');
 settle(5);
 assert(document.getElementById('dock').classList.contains('tucked'), 'dock tucks behind an overlapping window');
@@ -68,6 +68,6 @@ assert(focused[focused.length - 1] === helm.switcher.list[2].id, 'releasing Alt 
 // Pin and unpin.
 helm.dock.setPinned('firefox.desktop', false);
 settle(2);
-assert(!helm.settings.get('pinnedApps').includes('firefox.desktop'), 'unpin removes it');
+assert(!helm.prefs.get('pinnedApps').includes('firefox.desktop'), 'unpin removes it');
 
 console.log('test_dock: all assertions passed');

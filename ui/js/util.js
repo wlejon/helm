@@ -83,8 +83,9 @@ export const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Fr
 export const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
   'August', 'September', 'October', 'November', 'December'];
 
-export function fmtTime(d, use24h = true) {
-  const m = String(d.getMinutes()).padStart(2, '0');
+export function fmtTime(d, use24h = true, seconds = false) {
+  let m = String(d.getMinutes()).padStart(2, '0');
+  if (seconds) m += `:${String(d.getSeconds()).padStart(2, '0')}`;
   if (use24h) return `${String(d.getHours()).padStart(2, '0')}:${m}`;
   const hr = d.getHours() % 12 || 12;
   return `${hr}:${m} ${d.getHours() < 12 ? 'AM' : 'PM'}`;

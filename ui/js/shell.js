@@ -21,11 +21,12 @@ import { LauncherController } from './launcher.js';
 import { LockController } from './lock.js';
 import { Dock } from './dock.js';
 import { Switcher } from './switcher.js';
+import { SettingsController } from './settings/settings_controller.js';
 
 export class Shell {
   constructor() {
     this.booted = false;
-    this.settings = settings;
+    this.prefs = settings;
     this.system = system;
     this.windows = windows;
     this.apps = appdb;
@@ -43,6 +44,9 @@ export class Shell {
     this.lock = new LockController(this);
     this.dock = new Dock(this);
     this.switcher = new Switcher(this);
+    // The Settings app; shell preferences live on this.prefs.
+    this.settings = new SettingsController();
+    this.overlays = new Set();
   }
 
   init() {
@@ -66,18 +70,40 @@ export class Shell {
       ['lock', () => this.lock.init()],
       ['dock', () => this.dock.init()],
       ['switcher', () => this.switcher.init()],
+      ['settings', () => this.settings.init()],
     ];
     // One surface failing to start must not take the rest of the desktop with it.
     for (const [name, fn] of steps) attempt(`init ${name}`, fn);
 
+    // window.helm first: views and controllers reach the shell through it.
+    window.helm = this;
     this.registerHotkeys();
+    this.registerNativeHotkeys();
     // Toasts give way while a popover or the launcher is up.
     window.addEventListener('helm:overlay', () => {
       $('#toast-stack').classList.toggle('suppressed', !!popovers.current || this.launcher.isOpen);
+      this.setModalActive('popover', !!popovers.current);
+      this.setModalActive('launcher', this.launcher.isOpen);
     });
     this.booted = true;
-    window.helm = this;
     window.dispatchEvent(new CustomEvent('helm:ready', { detail: { shell: this } }));
+  }
+
+  /**
+   * Track shell overlays that own input. Hosts that need to know (the Windows
+   * shell broker) get bro.setModalActive(anyOpen).
+   */
+  setModalActive(source, active) {
+    if (active) this.overlays.add(source);
+    else this.overlays.delete(source);
+    if (typeof bro !== 'undefined' && bro && typeof bro.setModalActive === 'function') {
+      attempt('bro.setModalActive', () => bro.setModalActive(this.overlays.size > 0));
+    }
+  }
+
+  openSettings(category) {
+    this.closeTransient();
+    this.settings.open(category);
   }
 
   applyAccent() {
@@ -90,6 +116,31 @@ export class Shell {
     this.menus.close();
     if (this.launcher.isOpen) this.launcher.close();
     if (this.switcher && this.switcher.isOpen) this.switcher.close();
+  }
+
+  /**
+   * Chords registered with the host, where it supports global hotkeys
+   * (bro.window.registerGlobalHotkey), so they work while a client window
+   * has the keyboard. The keydown handler below covers the shell's own focus.
+   */
+  registerNativeHotkeys() {
+    const win = api('window');
+    if (!win || typeof win.registerGlobalHotkey !== 'function') return;
+    const chords = [
+      ['CommandOrControl+Space', () => this.launcher.toggle()],
+      ['Alt+Space', () => this.launcher.toggle()],
+      ['CommandOrControl+Shift+N', () => this.calendar.toggle($('#bar-clock'))],
+      ['CommandOrControl+Alt+L', () => this.lock.lock()],
+      ['CommandOrControl+Alt+V', () => this.launcher.openClipboard()],
+      ['CommandOrControl+,', () => this.settings.toggle()],
+    ];
+    this.nativeHotkeys = [];
+    for (const [accel, fn] of chords) {
+      const id = attempt(`registerGlobalHotkey ${accel}`, () => win.registerGlobalHotkey(accel, () => {
+        if (!this.lock.isLocked) fn();
+      }));
+      if (id) this.nativeHotkeys.push(id);
+    }
   }
 
   cycleWallpaper() {
@@ -166,6 +217,8 @@ export class Shell {
       if (k === 's' && sup) return run(() => this.quick.toggle($('#bar-status')));
       // Super+1..9: workspaces
       if (sup && /^[1-9]$/.test(k)) return run(() => windows.switchToIndex(Number(k) - 1));
+      // Super+, / Ctrl+,: settings
+      if (k === ',' && (sup || e.ctrlKey)) return run(() => (this.settings.isOpen ? this.settings.close() : this.openSettings()));
       // Super+Q: close the focused window
       if (k === 'q' && sup) {
         return run(() => {
@@ -176,6 +229,7 @@ export class Shell {
 
       if (k === 'Escape') {
         if (this.menus.isOpen) return run(() => this.menus.close());
+        if (this.settings.isOpen) return run(() => this.settings.close());
         if (this.launcher.isOpen) return run(() => this.launcher.close());
         if (popovers.current) return run(() => popovers.close());
       }

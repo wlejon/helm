@@ -48,6 +48,8 @@ export class Bar {
 
     this.stopClock = everyMinute(() => this.renderClock());
     settings.watch('use24h', () => this.renderClock());
+    settings.watch('showSeconds', () => this.syncSecondsTick());
+    this.syncSecondsTick();
     system.on('audio', () => this.renderStatus());
     system.on('network', () => this.renderStatus());
     system.on('bluetooth', () => this.renderStatus());
@@ -67,7 +69,14 @@ export class Bar {
   renderClock() {
     const now = new Date();
     $('.clock-date', this.clockBtn).textContent = fmtDateShort(now);
-    $('.clock-time', this.clockBtn).textContent = fmtTime(now, settings.get('use24h'));
+    $('.clock-time', this.clockBtn).textContent = fmtTime(now, settings.get('use24h'), settings.get('showSeconds'));
+  }
+
+  /** A one-second tick only while the clock shows seconds. */
+  syncSecondsTick() {
+    clearInterval(this.secondsTimer);
+    this.secondsTimer = settings.get('showSeconds') ? setInterval(() => this.renderClock(), 1000) : 0;
+    this.renderClock();
   }
 
   /** Unread dot and do-not-disturb glyph beside the clock. */
@@ -179,5 +188,6 @@ export class Bar {
 
   destroy() {
     if (this.stopClock) this.stopClock();
+    clearInterval(this.secondsTimer);
   }
 }

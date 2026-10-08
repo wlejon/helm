@@ -53,6 +53,23 @@ assert(helm.launcher.entries[0].kind === 'calc' && helm.launcher.entries[0].titl
 helm.launcher.close();
 assert(!helm.launcher.isOpen, 'launcher closes');
 
+// Desktop substrates the shell builds on. Availability only: writing the
+// clipboard or the volume here would change the real machine.
+for (const ns of ['clip', 'pulse', 'mpris', 'ime', 'decor', 'compositor']) {
+  assert(typeof bro[ns] === 'object' && bro[ns] !== null, `bro.${ns} namespace exists`);
+}
+assert(Array.isArray(bro.mpris.getPlayers()), 'bro.mpris.getPlayers() returns an array');
+assert(bro.ime.feedKey('DeadAcute') && bro.ime.feedKey('e').text === 'é', 'bro.ime composes DeadAcute + e');
+assert(bro.decor.getDefaultMetrics().captionHeight > 0, 'bro.decor returns frame metrics');
+
+// Settings app
+helm.openSettings('appearance');
+settle(2);
+assert(helm.settings.isOpen, 'settings opens');
+assert(document.querySelectorAll('#settings-sidebar-list .settings-nav-item').length === 7, 'settings lists its categories');
+window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+assert(!helm.settings.isOpen, 'Escape closes settings');
+
 // Hotkeys
 const key = (opts) => window.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, ...opts }));
 key({ key: ' ', ctrlKey: true });
@@ -63,6 +80,10 @@ key({ key: 'n', ctrlKey: true, shiftKey: true });
 assert(helm.calendar.isOpen, 'Ctrl+Shift+N opens the notification center');
 key({ key: 'Escape' });
 assert(!helm.calendar.isOpen, 'Escape closes the notification center');
+key({ key: ',', ctrlKey: true });
+assert(helm.settings.isOpen, 'Ctrl+, opens settings');
+key({ key: ',', ctrlKey: true });
+assert(!helm.settings.isOpen, 'Ctrl+, closes settings');
 
 // Lock screen. bro.cred.authenticate is replaced: the real one asks PAM about
 // the account running the test, and a wrong password there is a real failed

@@ -42,10 +42,12 @@ export class LauncherController {
   get actions() {
     const s = this.shell;
     return [
+      { name: 'Settings', desc: 'Sound, displays, network, power, appearance', icon: 'settings', run: () => s.openSettings() },
+      { name: 'Appearance', desc: 'Wallpaper, accent colour, clock, dock', icon: 'palette', run: () => s.openSettings('appearance') },
       { name: 'Lock Screen', desc: 'Lock this session', icon: 'lock', run: () => s.lock.lock() },
       { name: 'Clipboard History', desc: 'Recent copied items', icon: 'clipboard', keep: true, run: () => this.openClipboard() },
       { name: 'Notifications', desc: 'Open the notification center', icon: 'bell', run: () => s.calendar.toggle($('#bar-clock')) },
-      { name: 'Quick Settings', desc: 'Sound, network, Bluetooth, power', icon: 'settings', run: () => s.quick.toggle($('#bar-status')) },
+      { name: 'Quick Settings', desc: 'Sound, network, Bluetooth, power', icon: 'layout', run: () => s.quick.toggle($('#bar-status')) },
       { name: 'Do Not Disturb', desc: s.notify.dnd ? 'Turn off' : 'Turn on', icon: 'bell-off', run: () => s.notify.setDnd(!s.notify.dnd) },
       { name: 'Sleep', desc: 'Suspend the computer', icon: 'moon', run: () => s.system.request('suspend') },
       { name: 'Restart', desc: 'Restart the computer', icon: 'restart', run: () => s.system.request('reboot') },

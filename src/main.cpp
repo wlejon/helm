@@ -17,6 +17,16 @@
 #define HELM_VERSION "0.1.0"
 #endif
 
+#if defined(_WIN32)
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
+#include "win_shell_broker.h"
+#include "platform/desktop_platform.h"
+#include "platform/sdl_window.h"
+#include "bronze_host/host_runtime.h"
+#endif
+
 namespace {
 
 const char* kUsage =
@@ -25,6 +35,7 @@ const char* kUsage =
     "Usage: helm [options]\n"
     "\n"
     "Options:\n"
+    "      --shell            Run as primary OS desktop shell (reserves work area, borderless)\n"
     "      --drm              Run bare-metal on Linux DRM/KMS display with seat\n"
     "      --windowed         Run inside a windowed desktop session (default)\n"
     "      --no-gpu           Render on the CPU (software rasterizer)\n"
@@ -40,6 +51,7 @@ int main(int argc, char* argv[]) {
     bool noGpu = false;
     bool drmMode = false;
     bool windowedMode = false;
+    bool shellMode = false;
 
     for (int i = 1; i < argc; ++i) {
         if (std::strcmp(argv[i], "-h") == 0 || std::strcmp(argv[i], "--help") == 0) {
@@ -54,6 +66,8 @@ int main(int argc, char* argv[]) {
             drmMode = true;
         } else if (std::strcmp(argv[i], "--windowed") == 0) {
             windowedMode = true;
+        } else if (std::strcmp(argv[i], "--shell") == 0) {
+            shellMode = true;
         } else if (std::strcmp(argv[i], "--no-gpu") == 0) {
             noGpu = true;
         }
@@ -81,22 +95,101 @@ int main(int argc, char* argv[]) {
     config.title = "Helm Desktop";
     config.showSplash = false;
     config.isShellApp = true;
+#if defined(_WIN32)
+    // Winlogon starts custom shells without a console attached.
+    // Redirect stderr to helm.log so all diagnostics, errors, and crash reports are persisted.
+    std::error_code ec;
+    std::filesystem::create_directories(cfgDir, ec);
+    std::string logFilePath = (std::filesystem::path(cfgDir) / "helm.log").string();
+    FILE* logFp = nullptr;
+    if (freopen_s(&logFp, logFilePath.c_str(), "a", stderr) == 0 && logFp) {
+        setvbuf(logFp, nullptr, _IONBF, 0);
+    }
+
+    SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+    HWND trayHwnd = FindWindowW(L"Shell_TrayWnd", nullptr);
+    const bool isStandaloneShell = !windowedMode && (shellMode || (trayHwnd == nullptr));
+    LOG_INFO("Helm %s starting (PID %lu, standalone=%s, trayFound=%s)",
+             HELM_VERSION,
+             GetCurrentProcessId(),
+             isStandaloneShell ? "true" : "false",
+             trayHwnd != nullptr ? "true" : "false");
+
+    if (isStandaloneShell) {
+        int screenW = GetSystemMetrics(SM_CXSCREEN);
+        int screenH = GetSystemMetrics(SM_CYSCREEN);
+        if (screenW > 0 && screenH > 0) {
+            config.graphics.width = screenW;
+            config.graphics.height = screenH;
+        }
+        config.graphics.windowX = 0;
+        config.graphics.windowY = 0;
+        config.graphics.borderless = true;
+        config.graphics.resizable = false;
+        config.graphics.alwaysOnTop = false;
+        helm::WinShellBroker::init(40);
+        LOG_INFO("Configured standalone shell borderless window: %dx%d at (%d, %d)",
+                 config.graphics.width, config.graphics.height,
+                 config.graphics.windowX, config.graphics.windowY);
+    }
+
+    config.installHostBindings = [](bro::engine::Engine& engine) {
+        helm::WinShellBroker::installHostBindings(engine);
+    };
+#endif
+
     const char* existingTrusted = std::getenv("BRO_TRUSTED_APP_DIR");
     std::string trustedDirs = config.appDir;
     if (existingTrusted && *existingTrusted) {
+#if defined(_WIN32)
+        trustedDirs += ";" + std::string(existingTrusted);
+#else
         trustedDirs += ":" + std::string(existingTrusted);
+#endif
     }
+#if defined(_WIN32)
+    _putenv_s("BRO_TRUSTED_APP_DIR", trustedDirs.c_str());
+#else
     ::setenv("BRO_TRUSTED_APP_DIR", trustedDirs.c_str(), 1);
+#endif
     bro::engine::publishLaunchEnv(config);
 
     try {
         bro::engine::Engine engine(config);
+#if defined(_WIN32)
+        if (isStandaloneShell) {
+            if (engine.window()) {
+                HWND hwnd = bro::platform::desktop::hwndOf(engine.window()->getSDLWindow());
+                if (hwnd) {
+                    helm::WinShellBroker::attachWindow(hwnd);
+                }
+            }
+            engine.addFramePump([&engine]() {
+                static bool attached = false;
+                if (!attached && engine.window()) {
+                    HWND hwnd = bro::platform::desktop::hwndOf(engine.window()->getSDLWindow());
+                    if (hwnd) {
+                        helm::WinShellBroker::attachWindow(hwnd);
+                        attached = true;
+                    }
+                }
+                helm::WinShellBroker::tick();
+            });
+        }
+#endif
         engine.run();
     } catch (const std::exception& e) {
         LOG_ERROR("helm: fatal: %s", e.what());
         std::fprintf(stderr, "Fatal error: %s\n", e.what());
+#if defined(_WIN32)
+        helm::WinShellBroker::restore();
+#endif
         return 1;
     }
+
+#if defined(_WIN32)
+    helm::WinShellBroker::restore();
+#endif
 
     bro::bronze_host::flushHostStorage();
     return 0;

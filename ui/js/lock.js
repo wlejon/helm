@@ -79,7 +79,7 @@ export class LockController {
     this.el.classList.add('entering');
     setTimeout(() => this.el.classList.remove('entering'), 400);
     setTimeout(() => this.input.focus(), 0);
-    const seat = api('seat');
+    const seat = sessionSeat();
     if (!fromSeat && seat && typeof seat.lock === 'function') {
       this.requestedAt = Date.now();
       try { seat.lock(); } catch (_) {}
@@ -95,7 +95,7 @@ export class LockController {
       if (!this.isLocked) this.el.classList.add('hidden');
       this.el.classList.remove('leaving');
     }, 300);
-    const seat = api('seat');
+    const seat = sessionSeat();
     if (seat && typeof seat.unlock === 'function') {
       try { seat.unlock(); } catch (_) {}
     }
@@ -144,4 +144,14 @@ export class LockController {
   destroy() {
     if (this.stopClock) this.stopClock();
   }
+}
+
+/**
+ * bro.seat, except under test: a headless run or HELM_TEST must not lock or
+ * unlock the real login session of whoever runs it.
+ */
+function sessionSeat() {
+  const testing = (typeof process !== 'undefined' && process.env && process.env.HELM_TEST)
+    || typeof screenshot === 'function';
+  return testing ? null : api('seat');
 }

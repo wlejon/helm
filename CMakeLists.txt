@@ -80,6 +80,9 @@ add_subdirectory("${BRO_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/bro")
 set(HELM_COMMON_SOURCES
     src/paths.cpp
 )
+if(WIN32)
+    list(APPEND HELM_COMMON_SOURCES src/win_shell_broker.cpp)
+endif()
 
 # Windowed desktop application executable
 add_executable(helm WIN32
@@ -89,6 +92,9 @@ add_executable(helm WIN32
 target_include_directories(helm PRIVATE "${BRO_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_compile_definitions(helm PRIVATE HELM_VERSION="${PROJECT_VERSION}")
 target_link_libraries(helm PRIVATE bro_engine bro_bronze_host bro_bronze_js bronze::runtime_shared)
+if(WIN32)
+    target_link_libraries(helm PRIVATE comctl32)
+endif()
 bro_bronze_stage_runtime(helm)
 
 # Headless desktop application test driver executable
@@ -102,12 +108,12 @@ target_link_libraries(helm-headless PRIVATE bro_engine bro_bronze_host bro_bronz
 bro_bronze_stage_runtime(helm-headless)
 
 if(MSVC)
-    target_link_options(helm PRIVATE /STACK:8388608 /ENTRY:mainCRTStartup)
-    target_link_options(helm-headless PRIVATE /STACK:8388608)
+    target_link_options(helm PRIVATE /STACK:33554432 /ENTRY:mainCRTStartup)
+    target_link_options(helm-headless PRIVATE /STACK:33554432)
 endif()
 if(WIN32)
-    target_link_libraries(helm PRIVATE ws2_32 advapi32 shell32 ole32)
-    target_link_libraries(helm-headless PRIVATE ws2_32 advapi32 shell32 ole32)
+    target_link_libraries(helm PRIVATE ws2_32 advapi32 shell32 ole32 comctl32)
+    target_link_libraries(helm-headless PRIVATE ws2_32 advapi32 shell32 ole32 comctl32)
 endif()
 
 # Stage ui/ beside the executables in build tree
@@ -115,6 +121,9 @@ add_custom_target(helm_stage_ui ALL
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/ui"
         "$<TARGET_FILE_DIR:helm>/ui"
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/ui"
+        "$<TARGET_FILE_DIR:helm>/system/helm"
     COMMENT "Staging ui/ beside helm executable"
 )
 add_dependencies(helm helm_stage_ui)
