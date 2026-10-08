@@ -72,7 +72,8 @@ try {
   assert(document.querySelectorAll('#window-frames [data-window-frame]').length === 2, 'two frames');
   assert(frame(a.id).querySelector('.wf-title').textContent === 'notes.txt', 'title shown');
   assert(frame(a.id).querySelector('.wf-icon'), 'app icon shown');
-  assert(frame(a.id).querySelectorAll('.wf-btn').length === 3, 'minimize, maximize and close');
+  assert(frame(a.id).querySelectorAll('.wf-bar .wf-btn').length === 3, 'minimize, maximize and close');
+  assert(frame(a.id).querySelectorAll('.wf-pill .wf-btn').length === 3, 'and the same in the borderless corner');
 
   C.moveWindow(a.id, { x: 200, y: 330, width: 700, height: 480 });
   C.moveWindow(b.id, { x: 1000, y: 200, width: 700, height: 480 });
@@ -133,7 +134,7 @@ try {
   click(bo2.x + 200, bo2.y + 14);
   waitFor(() => win(b.id).maximized, 'double-click on the title maximizes');
   waitFor(() => win(b.id).frame.y === 0, 'the maximized window reaches the top');
-  settle(5);
+  settle(20);  // past the glide into place
   const barTop = document.getElementById('bar').getBoundingClientRect().top;
   const mf = win(b.id).frame;
   assert(mf.x === 0 && mf.y === 0 && mf.width === window.innerWidth && mf.y + mf.height === barTop,
@@ -167,13 +168,13 @@ try {
   assert(corner.querySelector('.wf-title').textContent === 'Viewer', 'the corner names the window');
   assert(click(...center(pillMax)) === true, 'a press on the corner controls reaches the shell');
   waitFor(() => !win(b.id).maximized, 'the corner restore button restores');
-  settle(5);
+  settle(20);
   assert(!fb.hasAttribute('data-window-borderless'), 'restored: the trim is back');
 
   // Maximize button, then minimize, then close from the corner.
   click(...center(fb.querySelector('.wf-bar .wf-max')));
   waitFor(() => win(b.id).maximized && win(b.id).frame.y === 0, 'maximize button maximizes');
-  settle(5);
+  settle(20);
   openCorner();
   click(...center(corner.querySelector('.wf-min')));
   waitFor(() => win(b.id).minimized, 'the corner minimize button minimizes');
@@ -181,7 +182,7 @@ try {
   assert(fb.style.display === 'none', 'a minimized window shows no frame');
   helm.windows.focus(b.id);
   waitFor(() => !win(b.id).minimized, 'b back');
-  settle(5);
+  settle(20);
 
   // Super+. brings the same controls up from the keyboard.
   window.dispatchEvent(new KeyboardEvent('keydown', { key: '.', metaKey: true, bubbles: true }));
@@ -261,3 +262,4 @@ try {
   for (const ch of children) ch.kill();
 }
 if (failed) throw new Error('test_frames failed');
+console.log('test_frames: all assertions passed');

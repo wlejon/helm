@@ -253,10 +253,15 @@
   display: none;
 }
 
+/* The room the pill lays out in (it takes the pointer itself only where its
+   children do). */
 .wf-corner {
   position: absolute;
   top: 0;
   right: 0;
+  width: 380px;
+  max-width: 100%;
+  height: 40px;
   display: none;
   pointer-events: none;
 }
@@ -309,7 +314,8 @@
 }
 
 .wf-pill .wf-title {
-  max-width: 200px;
+  flex: 0 1 auto;
+  max-width: 220px;
   color: var(--t1);
 }
 

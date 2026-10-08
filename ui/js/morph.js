@@ -188,7 +188,8 @@ class PanelManager {
       el.style.top = 'auto';
       el.style.bottom = `${Math.round(window.innerHeight - r.bottom)}px`;
     }
-    left = Math.max(8, Math.min(vw - w - 8, left));
+    // Kept on screen, no closer to its edges than the bar's islands are.
+    left = Math.max(6, Math.min(vw - w - 6, left));
     el.style.left = `${Math.round(left)}px`;
     el.style.right = 'auto';
   }
