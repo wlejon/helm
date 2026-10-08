@@ -69,13 +69,60 @@ class WindowState {
 
   focus(id) {
     const c = api('compositor');
-    if (c) attempt('compositor.focusWindow', () => c.focusWindow(id));
+    if (!c) return;
+    // A minimized window comes back first (restoring also focuses it).
+    const w = attempt('compositor.getWindow', () => c.getWindow(id), null);
+    if (w && w.minimized && typeof c.restoreWindow === 'function') {
+      attempt('compositor.restoreWindow', () => c.restoreWindow(id));
+      this.changed('windows');
+      return;
+    }
+    attempt('compositor.focusWindow', () => c.focusWindow(id));
     this.changed('focus');
   }
 
   close(id) {
     const c = api('compositor');
     if (c) attempt('compositor.closeWindow', () => c.closeWindow(id));
+  }
+
+  /** Whether the compositor offers window states (minimize / maximize / restore). */
+  hasStates() {
+    const c = api('compositor');
+    return !!c && typeof c.maximizeWindow === 'function';
+  }
+
+  minimize(id) {
+    const c = api('compositor');
+    if (c && typeof c.minimizeWindow === 'function') attempt('compositor.minimizeWindow', () => c.minimizeWindow(id));
+    this.changed('windows');
+  }
+
+  maximize(id) {
+    const c = api('compositor');
+    if (c && typeof c.maximizeWindow === 'function') attempt('compositor.maximizeWindow', () => c.maximizeWindow(id));
+    this.changed('windows');
+  }
+
+  restore(id) {
+    const c = api('compositor');
+    if (c && typeof c.restoreWindow === 'function') attempt('compositor.restoreWindow', () => c.restoreWindow(id));
+    this.changed('windows');
+  }
+
+  /**
+   * Reserve a band along a screen edge for a shell panel, so maximized and
+   * tiled windows stay clear of it. Returns the reservation id (0: none).
+   */
+  reserveEdge(edge, thickness) {
+    const c = api('compositor');
+    if (!c || typeof c.reserveEdge !== 'function' || !(thickness > 0)) return 0;
+    return attempt(`compositor.reserveEdge ${edge}`, () => c.reserveEdge(edge, Math.round(thickness)), 0) || 0;
+  }
+
+  releaseEdge(id) {
+    const c = api('compositor');
+    if (id && c && typeof c.releaseEdge === 'function') attempt('compositor.releaseEdge', () => c.releaseEdge(id));
   }
 
   switchWorkspace(id) {

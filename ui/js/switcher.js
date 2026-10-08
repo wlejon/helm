@@ -48,6 +48,16 @@ export class Switcher {
     this.el.classList.remove('hidden');
   }
 
+  /**
+   * One Tab of Alt+Tab / Super+Tab (Shift: backwards): opens the switcher,
+   * or moves the selection while it is open. `modifier` is the key whose
+   * release commits ('Alt' or 'Meta').
+   */
+  step(modifier, dir) {
+    if (this.isOpen) this.move(dir);
+    else this.open(modifier, dir);
+  }
+
   render() {
     const cards = this.list.map((w, i) => {
       const app = appdb.forWindow(w.appId, w.title);
@@ -88,9 +98,7 @@ export class Switcher {
     if (e.key === 'Tab' && (e.altKey || e.metaKey)) {
       e.preventDefault();
       e.stopPropagation();
-      const step = e.shiftKey ? -1 : 1;
-      if (this.isOpen) this.move(step);
-      else this.open(e.metaKey ? 'Meta' : 'Alt', step);
+      this.step(e.metaKey ? 'Meta' : 'Alt', e.shiftKey ? -1 : 1);
       return;
     }
     if (!this.isOpen) return;

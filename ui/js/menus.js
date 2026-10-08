@@ -28,7 +28,9 @@ export class Menus {
 
   show(items, x, y, { onClose } = {}) {
     this.close();
-    const el = h('div.menu', { role: 'menu' });
+    // data-shell-keyboard: while a menu is open the keyboard is the shell's
+    // (Escape closes it) rather than the focused window's.
+    const el = h('div.menu', { role: 'menu', 'data-shell-keyboard': true });
     for (const it of items) {
       if (!it) continue;
       if (it.separator) {

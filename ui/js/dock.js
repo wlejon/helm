@@ -52,10 +52,27 @@ export class Dock {
     windows.on('workspaces', () => this.render());
     appdb.onChange(() => this.render());
     settings.watch('pinnedApps', () => this.render());
-    settings.watch('dockAutohide', () => this.updateVisibility());
+    settings.watch('dockAutohide', () => {
+      this.updateVisibility();
+      this.syncReservation();
+    });
     window.addEventListener('helm:launched', (e) => this.markLaunching(e.detail.id));
     window.addEventListener('helm:overlay', () => this.updateVisibility());
     this.render();
+    this.syncReservation();
+  }
+
+  /**
+   * A dock that stays up keeps its band: maximized windows stop above it.
+   * An auto-hiding one steps aside instead, so it reserves nothing.
+   */
+  syncReservation() {
+    windows.releaseEdge(this.reservation);
+    this.reservation = 0;
+    if (settings.get('dockAutohide')) return;
+    const top = this.inner.getBoundingClientRect().top;
+    const band = Math.round(window.innerHeight - top);
+    if (band > 0 && band < window.innerHeight / 2) this.reservation = windows.reserveEdge('bottom', band);
   }
 
   pinned() {
@@ -156,6 +173,16 @@ export class Dock {
       items.push(pinned
         ? { label: 'Unpin from Dock', icon: 'pin', action: () => this.setPinned(app.id, false) }
         : { label: 'Pin to Dock', icon: 'pin', action: () => this.setPinned(app.id, true) });
+    }
+    if (wins.length === 1 && windows.hasStates()) {
+      const w = wins[0];
+      items.push({ separator: true });
+      items.push(w.minimized
+        ? { label: 'Restore', icon: 'window-minimize', action: () => windows.restore(w.id) }
+        : { label: 'Minimize', icon: 'window-minimize', action: () => windows.minimize(w.id) });
+      items.push(w.maximized || w.fullscreen
+        ? { label: 'Unmaximize', icon: 'maximize', action: () => windows.restore(w.id) }
+        : { label: 'Maximize', icon: 'maximize', action: () => windows.maximize(w.id) });
     }
     if (wins.length) {
       items.push({ separator: true });
