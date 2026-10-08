@@ -138,6 +138,10 @@ install(FILES $<TARGET_FILE:bronze_runtime_shared> DESTINATION ${CMAKE_INSTALL_B
 
 # ---- Tests --------------------------------------------------------------------
 enable_testing()
+# Tests that need real Wayland clients (test_frames.js) spawn brocompositor's
+# test client from here; they skip when it is absent.
+set(BC_TEST_CLIENT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../brocompositor/build-release/tests"
+    CACHE PATH "Directory holding brocompositor's bc_wl_client test client")
 file(GLOB _helm_tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_*.js")
 foreach(_t IN LISTS _helm_tests)
     get_filename_component(_name "${_t}" NAME_WE)
@@ -148,8 +152,13 @@ foreach(_t IN LISTS _helm_tests)
     add_test(NAME ui-${_name}
              COMMAND helm-headless --width 1920 --height 1080
                      "${CMAKE_CURRENT_SOURCE_DIR}/ui" "${_t}")
+    set(_env "BRO_TRUSTED_APP_DIR=${CMAKE_CURRENT_SOURCE_DIR}/ui;HELM_CONFIG_DIR=${_cfg};XDG_CONFIG_HOME=${_cfg}/xdg;HELM_TEST=1")
+    if(_name STREQUAL "frames")
+        # The DRM shell host's compositor and input router, headless.
+        list(APPEND _env "BRO_HEADLESS_COMPOSITOR=1" "BC_TEST_CLIENT_DIR=${BC_TEST_CLIENT_DIR}")
+    endif()
     set_tests_properties(ui-${_name} PROPERTIES
-        ENVIRONMENT "BRO_TRUSTED_APP_DIR=${CMAKE_CURRENT_SOURCE_DIR}/ui;HELM_CONFIG_DIR=${_cfg};XDG_CONFIG_HOME=${_cfg}/xdg;HELM_TEST=1"
+        ENVIRONMENT "${_env}"
         FIXTURES_REQUIRED cfg-${_name}
         SKIP_RETURN_CODE 77
         TIMEOUT 180)

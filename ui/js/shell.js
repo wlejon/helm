@@ -25,6 +25,7 @@ import { LauncherController } from './launcher.js';
 import { LockController } from './lock.js';
 import { Dock } from './dock.js';
 import { Switcher } from './switcher.js';
+import { Frames } from './frames.js';
 import { SettingsApp } from './settings/app.js';
 import { chordOf, hotkeyFor, nativeChords } from './hotkeys.js';
 
@@ -51,6 +52,7 @@ export class Shell {
     this.lock = new LockController(this);
     this.dock = new Dock(this);
     this.switcher = new Switcher(this);
+    this.frames = new Frames(this);
     // The Settings app plugs in through registerSettingsApp() when it
     // starts; shell preferences live on this.prefs.
     this.settingsApp = null;
@@ -82,6 +84,7 @@ export class Shell {
       ['lock', () => this.lock.init()],
       ['dock', () => this.dock.init()],
       ['switcher', () => this.switcher.init()],
+      ['frames', () => this.frames.init()],
       ['activities', () => this.watchMedia()],
       ['edges', () => this.reserveEdges()],
     ];
@@ -252,6 +255,12 @@ export class Shell {
   closeFocused() {
     const w = windows.focused();
     if (w) windows.close(w.id);
+  }
+
+  /** Super+arrows: snap, maximize, restore or minimize the focused window. */
+  snapFocused(dir) {
+    const w = windows.focused();
+    if (w) windows.snapToward(w.id, dir);
   }
 
   launcherOrigin() {

@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="css/notify.css">
   <link rel="stylesheet" href="css/launcher.css">
   <link rel="stylesheet" href="css/dock.css">
+  <link rel="stylesheet" href="css/frames.css">
   <link rel="stylesheet" href="css/settings.css">
   <link rel="stylesheet" href="css/settings-pages.css">
   <link rel="stylesheet" href="css/lock.css">
@@ -17,6 +18,12 @@
 <body class="desktop-root">
   <!-- Desktop level (z-index < 1000): drawn under client windows. -->
   <div class="desktop-wallpaper" id="wallpaper"></div>
+
+  <!-- Window frames (js/frames.js): one [data-window-frame] per decorated
+       window. bro positions each on its window and paints it just below
+       that window in the stacking order, so this container stays at desktop
+       level and never takes the pointer itself. -->
+  <div class="window-frames" id="window-frames"></div>
 
   <!-- Shell overlays (z-index >= 1000) draw over client windows. Older bro
        builds route DRM input by the ids top-panel, launcher-modal and
@@ -47,6 +54,10 @@
   <section class="panel quick-popup glass deep hidden" id="spaces-panel" data-shell-keyboard></section>
   <section class="panel quick-popup glass deep hidden" id="center-panel" data-shell-keyboard></section>
   <section class="panel quick-popup glass deep hidden" id="quick-settings" data-shell-keyboard></section>
+
+  <!-- Where a dragged window will land when it snaps: over every window,
+       under the dock and islands, never hit. -->
+  <div class="snap-preview hidden" id="snap-preview"></div>
 
   <nav class="dock" id="dock"></nav>
   <div class="dock-edge hidden" id="dock-edge"></div>

@@ -110,6 +110,54 @@ class WindowState {
     this.changed('windows');
   }
 
+  /** Maximize, or restore a maximized window (a snapped half maximizes). */
+  toggleMaximize(id) {
+    const c = api('compositor');
+    const w = c ? attempt('compositor.getWindow', () => c.getWindow(id), null) : null;
+    if (!w) return;
+    if (w.maximized) this.restore(id);
+    else this.maximize(id);
+  }
+
+  /**
+   * The Super+arrow step: 'left' / 'right' snap to that half (from the other
+   * half, restore), 'up' maximizes, 'down' restores a maximized or snapped
+   * window and minimizes a normal one. The compositor owns the rules.
+   */
+  snapToward(id, dir) {
+    const c = api('compositor');
+    if (!c || id == null || typeof c.snapWindowToward !== 'function') return false;
+    const ok = attempt(`compositor.snapWindowToward ${dir}`, () => c.snapWindowToward(id, dir), false);
+    this.changed('windows');
+    return !!ok;
+  }
+
+  /** Fit a window to a zone of its work area ('left', 'right', 'maximize', 'none'...). */
+  snap(id, zone) {
+    const c = api('compositor');
+    if (c && typeof c.snapWindow === 'function') attempt(`compositor.snapWindow ${zone}`, () => c.snapWindow(id, zone));
+    this.changed('windows');
+  }
+
+  /** Whether the compositor draws shell frames (bro with setDecorations). */
+  hasFrames() {
+    const c = api('compositor');
+    return !!c && typeof c.setDecorations === 'function' && typeof c.beginMove === 'function';
+  }
+
+  /** Start an interactive move from a press on a window's title bar. */
+  beginMove(id) {
+    const c = api('compositor');
+    return !!c && typeof c.beginMove === 'function' && !!attempt('compositor.beginMove', () => c.beginMove(id), false);
+  }
+
+  /** Start an interactive resize from a press on a frame edge ('top left', 'bottom'...). */
+  beginResize(id, edges) {
+    const c = api('compositor');
+    return !!c && typeof c.beginResize === 'function'
+      && !!attempt('compositor.beginResize', () => c.beginResize(id, edges), false);
+  }
+
   /**
    * Reserve a band along a screen edge for a shell panel, so maximized and
    * tiled windows stay clear of it. Returns the reservation id (0: none).
