@@ -125,7 +125,10 @@ Helm is a privileged desktop shell. Its `ui/bro.json` asks for `"shell": true`, 
 - CMake 3.24+
 - Ninja build system
 - C++20 compliant compiler (GCC 12+, Clang 16+, MSVC 2022)
-- Sibling repositories cloned beside `helm/` (primarily `bro` at `../bro`)
+- Nothing else to check out: bro is a `bro_dependency()` pin in `CMakeLists.txt`
+  (`cmake/bro_deps.cmake`), taken from `../bro` when that working tree exists and otherwise
+  fetched at configure (override with `-DFETCHCONTENT_SOURCE_DIR_BRO=<path>`); bro pins and
+  fetches its own dependencies the same way
 
 ### Build
 ```bash
@@ -145,8 +148,8 @@ Launch bare-metal on Linux DRM/KMS:
 ```
 
 Host the screen for a remote viewer (`broremote-view` from
-[broremote](../broremote), which must be checked out beside `helm/` when
-building). `--remote=NAME` picks the socket name; the `remoteHost` setting
+[broremote](https://github.com/wlejon/broremote); the host side builds into
+helm through bro's pin). `--remote=NAME` picks the socket name; the `remoteHost` setting
 (`helm.shell.remoteHost`) hosts without the flag:
 ```bash
 ./build/helm --drm --remote

@@ -40,21 +40,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # ---- bro engine resolution ---------------------------------------------------
-if(NOT DEFINED BRO_DIR)
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../bro/CMakeLists.txt")
-        set(_helm_bro_default "${CMAKE_CURRENT_SOURCE_DIR}/../bro")
-    else()
-        set(_helm_bro_default "${CMAKE_CURRENT_SOURCE_DIR}/third_party/bro")
-    endif()
-    get_filename_component(_helm_bro_default "${_helm_bro_default}" ABSOLUTE)
-    set(BRO_DIR "${_helm_bro_default}" CACHE PATH "bro engine source tree")
-endif()
-if(NOT EXISTS "${BRO_DIR}/CMakeLists.txt")
-    message(FATAL_ERROR
-        "helm needs bro: not found at ${BRO_DIR}. Clone https://github.com/wlejon/bro "
-        "beside this repo or pass -DBRO_DIR=<path>.")
-endif()
-message(STATUS "helm: bro from ${BRO_DIR}")
+# A bro_dependency (cmake/bro_deps.cmake): the ../bro working tree beside this
+# repo, else the commit pinned below, fetched at configure;
+# -DFETCHCONTENT_SOURCE_DIR_BRO=<path> picks another tree. bro pins every
+# library it builds itself, so helm pins only bro.
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/bro_deps.cmake)
 
 # Feature profile: desktop
 set(BRO_PROFILE "desktop" CACHE STRING "bro feature profile")
@@ -73,11 +63,12 @@ set(BRO_WITH_CLIP ON CACHE BOOL "Clipboard history")
 set(BRO_WITH_MPRIS ON CACHE BOOL "Media player integration")
 set(BRO_WITH_PULSE ON CACHE BOOL "PipeWire audio policy")
 set(BRO_WITH_IME ON CACHE BOOL "Input method engine")
-# bro.remote: `helm --remote` hosts the screen for broremote-view (needs a
-# ../broremote checkout; without one bro turns it off and says so).
+# bro.remote: `helm --remote` hosts the screen for broremote-view (bro pins
+# broremote like its other dependencies).
 set(BRO_WITH_REMOTE ON CACHE BOOL "Remote session hosting (broremote)")
 
-add_subdirectory("${BRO_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/bro")
+bro_dependency(bro GITHUB wlejon/bro REF 9ab08048a8f5ea7247715d821a596f72d68a5405 TARGET bro_engine)
+set(BRO_DIR "${bro_SOURCE_DIR}")
 
 # ---- helm sources & executables ----------------------------------------------
 set(HELM_COMMON_SOURCES
