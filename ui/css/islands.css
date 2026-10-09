@@ -33,6 +33,11 @@
   box-shadow: var(--rim-top), 0 -8px 30px rgb(0 0 0 / 0.28);
 }
 
+/* A focused fullscreen window covers it (shell.js syncFullscreen). */
+body.app-fullscreen .bar {
+  visibility: hidden;
+}
+
 .island {
   position: absolute;
   bottom: var(--island-gap);

@@ -5,7 +5,7 @@
  * tray and the status glyphs; it grows into quick settings.
  */
 
-import { h, $, api, attempt, listen, everyMinute, fmtTime, appIcon } from './util.js';
+import { h, $, api, attempt, listen, everyMinute, fmtTime, appIcon, windowIcon } from './util.js';
 import { icon } from './icons.js';
 import { settings } from './settings.js';
 import { system, volumeIcon, networkIcon } from './system.js';
@@ -167,7 +167,7 @@ export class Islands {
     const name = app ? app.name : (w.appId || w.title || '');
     this.focusedEl.classList.remove('hidden');
     this.focusedEl.replaceChildren(
-      appIcon(app ? app.icon : w.appId, name, 32),
+      windowIcon(w, app, name, 32),
       h('span.focused-title', name),
     );
     this.focusedEl.title = `${w.title || name} · Spaces (Super+W)`;

@@ -76,7 +76,12 @@ class AppDb {
     const apps = api('apps');
     if (!apps) return;
     attempt(`apps.launch ${id}`, () => {
-      const p = apps.launch(id);
+      // An xdg-activation token, so the window it opens takes focus as one
+      // the user asked for (the client spends it on its first window).
+      const comp = api('compositor');
+      const token = comp && typeof comp.activationToken === 'function' ? comp.activationToken(id) : null;
+      const opts = token ? { env: { XDG_ACTIVATION_TOKEN: token, DESKTOP_STARTUP_ID: token } } : undefined;
+      const p = opts ? apps.launch(id, opts) : apps.launch(id);
       if (p && typeof p.catch === 'function') p.catch((e) => console.warn(`helm: launch ${id}: ${e && e.message}`));
     });
     window.dispatchEvent(new CustomEvent('helm:launched', { detail: { id } }));

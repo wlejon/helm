@@ -4,7 +4,7 @@
  * releasing the modifier or Enter focuses, Escape cancels.
  */
 
-import { h, $, appIcon } from './util.js';
+import { h, $, windowIcon } from './util.js';
 import { windows } from './windows.js';
 import { appdb } from './appdb.js';
 
@@ -63,7 +63,7 @@ export class Switcher {
       const app = appdb.forWindow(w.appId, w.title);
       const name = app ? app.name : w.appId || 'Window';
       const card = h('div.switcher-card',
-        appIcon(app ? app.icon : w.appId, name, 64, 'switcher-icon'),
+        windowIcon(w, app, name, 64, 'switcher-icon'),
         h('div.switcher-title', w.title || name),
         w.title && w.title !== name ? h('div.switcher-app', name) : null);
       card.classList.toggle('selected', i === this.index);

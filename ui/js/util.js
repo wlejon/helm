@@ -159,6 +159,50 @@ export function appIconPath(name, size = 64) {
   return path || null;
 }
 
+// The icon a window's client set on it (xdg-toplevel-icon), as an image URL:
+// its pixels through a canvas, or its theme name resolved like an app's.
+// Cached per window and icon serial (the serial changes with the icon).
+const windowIconCache = new Map();
+
+export function windowIconUrl(w, size = 64) {
+  if (!w || !w.iconSerial) return null;
+  const key = `${w.id}:${w.iconSerial}:${size}`;
+  if (windowIconCache.has(key)) return windowIconCache.get(key);
+  const comp = api('compositor');
+  const got = comp && typeof comp.getWindowIcon === 'function'
+    ? attempt('getWindowIcon', () => comp.getWindowIcon(w.id, size)) : null;
+  let url = null;
+  if (got && got.size > 0) {
+    url = attempt('window icon', () => {
+      const c = document.createElement('canvas');
+      c.width = got.size;
+      c.height = got.size;
+      const ctx = c.getContext('2d');
+      const img = ctx.createImageData(got.size, got.size);
+      img.data.set(got.data);
+      ctx.putImageData(img, 0, 0);
+      return c.toDataURL('image/png');
+    }) || null;
+  }
+  if (!url && got && got.name) url = appIconPath(got.name, size);
+  // Old serials of this window are no longer wanted.
+  for (const k of [...windowIconCache.keys()]) {
+    if (k.startsWith(`${w.id}:`) && !k.startsWith(`${w.id}:${w.iconSerial}:`)) windowIconCache.delete(k);
+  }
+  windowIconCache.set(key, url);
+  return url;
+}
+
+/**
+ * A window's icon: the one its client set (xdg-toplevel-icon), else its
+ * app's from the desktop entry, else a lettered tile.
+ */
+export function windowIcon(w, app, label, size = 64, cls = 'app-icon') {
+  const url = windowIconUrl(w, size);
+  if (url) return h(`span.${cls}.app-icon-img`, h('img', { src: url, alt: '', draggable: 'false' }));
+  return appIcon(app ? app.icon : w && w.appId, label, size, cls);
+}
+
 /** An app icon <img>, or a lettered tile when the icon cannot be resolved. */
 export function appIcon(name, label, size = 64, cls = 'app-icon') {
   if (name && name.startsWith('shell:')) {

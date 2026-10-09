@@ -216,6 +216,23 @@ export class Shell {
     windows.releaseEdge(this.barReservation);
     const bar = $('#bar').getBoundingClientRect();
     this.barReservation = windows.reserveEdge('bottom', Math.round(window.innerHeight - bar.top));
+    const sync = () => this.syncFullscreen();
+    windows.on('focus', sync);
+    windows.on('windows', sync);
+    windows.on('workspaces', sync);
+    sync();
+  }
+
+  /**
+   * A focused fullscreen window has the screen to itself: the bar steps
+   * aside (it keeps its reservation, which fullscreen ignores). With nothing
+   * of the shell over it, the display can scan the window's buffer out
+   * directly instead of compositing it.
+   */
+  syncFullscreen() {
+    const w = windows.focused();
+    const on = !!(w && w.fullscreen && !w.minimized);
+    document.body.classList.toggle('app-fullscreen', on);
   }
 
 

@@ -25,7 +25,7 @@
  * screen edge.
  */
 
-import { h, $, api, attempt, appIcon } from './util.js';
+import { h, $, api, attempt, windowIcon } from './util.js';
 import { icon } from './icons.js';
 import { appdb } from './appdb.js';
 import { windows } from './windows.js';
@@ -247,10 +247,10 @@ export class Frames {
       f.pillTitle.textContent = title;
       f.el.setAttribute('aria-label', title);
     }
-    const iconKey = `${app ? app.icon : w.appId}|${name}`;
+    const iconKey = `${app ? app.icon : w.appId}|${name}|${w.iconSerial || 0}`;
     if (f.iconKey !== iconKey || refreshIcons) {
       f.iconKey = iconKey;
-      f.iconSlot.replaceChildren(appIcon(app ? app.icon : w.appId, name, 32, 'wf-icon'));
+      f.iconSlot.replaceChildren(windowIcon(w, app, name, 32, 'wf-icon'));
     }
     const maximized = !!w.maximized;
     if (f.maximized !== maximized) {

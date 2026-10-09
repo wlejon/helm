@@ -4,7 +4,7 @@
  * a new one; under it the windows of the current space, to focus or close.
  */
 
-import { h, $, appIcon } from './util.js';
+import { h, $, windowIcon } from './util.js';
 import { icon } from './icons.js';
 import { windows } from './windows.js';
 import { appdb } from './appdb.js';
@@ -62,7 +62,7 @@ export class Spaces {
               left: `${Math.round(f.x * scale)}px`, top: `${Math.round(f.y * scale)}px`,
               width: `${Math.max(14, Math.round(f.width * scale))}px`, height: `${Math.max(10, Math.round(f.height * scale))}px`,
             },
-          }, appIcon(app ? app.icon : w.appId, app ? app.name : w.title, 32, 'sp-win-icon'));
+          }, windowIcon(w, app, app ? app.name : w.title, 32, 'sp-win-icon'));
           mini.classList.toggle('focused', !!w.focused);
           return mini;
         }));
@@ -99,7 +99,7 @@ export class Spaces {
         windows.close(w.id);
       });
       const row = h('div.list-row.sp-row', { tabindex: '0' },
-        appIcon(app ? app.icon : w.appId, name, 32, 'sp-row-icon'),
+        windowIcon(w, app, name, 32, 'sp-row-icon'),
         h('span.grow', h('span.sp-row-title', w.title || name), h('span.sp-row-app', name)),
         close);
       row.classList.toggle('selected', !!w.focused);
