@@ -147,14 +147,14 @@ Launch bare-metal on Linux DRM/KMS:
 ./build/helm --drm
 ```
 
-Host the screen for a remote viewer (`broremote-view` from
-[broremote](https://github.com/wlejon/broremote); the host side builds into
-helm through bro's pin). `--remote=NAME` picks the socket name; the `remoteHost` setting
+Host the screen for a remote viewer (helmremote in
+[helmapps](https://github.com/wlejon/helmapps); the host side is
+[broremote](https://github.com/wlejon/broremote), built into helm through bro's pin). `--remote=NAME` picks the socket name; the `remoteHost` setting
 (`helm.shell.remoteHost`) hosts without the flag:
 ```bash
 ./build/helm --drm --remote
-# then, from another machine:
-broremote-view --ssh HOST
+# then, from another machine: helmremote with Host = HOST, or headless
+broremote probe --ssh HOST --stats
 ```
 
 Launch with software rendering (CPU only):

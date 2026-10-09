@@ -19,7 +19,7 @@ const SCHEMA = {
   // and every app that has sent one, for Settings > Notifications.
   notifyQuiet: { type: 'string_list', default: [] },
   notifyApps: { type: 'string_list', default: [] },
-  // Host the screen for broremote-view (remote.js); `helm --remote` hosts
+  // Host the screen for remote viewers (remote.js); `helm --remote` hosts
   // regardless.
   remoteHost: { type: 'bool', default: false },
 };

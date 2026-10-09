@@ -38,7 +38,7 @@ const char* kUsage =
     "      --shell            Run as primary OS desktop shell (reserves work area, borderless)\n"
     "      --drm              Run bare-metal on Linux DRM/KMS display with seat\n"
     "      --windowed         Run inside a windowed desktop session (default)\n"
-    "      --remote[=NAME]    Host the screen for broremote-view on socket NAME (default: default)\n"
+    "      --remote[=NAME]    Host the screen for remote viewers on socket NAME (default: default)\n"
     "      --no-gpu           Render on the CPU (software rasterizer)\n"
     "  -h, --help             Show this help text\n"
     "  -v, --version          Print the version and exit\n"
