@@ -67,7 +67,7 @@ set(BRO_WITH_IME ON CACHE BOOL "Input method engine")
 # broremote like its other dependencies).
 set(BRO_WITH_REMOTE ON CACHE BOOL "Remote session hosting (broremote)")
 
-bro_dependency(bro GITHUB wlejon/bro REF 9ab08048a8f5ea7247715d821a596f72d68a5405 TARGET bro_engine)
+bro_dependency(bro GITHUB wlejon/bro REF 417d0674c7344acd5ddc7557c85f334f85aee07a TARGET bro_engine)
 set(BRO_DIR "${bro_SOURCE_DIR}")
 
 # ---- helm sources & executables ----------------------------------------------
