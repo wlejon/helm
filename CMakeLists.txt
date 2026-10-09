@@ -41,9 +41,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # ---- bro engine resolution ---------------------------------------------------
 # A bro_dependency (cmake/bro_deps.cmake): the ../bro working tree beside this
-# repo, else the commit pinned below, fetched at configure;
-# -DFETCHCONTENT_SOURCE_DIR_BRO=<path> picks another tree. bro pins every
-# library it builds itself, so helm pins only bro.
+# repo, else the head of bro's main (a release tag: the commit
+# cmake/bro_lock.cmake locks), fetched at configure;
+# -DFETCHCONTENT_SOURCE_DIR_BRO=<path> picks another tree. bro declares every
+# library it builds itself, so helm declares only bro.
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/bro_deps.cmake)
 
 # Feature profile: desktop
@@ -63,11 +64,11 @@ set(BRO_WITH_CLIP ON CACHE BOOL "Clipboard history")
 set(BRO_WITH_MPRIS ON CACHE BOOL "Media player integration")
 set(BRO_WITH_PULSE ON CACHE BOOL "PipeWire audio policy")
 set(BRO_WITH_IME ON CACHE BOOL "Input method engine")
-# bro.remote: `helm --remote` hosts the screen for remote viewers (bro pins
+# bro.remote: `helm --remote` hosts the screen for remote viewers (bro builds
 # broremote like its other dependencies).
 set(BRO_WITH_REMOTE ON CACHE BOOL "Remote session hosting (broremote)")
 
-bro_dependency(bro GITHUB wlejon/bro REF 417d0674c7344acd5ddc7557c85f334f85aee07a TARGET bro_engine)
+bro_dependency(bro GITHUB wlejon/bro TARGET bro_engine)
 set(BRO_DIR "${bro_SOURCE_DIR}")
 
 # ---- helm sources & executables ----------------------------------------------
