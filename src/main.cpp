@@ -23,7 +23,6 @@
 
 #include "win_shell_broker.h"
 #include "platform/desktop_platform.h"
-#include "platform/sdl_window.h"
 #include "bronze_host/host_runtime.h"
 #endif
 
@@ -169,7 +168,7 @@ int main(int argc, char* argv[]) {
 #if defined(_WIN32)
         if (isStandaloneShell) {
             if (engine.window()) {
-                HWND hwnd = bro::platform::desktop::hwndOf(engine.window()->getSDLWindow());
+                HWND hwnd = bro::platform::desktop::hwndOf(engine.window());
                 if (hwnd) {
                     helm::WinShellBroker::attachWindow(hwnd);
                 }
@@ -177,7 +176,7 @@ int main(int argc, char* argv[]) {
             engine.addFramePump([&engine]() {
                 static bool attached = false;
                 if (!attached && engine.window()) {
-                    HWND hwnd = bro::platform::desktop::hwndOf(engine.window()->getSDLWindow());
+                    HWND hwnd = bro::platform::desktop::hwndOf(engine.window());
                     if (hwnd) {
                         helm::WinShellBroker::attachWindow(hwnd);
                         attached = true;
