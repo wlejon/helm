@@ -9,8 +9,8 @@ const helm = window.helm;
 const focused = [];
 const W = [
   { id: 1, appId: 'firefox', title: 'Firefox', focused: false, workspaceId: 1, frame: { x: 100, y: 60, width: 800, height: 500 } },
-  { id: 2, appId: 'broterm', title: 'Terminal', focused: true, workspaceId: 1, frame: { x: 300, y: 200, width: 700, height: 400 } },
-  { id: 3, appId: 'broterm', title: 'Terminal 2', focused: false, workspaceId: 1, frame: { x: 320, y: 220, width: 700, height: 400 } },
+  { id: 2, appId: 'helm.term', title: 'Terminal', focused: true, workspaceId: 1, frame: { x: 300, y: 200, width: 700, height: 400 } },
+  { id: 3, appId: 'helm.term', title: 'Terminal 2', focused: false, workspaceId: 1, frame: { x: 320, y: 220, width: 700, height: 400 } },
 ];
 helm.windows.windows = () => W;
 helm.windows.workspaces = () => [{ id: 1, name: '1', active: true, windows: [1, 2, 3], focusOrder: [2, 1, 3], monitor: 1 }];

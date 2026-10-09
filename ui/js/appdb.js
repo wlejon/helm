@@ -1,21 +1,13 @@
 /**
  * The app catalog (bro.apps) plus the lookups the shell needs on top of it:
  * matching a running window's app_id to its desktop entry, and launching.
+ *
+ * Every app comes from a desktop entry, the helm apps included: installing a
+ * bro folder app (`bro --install <dir>`) writes `<id>.desktop` with
+ * StartupWMClass set to the id, which is also the app_id its window reports.
  */
 
 import { api, attempt } from './util.js';
-
-/**
- * Apps the shell knows how to start itself, for programs that install no
- * desktop entry. `exec` is spawned directly; `wm` lists the app_ids their
- * windows report.
- */
-const BUILTIN = [
-  {
-    id: 'helm.terminal', name: 'Terminal', generic: 'broterm', comment: 'The bro terminal',
-    icon: 'shell:terminal', exec: 'broterm', wm: ['broterm'], keywords: ['shell', 'console', 'broterm'],
-  },
-];
 
 class AppDb {
   constructor() {
@@ -48,7 +40,6 @@ class AppDb {
         categories: a.categories || [],
         terminal: !!a.terminal,
       }))
-      .concat(BUILTIN.map((b) => ({ categories: [], terminal: false, builtin: true, ...b })))
       .sort((x, y) => x.name.localeCompare(y.name));
     this.byId = new Map(this.apps.map((a) => [a.id, a]));
     for (const fn of this.subs) attempt('appdb subscriber', () => fn());
@@ -72,8 +63,6 @@ class AppDb {
     const direct = this.get(appId);
     if (direct) return direct;
     const lower = String(appId).toLowerCase();
-    const builtin = this.apps.find((a) => a.wm && a.wm.includes(lower));
-    if (builtin) return builtin;
     const tail = lower.split('.').pop();
     let hit = this.apps.find((a) => a.id.toLowerCase() === `${lower}.desktop`)
       || this.apps.find((a) => a.id.toLowerCase().replace(/\.desktop$/, '').split('.').pop() === tail)
@@ -84,15 +73,6 @@ class AppDb {
   }
 
   launch(id) {
-    const entry = this.get(id);
-    if (entry && entry.builtin) {
-      attempt(`spawn ${entry.exec}`, () => {
-        const child = require('child_process').spawn(entry.exec, [], { detached: true, stdio: 'ignore' });
-        if (child && typeof child.unref === 'function') child.unref();
-      });
-      window.dispatchEvent(new CustomEvent('helm:launched', { detail: { id } }));
-      return;
-    }
     const apps = api('apps');
     if (!apps) return;
     attempt(`apps.launch ${id}`, () => {
