@@ -37,7 +37,7 @@ export class Osd {
       if (from && from.width > 0) {
         this.island.classList.add('morphed');
         this.morphedIsland = true;
-        morphIn(this.el, from, { fromRadius: from.height / 2, toRadius: from.height / 2, duration: 420 });
+        morphIn(this.el, from, { toRadius: from.radius, duration: 420 });
       }
     }
     clearTimeout(this.timer);

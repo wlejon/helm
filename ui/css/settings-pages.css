@@ -8,10 +8,9 @@
 .st-battery {
   position: relative;
   width: 140px;
-  height: 12px;
+  height: 6px;
   border-radius: var(--r-chip);
-  background: var(--sink);
-  box-shadow: inset 0 0 0 1px var(--hairline);
+  background: var(--well-3);
   overflow: hidden;
 }
 
@@ -21,7 +20,7 @@
   top: 0;
   bottom: 0;
   border-radius: var(--r-chip);
-  background: var(--grad);
+  background: var(--accent);
 }
 
 /* Empty and error states */
@@ -32,13 +31,13 @@
 }
 
 .st-empty .empty-glyph {
-  width: 60px;
-  height: 60px;
+  width: 52px;
+  height: 52px;
 }
 
 .st-empty .empty-glyph .icon {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
 }
 
 .st-empty .empty-hint {
@@ -51,8 +50,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--s2);
-  padding: var(--s1) var(--s5) var(--s4) 72px;
-  background: linear-gradient(120deg, var(--a1-soft), transparent 70%);
+  padding: var(--s1) var(--s4) var(--s3) 58px;
+  background: var(--accent-faint);
 }
 
 .st-join-row {
@@ -61,35 +60,31 @@
   gap: var(--s2);
 }
 
-.st-field .field {
-  height: 38px;
-}
-
 /* Appearance ------------------------------------------------------------*/
 
 .st-wall-hero {
   display: flex;
-  gap: var(--s5);
-  padding: var(--s4);
+  gap: var(--s4);
+  padding: var(--s3);
   border-radius: var(--r-card);
-  background: var(--well);
-  box-shadow: inset 0 0 0 1px var(--hairline);
+  background: var(--surface-raised);
+  box-shadow: inset 0 0 0 1px var(--hairline), var(--rim-top);
 }
 
 .st-preview {
   position: relative;
-  width: 264px;
-  height: 149px;
+  width: 240px;
+  height: 135px;
   flex: none;
-  border-radius: 14px;
+  border-radius: var(--r-ctl);
   overflow: hidden;
-  box-shadow: 0 10px 30px rgb(0 0 0 / 0.45), inset 0 0 0 1px var(--rim-strong);
+  box-shadow: inset 0 0 0 1px var(--rim-strong), var(--depth-1);
 }
 
 .st-preview-art {
   position: absolute;
   inset: 0;
-  background-color: oklch(0.12 0.02 var(--accent-h));
+  background-color: oklch(0.12 0.006 var(--accent-h));
   background-size: cover;
   background-position: center;
 }
@@ -101,17 +96,17 @@
   right: 0;
   bottom: 0;
   height: 12px;
-  padding: 3px 5px;
+  padding: 3px 4px;
   display: flex;
   justify-content: space-between;
-  background: oklch(0.15 0.026 var(--accent-h) / 0.9);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12);
+  background: var(--surface-bar);
+  box-shadow: inset 0 1px 0 var(--rim);
 }
 
 .st-preview-islands span {
   height: 6px;
-  border-radius: 3px;
-  background: rgb(255 255 255 / 0.22);
+  border-radius: 2px;
+  background: var(--well-4);
 }
 
 .st-preview-islands .l { width: 40px; }
@@ -121,17 +116,17 @@
 .st-walls {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--s3);
+  gap: var(--s2);
   flex: 1;
   min-width: 0;
 }
 
 .st-walls.pictures {
   grid-template-columns: repeat(4, 1fr);
-  padding: var(--s4);
+  padding: var(--s3);
   border-radius: var(--r-card);
-  background: var(--well);
-  box-shadow: inset 0 0 0 1px var(--hairline);
+  background: var(--surface-raised);
+  box-shadow: inset 0 0 0 1px var(--hairline), var(--rim-top);
 }
 
 .st-wall {
@@ -140,17 +135,13 @@
   flex-direction: column;
   gap: 6px;
   padding: 4px 4px 6px;
-  border-radius: 14px;
+  border-radius: var(--r-card);
   text-align: left;
-  transition: background var(--d-quick) var(--ease-std), transform var(--d-quick) var(--ease-std);
+  transition: background var(--d-quick) var(--ease-std);
 }
 
 .st-wall:hover {
   background: var(--well-2);
-}
-
-.st-wall:active {
-  transform: scale(0.97);
 }
 
 .st-wall:focus-visible {
@@ -162,8 +153,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 58px;
-  border-radius: 10px;
+  height: 56px;
+  border-radius: var(--r-ctl);
   overflow: hidden;
   background-color: var(--sink);
   background-size: cover;
@@ -173,7 +164,7 @@
 }
 
 .st-walls.pictures .st-wall-art {
-  height: 74px;
+  height: 72px;
 }
 
 .st-wall-art img {
@@ -183,13 +174,13 @@
 }
 
 .st-wall.on .st-wall-art {
-  box-shadow: 0 0 0 2px oklch(0.10 0.02 var(--accent-h)), 0 0 0 4px var(--a1), var(--glow);
+  box-shadow: 0 0 0 2px var(--surface-raised), 0 0 0 4px var(--accent);
 }
 
 .st-wall-label {
   padding: 0 4px;
   font-size: var(--fs-cap);
-  font-weight: 550;
+  font-weight: 500;
   color: var(--t2);
   white-space: nowrap;
   overflow: hidden;
@@ -202,29 +193,29 @@
 
 .st-wall-check {
   position: absolute;
-  top: 9px;
-  right: 9px;
+  top: 8px;
+  right: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border-radius: var(--r-chip);
-  background: var(--grad);
-  color: white;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 0.4);
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.4);
 }
 
 .st-wall-check .icon {
-  width: 12px;
-  height: 12px;
+  width: 11px;
+  height: 11px;
   stroke-width: 3;
 }
 
 .st-swatches {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--s2);
+  gap: var(--s1);
 }
 
 .st-swatch {
@@ -232,7 +223,7 @@
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  width: 64px;
+  width: 60px;
   padding: 6px 0;
   border-radius: var(--r-ctl);
   transition: background var(--d-quick) var(--ease-std);
@@ -250,35 +241,32 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   border-radius: var(--r-chip);
-  color: white;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.3), 0 4px 12px rgb(0 0 0 / 0.35);
-  transition: transform var(--d-enter) var(--spring-pop);
+  color: rgb(0 0 0 / 0.72);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
 }
 
 .st-swatch-dot .icon {
-  width: 17px;
-  height: 17px;
-  stroke-width: 2.8;
+  width: 15px;
+  height: 15px;
+  stroke-width: 3;
 }
 
 .st-swatch.on .st-swatch-dot {
-  transform: scale(1.1);
-  box-shadow: 0 0 0 2px oklch(0.10 0.02 var(--accent-h)), 0 0 0 4px var(--t1), 0 6px 18px rgb(0 0 0 / 0.4);
+  box-shadow: 0 0 0 2px var(--surface-raised), 0 0 0 4px var(--t2);
 }
 
 .st-swatch-name {
-  font-size: 11.5px;
+  font-size: var(--fs-micro);
   color: var(--t3);
 }
 
 .st-swatch.on .st-swatch-name {
   color: var(--t1);
-  font-weight: 600;
+  font-weight: 500;
 }
-
 
 /* Displays ----------------------------------------------------------------*/
 
@@ -292,7 +280,7 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  background: radial-gradient(ellipse at 50% 50%, oklch(0.70 0.18 var(--accent-h) / 0.10) 0%, transparent 70%);
+  background: var(--sink);
 }
 
 .st-arrange-inner {
@@ -305,34 +293,39 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 2px;
   margin: 3px;
-  border-radius: 10px;
-  background: linear-gradient(160deg, oklch(0.30 0.05 var(--accent-h)), oklch(0.18 0.04 var(--accent-h)));
-  box-shadow: inset 0 0 0 1px var(--rim-strong), 0 10px 30px rgb(0 0 0 / 0.4);
+  border-radius: var(--r-ctl);
+  background: var(--surface-float);
+  box-shadow: inset 0 0 0 1px var(--rim-strong), var(--depth-1);
 }
 
 .st-screen.primary {
-  background: linear-gradient(160deg, oklch(0.52 0.15 var(--accent-h)), oklch(0.36 0.14 var(--accent-h2)));
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.22), var(--glow);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 2px var(--accent), var(--depth-1);
 }
 
 .st-screen-name {
-  font-weight: 650;
+  font-weight: 600;
   font-size: var(--fs-body);
 }
 
 .st-screen-mode {
-  font-family: var(--font-mono);
   font-size: var(--fs-micro);
-  color: rgb(255 255 255 / 0.72);
+  font-variant-numeric: tabular-nums;
+  color: var(--t3);
 }
 
 /* Keyboard ---------------------------------------------------------------*/
 
 .st-row-key {
-  padding-top: 14px;
-  padding-bottom: 14px;
+  padding-top: var(--s3);
+  padding-bottom: var(--s3);
+}
+
+.st-row-key .st-row-text {
+  min-height: 22px;
+  justify-content: center;
 }
 
 .st-chords {
@@ -342,27 +335,27 @@
 }
 
 .st-or {
-  font-size: 11px;
+  font-size: var(--fs-micro);
   color: var(--t4);
 }
 
 .st-keys {
   display: flex;
-  gap: 4px;
+  gap: 3px;
 }
 
 .st-keys kbd {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 28px;
-  height: 26px;
-  padding: 0 8px;
-  border-radius: 8px;
-  background: linear-gradient(180deg, var(--well-3), var(--well-2));
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.10), inset 0 0 0 1px var(--rim), 0 2px 0 rgb(0 0 0 / 0.35);
-  font-family: var(--font-mono);
-  font-size: 11.5px;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: var(--r-sm);
+  background: var(--well-2);
+  box-shadow: inset 0 -1px 0 var(--sink), inset 0 0 0 1px var(--rim);
+  font-family: var(--font-ui);
+  font-size: var(--fs-cap);
   font-weight: 500;
   color: var(--t1);
 }
@@ -373,19 +366,19 @@
   display: flex;
   align-items: center;
   gap: var(--s2);
-  width: 250px;
-  height: 40px;
-  padding: 0 var(--s3) 0 6px;
-  border-radius: var(--r-chip);
+  width: 240px;
+  height: 32px;
+  padding: 0 var(--s2) 0 4px;
+  border-radius: var(--r-ctl);
   background: var(--well-2);
-  box-shadow: inset 0 0 0 1px var(--hairline);
+  box-shadow: inset 0 0 0 1px var(--rim);
   text-align: left;
-  font-weight: 550;
+  font-weight: 500;
   transition: background var(--d-quick) var(--ease-std);
 }
 
 .st-picker:hover {
-  background: var(--well-4);
+  background: var(--well-3);
 }
 
 .st-picker:focus-visible {
@@ -393,8 +386,8 @@
 }
 
 .st-picker .st-app-icon {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
 }
 
 /* About ---------------------------------------------------------------------*/
@@ -402,44 +395,44 @@
 .st-about {
   display: flex;
   align-items: center;
-  gap: var(--s5);
-  padding: var(--s5) var(--s5);
+  gap: var(--s4);
+  padding: var(--s4);
   border-radius: var(--r-card);
-  background: linear-gradient(120deg, oklch(0.70 0.18 var(--accent-h) / 0.22), oklch(0.68 0.20 var(--accent-h2) / 0.12) 55%, var(--well));
-  box-shadow: inset 0 0 0 1px oklch(0.75 0.16 var(--accent-h) / 0.22), var(--rim-top);
+  background: var(--surface-raised);
+  box-shadow: inset 0 0 0 1px var(--hairline), var(--rim-top);
 }
 
 .st-about-mark {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 76px;
-  height: 76px;
+  width: 60px;
+  height: 60px;
   flex: none;
-  border-radius: 24px;
-  background: var(--grad);
-  color: var(--on-accent);
-  box-shadow: var(--glow-strong), inset 0 1px 0 rgb(255 255 255 / 0.3);
+  border-radius: var(--r-panel);
+  background: var(--well-2);
+  box-shadow: inset 0 0 0 1px var(--rim-strong);
+  color: var(--t1);
 }
 
 .st-about-mark .icon {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   stroke-width: 1.5;
 }
 
 .st-about-text {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   flex: 1;
   min-width: 0;
 }
 
 .st-about-host {
-  font-size: 26px;
-  font-weight: 700;
-  letter-spacing: -0.015em;
+  font-size: var(--fs-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .st-about-os {
@@ -469,4 +462,3 @@
   white-space: pre-line;
   line-height: 1.5;
 }
-

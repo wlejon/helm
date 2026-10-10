@@ -1,6 +1,7 @@
 /* =============================================================================
-   LAUNCHER: the deepest glass, grown out of whatever opened it (the mark on
-   the bar's launcher mark) over a dimmed, blurred desk.
+   LAUNCHER: a modal surface grown out of whatever opened it (the bar's
+   launcher mark) over a dimmed desk. The selection is --accent-soft; the
+   search glyph and the apps are neutral.
    ============================================================================= */
 
 .launcher-overlay {
@@ -12,8 +13,7 @@
 .launcher-scrim {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 50% 42%, oklch(0.10 0.03 var(--accent-h) / 0.42) 0%, oklch(0.06 0.02 var(--accent-h) / 0.74) 75%);
-  backdrop-filter: blur(10px) saturate(1.2);
+  background: var(--scrim);
   animation: fade-in var(--d-enter) var(--ease-out);
 }
 
@@ -37,9 +37,11 @@
   justify-content: center;
   align-items: flex-start;
   overflow: hidden;
-  border-radius: 32px;
-  background: var(--glass-modal);
-  box-shadow: var(--rim-top), var(--depth-3), 0 0 120px oklch(0.55 0.18 var(--accent-h) / 0.18);
+  border-radius: var(--r-panel);
+  background: var(--surface-modal);
+  backdrop-filter: var(--blur);
+  border: 1px solid var(--rim-strong);
+  box-shadow: var(--rim-top), var(--depth-3);
 }
 
 .launcher-overlay.leaving .launcher {
@@ -58,7 +60,7 @@
   display: flex;
   align-items: center;
   gap: var(--s3);
-  height: 76px;
+  height: 60px;
   padding: 0 var(--s5) 0 var(--s5);
   border-bottom: 1px solid var(--hairline);
   flex: none;
@@ -68,25 +70,22 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 24px;
+  height: 24px;
   flex: none;
-  border-radius: var(--r-chip);
-  background: var(--grad);
-  color: white;
-  box-shadow: var(--glow);
+  color: var(--t3);
 }
 
 .launcher-search-glyph .icon {
-  width: 18px;
-  height: 18px;
-  stroke-width: 2.2;
+  width: 20px;
+  height: 20px;
+  stroke-width: 2;
 }
 
 .launcher-field {
   position: relative;
   flex: 1;
-  height: 40px;
+  height: 36px;
 }
 
 .launcher-input {
@@ -96,21 +95,21 @@
   height: 100%;
   background: transparent;
   border: none;
-  font-size: 21px;
+  font-size: var(--fs-head);
   font-weight: 400;
   color: var(--t1);
-  caret-color: var(--a1);
+  caret-color: var(--accent);
 }
 
 .launcher-ghost {
   position: absolute;
   left: 1px;
   top: 0;
-  height: 40px;
+  height: 36px;
   display: flex;
   align-items: center;
-  font-size: 21px;
-  font-weight: 300;
+  font-size: var(--fs-head);
+  font-weight: 400;
   color: var(--t4);
   pointer-events: none;
   white-space: nowrap;
@@ -120,12 +119,11 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  height: 28px;
-  padding: 0 12px 0 10px;
-  border-radius: var(--r-chip);
-  background: var(--grad-soft);
-  box-shadow: inset 0 0 0 1px oklch(0.72 0.16 var(--accent-h) / 0.5);
-  color: var(--a-text);
+  height: 24px;
+  padding: 0 var(--s2);
+  border-radius: var(--r-ctl);
+  background: var(--accent-soft);
+  color: var(--accent-text);
   font-size: var(--fs-cap);
   font-weight: 600;
 }
@@ -141,11 +139,11 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: var(--s2) var(--s4) var(--s4);
+  padding: var(--s1) var(--s3) var(--s3);
 }
 
 .launcher-section {
-  padding: var(--s4) var(--s2) var(--s2);
+  padding: var(--s3) var(--s2) var(--s2);
 }
 
 .app-grid {
@@ -160,34 +158,32 @@
   flex-direction: column;
   align-items: center;
   gap: var(--s2);
-  height: 110px;
+  height: 104px;
   padding: 14px 6px 8px;
-  border-radius: 22px;
+  border-radius: var(--r-card);
   color: var(--t2);
-  transition: background var(--d-quick) var(--ease-std), color var(--d-quick) var(--ease-std),
-    transform var(--d-quick) var(--ease-std);
+  transition: background var(--d-quick) var(--ease-std), color var(--d-quick) var(--ease-std);
+}
+
+.app-tile:hover {
+  background: var(--well-2);
+  color: var(--t1);
 }
 
 .app-tile:active {
-  transform: scale(0.95);
+  background: var(--well);
 }
 
 .app-tile.selected {
-  background: var(--well-3);
+  background: var(--accent-soft);
   color: var(--t1);
-  box-shadow: inset 0 0 0 1px var(--rim-strong);
 }
 
 .app-tile-icon {
-  width: 56px;
-  height: 56px;
+  width: 52px;
+  height: 52px;
   flex: none;
-  font-size: 22px;
-  transition: transform var(--d-enter) var(--spring-pop);
-}
-
-.app-tile.selected .app-tile-icon {
-  transform: translateY(-2px) scale(1.06);
+  font-size: 21px;
 }
 
 .app-tile-name {
@@ -205,43 +201,44 @@
   align-items: center;
   gap: var(--s3);
   width: 100%;
-  height: 56px;
-  padding: 0 var(--s3);
-  border-radius: 18px;
+  height: 48px;
+  padding: 0 var(--s3) 0 var(--s2);
+  border-radius: var(--r-ctl);
   text-align: left;
   color: var(--t2);
   transition: background var(--d-quick) var(--ease-std);
 }
 
+.launcher-row:hover {
+  background: var(--well-2);
+}
+
 .launcher-row.selected {
-  background: var(--well-3);
+  background: var(--accent-soft);
   color: var(--t1);
-  box-shadow: inset 0 0 0 1px var(--rim-strong);
 }
 
 .row-app-icon {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   flex: none;
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .row-glyph {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   flex: none;
-  border-radius: 12px;
+  border-radius: var(--r-ctl);
   background: var(--well-3);
-  color: var(--t1);
+  color: var(--t2);
 }
 
 .launcher-row.selected .row-glyph {
-  background: var(--grad);
-  color: white;
-  box-shadow: var(--glow);
+  color: var(--accent-text);
 }
 
 .row-text {
@@ -253,8 +250,8 @@
 }
 
 .row-title {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--fs-title);
+  font-weight: 500;
   color: var(--t1);
   white-space: nowrap;
   overflow: hidden;
@@ -270,20 +267,20 @@
 }
 
 .kind-calc {
-  height: 72px;
+  height: 64px;
 }
 
 .kind-calc .row-title {
-  font-family: var(--font-mono);
-  font-size: 26px;
+  font-size: var(--fs-display);
   font-weight: 500;
-  color: var(--a-text);
+  font-variant-numeric: tabular-nums;
+  color: var(--t1);
 }
 
 .calc-glyph {
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-card);
 }
 
 .row-badge {
@@ -291,7 +288,7 @@
   align-items: center;
   gap: 6px;
   font-size: var(--fs-cap);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--t3);
   opacity: 0;
   transition: opacity var(--d-quick) var(--ease-std);
@@ -305,14 +302,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 22px;
-  height: 20px;
+  min-width: 18px;
+  height: 18px;
   padding: 0 5px;
-  border-radius: 6px;
-  background: var(--well-3);
-  box-shadow: inset 0 -1px 0 rgb(0 0 0 / 0.3);
-  font-family: var(--font-mono);
-  font-size: 11px;
+  border-radius: var(--r-sm);
+  background: var(--well-2);
+  box-shadow: inset 0 -1px 0 var(--sink), inset 0 0 0 1px var(--hairline);
+  font-size: var(--fs-micro);
+  font-weight: 500;
   color: var(--t2);
 }
 
@@ -326,18 +323,18 @@
   display: flex;
   align-items: center;
   gap: var(--s4);
-  height: 42px;
+  height: 38px;
   flex: none;
   padding: 0 var(--s5);
   border-top: 1px solid var(--hairline);
-  background: rgb(0 0 0 / 0.14);
+  background: var(--sink);
 }
 
 .key-hint {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11.5px;
+  font-size: var(--fs-cap);
   color: var(--t3);
 }
 
@@ -345,19 +342,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 20px;
-  height: 20px;
+  min-width: 18px;
+  height: 18px;
   padding: 0 5px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   background: var(--well-2);
-  box-shadow: inset 0 -1px 0 rgb(0 0 0 / 0.35), inset 0 0 0 1px var(--hairline);
-  font-family: var(--font-mono);
-  font-size: 10.5px;
+  box-shadow: inset 0 -1px 0 var(--sink), inset 0 0 0 1px var(--hairline);
+  font-family: var(--font-ui);
+  font-size: var(--fs-micro);
+  font-weight: 500;
   color: var(--t2);
 }
 
 .launcher-count {
-  font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--fs-micro);
+  font-variant-numeric: tabular-nums;
   color: var(--t4);
 }

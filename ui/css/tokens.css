@@ -1,88 +1,93 @@
 /* =============================================================================
-   HELM: DEEP GLASS
-   Floating islands of dark, heavy glass over a luminous wallpaper. One
-   accent expressed as a two-stop gradient (--accent-h and --accent-h2,
-   both written from settings), soft glows instead of hard edges, and depth
-   carried by blur, rim light and shadow rather than by borders.
+   HELM: GRAPHITE
+   Quiet, near-neutral dark surfaces over the wallpaper; one accent colour
+   (--accent-h, from settings) used sparingly, as a solid, never a gradient:
+   the active toggle, the current workspace, today, the focused control.
+   Small consistent radii. Depth from a rim and a soft shadow, not glows.
+   The helm app kit (helmapps/lib/css/tokens.css) uses the same names and
+   values for application windows, so the shell and its apps read as one.
    ============================================================================= */
+
+@font-face { font-family: "Inter"; src: url("../fonts/Inter-Regular.ttf"); font-weight: 400; }
+@font-face { font-family: "Inter"; src: url("../fonts/Inter-Medium.ttf"); font-weight: 500; }
+@font-face { font-family: "Inter"; src: url("../fonts/Inter-SemiBold.ttf"); font-weight: 600; }
+@font-face { font-family: "Inter"; src: url("../fonts/Inter-Bold.ttf"); font-weight: 700; }
 
 :root {
   --accent-h: 255;
-  --accent-h2: 303;
 
-  /* -- Accent ---------------------------------------------------------------
-     a1 -> a2 is the signature gradient: active toggles, the selected
-     workspace, focus rings, progress fills. */
-  --a1: oklch(0.70 0.18 var(--accent-h));
-  --a2: oklch(0.68 0.20 var(--accent-h2));
-  --a1-soft: oklch(0.70 0.18 var(--accent-h) / 0.22);
-  --a2-soft: oklch(0.68 0.20 var(--accent-h2) / 0.22);
-  --a-text: oklch(0.86 0.10 var(--accent-h));
-  --on-accent: oklch(0.99 0.01 var(--accent-h));
-  --grad: linear-gradient(120deg, var(--a1), var(--a2));
-  --grad-soft: linear-gradient(120deg, var(--a1-soft), var(--a2-soft));
+  /* -- Accent: one colour, never a gradient ------------------------------ */
+  --accent: oklch(0.70 0.15 var(--accent-h));          /* fills: on toggles, sliders, today */
+  --accent-hover: oklch(0.75 0.15 var(--accent-h));
+  --accent-soft: oklch(0.70 0.15 var(--accent-h) / 0.18);   /* selected items */
+  --accent-faint: oklch(0.70 0.15 var(--accent-h) / 0.10);
+  --accent-line: oklch(0.70 0.15 var(--accent-h) / 0.55);   /* a focused field's border */
+  --accent-text: oklch(0.84 0.10 var(--accent-h));     /* accent as text or an icon */
+  --on-accent: oklch(0.16 0.02 var(--accent-h));       /* text and icons on an --accent fill */
 
-  /* -- Glass ----------------------------------------------------------------
-     Three depths. Islands sit just above the wallpaper, panels grow out of
-     them a layer deeper, and modal glass (launcher, switcher) deepest. All
-     are tinted toward the accent hue so the shell reads as one material. */
-  --glass-island: oklch(0.17 0.025 var(--accent-h) / 0.58);
-  --glass-panel: oklch(0.155 0.03 var(--accent-h) / 0.74);
-  --glass-modal: oklch(0.14 0.03 var(--accent-h) / 0.80);
-  --glass-solid: oklch(0.19 0.03 var(--accent-h) / 0.94);
-  --blur-island: blur(26px) saturate(1.8);
-  --blur-panel: blur(44px) saturate(1.9);
+  /* -- Surfaces -------------------------------------------------------------
+     The shell floats over the wallpaper, so its surfaces are near-opaque
+     graphite with a light blur: the wallpaper shows at the edges as colour,
+     never through the text. Three depths: the bar, panels that grow out of
+     it, and modal surfaces (launcher, switcher, settings). */
+  --surface-bar: oklch(0.17 0.006 var(--accent-h) / 0.88);
+  --surface-panel: oklch(0.195 0.006 var(--accent-h) / 0.94);
+  --surface-modal: oklch(0.20 0.006 var(--accent-h) / 0.96);
+  --surface-solid: oklch(0.205 0.006 var(--accent-h));       /* settings window, lock card */
+  --surface-raised: oklch(0.235 0.007 var(--accent-h));      /* cards inside a panel */
+  --surface-float: oklch(0.255 0.008 var(--accent-h));       /* menus, tooltips */
+  --blur: blur(24px) saturate(1.4);
+  --scrim: rgb(0 0 0 / 0.45);
 
-  /* Wells: recessed and raised areas inside glass */
-  --well: rgb(255 255 255 / 0.045);
-  --well-2: rgb(255 255 255 / 0.075);
-  --well-3: rgb(255 255 255 / 0.11);
-  --well-4: rgb(255 255 255 / 0.16);
-  --sink: rgb(0 0 0 / 0.22);
+  /* Wells: a tint over whatever surface they sit on */
+  --well: rgb(255 255 255 / 0.04);
+  --well-2: rgb(255 255 255 / 0.065);
+  --well-3: rgb(255 255 255 / 0.10);
+  --well-4: rgb(255 255 255 / 0.14);
+  --sink: rgb(0 0 0 / 0.20);
 
-  /* Rim light: a 1px edge brighter at the top, the way thick glass catches
-     light. --rim is the border colour, --rim-top the inset highlight. */
-  --rim: rgb(255 255 255 / 0.085);
-  --rim-strong: rgb(255 255 255 / 0.14);
-  --rim-top: inset 0 1px 0 rgb(255 255 255 / 0.10);
-  --hairline: rgb(255 255 255 / 0.07);
+  /* Edges */
+  --hairline: rgb(255 255 255 / 0.075);
+  --rim: rgb(255 255 255 / 0.09);
+  --rim-strong: rgb(255 255 255 / 0.15);
+  --rim-top: inset 0 1px 0 rgb(255 255 255 / 0.06);
 
-  /* -- Depth ----------------------------------------------------------------
-     Shadows are long and soft; glows are the accent at low alpha. */
-  --depth-1: 0 6px 22px rgb(0 0 0 / 0.32), 0 1px 3px rgb(0 0 0 / 0.30);
-  --depth-2: 0 24px 60px rgb(0 0 0 / 0.46), 0 4px 14px rgb(0 0 0 / 0.30);
-  --depth-3: 0 40px 110px rgb(0 0 0 / 0.60), 0 8px 24px rgb(0 0 0 / 0.36);
-  --glow: 0 6px 26px oklch(0.70 0.18 var(--accent-h) / 0.42);
-  --glow-strong: 0 8px 34px oklch(0.70 0.18 var(--accent-h) / 0.55), 0 0 0 1px oklch(0.80 0.14 var(--accent-h) / 0.35);
-  --focus-ring: 0 0 0 2px oklch(0.10 0.02 var(--accent-h)), 0 0 0 4px var(--a1);
+  /* -- Depth: only things that float cast a shadow ----------------------- */
+  --depth-1: 0 2px 8px rgb(0 0 0 / 0.28), 0 0 0 1px rgb(0 0 0 / 0.20);
+  --depth-2: 0 12px 32px rgb(0 0 0 / 0.40), 0 0 0 1px rgb(0 0 0 / 0.25);
+  --depth-3: 0 24px 64px rgb(0 0 0 / 0.50), 0 0 0 1px rgb(0 0 0 / 0.30);
+  --focus-ring: 0 0 0 2px oklch(0.17 0.006 var(--accent-h)), 0 0 0 4px var(--accent-line);
 
-  /* -- Text -------------------------------------------------------------- */
-  --t1: oklch(0.975 0.006 var(--accent-h));
-  --t2: oklch(0.84 0.012 var(--accent-h));
-  --t3: oklch(0.68 0.016 var(--accent-h));
-  --t4: oklch(0.54 0.018 var(--accent-h));
+  /* -- Text ---------------------------------------------------------------- */
+  --t1: oklch(0.96 0.004 var(--accent-h));
+  --t2: oklch(0.82 0.006 var(--accent-h));
+  --t3: oklch(0.66 0.008 var(--accent-h));
+  --t4: oklch(0.52 0.010 var(--accent-h));
 
-  /* -- Semantic -----------------------------------------------------------*/
-  --ok: oklch(0.78 0.15 155);
-  --warn: oklch(0.83 0.14 80);
-  --rec: oklch(0.66 0.23 25);
-  --danger: oklch(0.67 0.20 22);
-  --danger-soft: oklch(0.67 0.20 22 / 0.20);
+  /* -- Semantic ------------------------------------------------------------ */
+  --ok: oklch(0.76 0.14 155);
+  --warn: oklch(0.82 0.13 80);
+  --rec: oklch(0.65 0.21 25);
+  --danger: oklch(0.65 0.19 25);
+  --danger-hover: oklch(0.70 0.19 25);
+  --danger-soft: oklch(0.65 0.19 25 / 0.18);
+  --danger-text: oklch(0.80 0.11 25);
 
-  /* -- Type ---------------------------------------------------------------
-     Adwaita Sans throughout; JetBrains Mono for figures that tick
-     (percentages, timers, the calculator) and for micro labels, which
-     are set in caps with open tracking. */
-  --font-ui: "Adwaita Sans", "Inter", "Cantarell", "Noto Sans", sans-serif;
-  --font-mono: "JetBrains Mono", "Adwaita Mono", "DejaVu Sans Mono", monospace;
-  --fs-micro: 10.5px;
+  /* -- Type ----------------------------------------------------------------
+     Inter everywhere, shipped in ui/fonts so every machine draws the same
+     letters. Figures that tick or line up (the clock, percentages, timers,
+     the calculator) use tabular figures (font-variant-numeric:
+     tabular-nums), not a monospace face; --font-mono is for code only. */
+  --font-ui: "Inter", "Adwaita Sans", "Segoe UI", "Noto Sans", sans-serif;
+  --font-mono: "JetBrains Mono", "Adwaita Mono", "Cascadia Mono", "DejaVu Sans Mono", monospace;
+  --fs-micro: 11px;
   --fs-cap: 12px;
-  --fs-body: 13.5px;
-  --fs-title: 15px;
-  --fs-head: 20px;
-  --fs-display: 30px;
-  --fs-hero: 132px;
-  --track-micro: 0.11em;
+  --fs-body: 13px;
+  --fs-title: 14px;
+  --fs-head: 18px;
+  --fs-display: 26px;
+  --fs-hero: 112px;
+  --track-micro: 0.04em;
 
   /* -- Space: a 4px rhythm ------------------------------------------------*/
   --s1: 4px;
@@ -94,27 +99,31 @@
   --s8: 32px;
   --s10: 40px;
 
-  /* -- Shape --------------------------------------------------------------*/
+  /* -- Shape: small and consistent ----------------------------------------
+     Controls 6px, cards 10px, panels and modal surfaces 14px. Fully round
+     only for things round by nature: switches, badges, avatars, the slider
+     knob. */
+  --r-sm: 4px;
+  --r-ctl: 6px;
+  --r-card: 10px;
+  --r-panel: 14px;
   --r-chip: 999px;
-  --r-ctl: 14px;
-  --r-card: 20px;
-  --r-panel: 30px;
 
   /* -- Motion -------------------------------------------------------------
      --spring is a damped spring sampled into linear(): it overshoots ~2%,
-     so panels settle rather than stop. --spring-pop overshoots ~8%, for
-     small things (chips, active workspaces). Exits are quicker than entrances and
-     never bounce. */
+     so panels settle rather than stop (js/morph.js). --spring-pop
+     overshoots ~8%, for a switch knob. Exits are quicker than entrances
+     and never bounce. */
   --spring: linear(0, 0.0365, 0.1251, 0.2406, 0.3655, 0.4877, 0.6001, 0.6985, 0.7814, 0.8488, 0.9019, 0.9422, 0.9717, 0.9923, 1.0059, 1.0142, 1.0184, 1.0199, 1.0195, 1.0179, 1.0156, 1.0132, 1.0107, 1.0084, 1);
   --spring-pop: linear(0, 0.0303, 0.1079, 0.2154, 0.3384, 0.4655, 0.5883, 0.7009, 0.7996, 0.8827, 0.9496, 1.001, 1.0381, 1.0628, 1.0771, 1.0831, 1.0826, 1.0775, 1.0693, 1.0595, 1.0489, 1.0384, 1.0286, 1.0199, 1.0124, 1.0063, 1.0015, 0.9979, 0.9955, 0.9939, 1);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-exit: cubic-bezier(0.5, 0, 0.75, 0);
   --ease-std: cubic-bezier(0.4, 0, 0.2, 1);
-  --d-quick: 110ms;
-  --d-state: 180ms;
-  --d-enter: 320ms;
-  --d-morph: 480ms;
-  --d-unmorph: 300ms;
+  --d-quick: 100ms;
+  --d-state: 160ms;
+  --d-enter: 260ms;
+  --d-morph: 380ms;
+  --d-unmorph: 240ms;
 
   /* -- Geometry -----------------------------------------------------------*/
   --edge: 12px;

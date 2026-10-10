@@ -120,7 +120,7 @@ export class SettingsApp {
 
     const start = from || (origin ? rectOf(origin) : rectOf(this.home));
     if (start && start.width > 0) {
-      morphIn(this.window, start, { body: this.inner, fromRadius: Math.min(start.height / 2, 30), toRadius: 30, duration: 520 });
+      morphIn(this.window, start, { body: this.inner, duration: 520 });
     } else {
       animate(this.window, [{ opacity: 0, transform: 'scale(0.95) translateY(14px)' }, { opacity: 1, transform: 'none' }],
         { duration: 320, easing: EASE_OUT });

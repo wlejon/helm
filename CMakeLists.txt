@@ -147,7 +147,9 @@ foreach(_t IN LISTS _helm_tests)
     add_test(NAME ui-${_name}
              COMMAND helm-headless --width 1920 --height 1080
                      "${CMAKE_CURRENT_SOURCE_DIR}/ui" "${_t}")
-    set(_env "BRO_TRUSTED_APP_DIR=${CMAKE_CURRENT_SOURCE_DIR}/ui;HELM_CONFIG_DIR=${_cfg};XDG_CONFIG_HOME=${_cfg}/xdg;HELM_TEST=1")
+    # bro.conf is under XDG_CONFIG_HOME on Linux and %APPDATA% on Windows;
+    # BRO_APP_HOME isolates it everywhere. Set all three.
+    set(_env "BRO_TRUSTED_APP_DIR=${CMAKE_CURRENT_SOURCE_DIR}/ui;HELM_CONFIG_DIR=${_cfg};XDG_CONFIG_HOME=${_cfg}/xdg;APPDATA=${_cfg}/appdata;BRO_APP_HOME=${_cfg}/home;HELM_TEST=1")
     if(_name STREQUAL "frames")
         # The DRM shell host's compositor and input router, headless.
         list(APPEND _env "BRO_HEADLESS_COMPOSITOR=1" "BC_TEST_CLIENT_DIR=${BC_TEST_CLIENT_DIR}")

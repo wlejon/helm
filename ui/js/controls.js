@@ -6,6 +6,9 @@
 import { h, clamp } from './util.js';
 import { icon } from './icons.js';
 
+/** The slider knob's diameter (css/base.css .slider-knob). */
+const KNOB = 16;
+
 export class Slider {
   /**
    * @param {object} o
@@ -51,10 +54,9 @@ export class Slider {
 
   fromPointer(e) {
     const r = this.el.getBoundingClientRect();
-    if (r.width <= 0) return;
-    // The fill never shrinks below the knob width, so map the travel to it.
-    const knob = r.height;
-    const v = clamp((e.clientX - r.left - knob / 2) / (r.width - knob), 0, 1);
+    if (r.width <= KNOB) return;
+    // The knob stays inside the track, so map the travel to its centre.
+    const v = clamp((e.clientX - r.left - KNOB / 2) / (r.width - KNOB), 0, 1);
     this.set(v);
     if (this.onInput) this.onInput(v);
   }
@@ -62,8 +64,8 @@ export class Slider {
   set(v) {
     this.value = clamp(v, 0, 1);
     const r = this.el.getBoundingClientRect();
-    const knob = r.height || 28;
-    const w = r.width > 0 ? knob + this.value * (r.width - knob) : null;
+    // The fill ends at the knob's centre (the knob rides on its right end).
+    const w = r.width > KNOB ? KNOB / 2 + this.value * (r.width - KNOB) : null;
     this.fill.style.width = w != null ? `${Math.round(w)}px` : `${Math.round(this.value * 100)}%`;
   }
 

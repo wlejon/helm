@@ -1,6 +1,6 @@
 /* =============================================================================
-   LOCK SCREEN: the wallpaper sunk behind thick glass, a thin giant clock,
-   and a single pill to type into. Unlocking lifts the whole sheet away.
+   LOCK SCREEN: the wallpaper sunk and blurred behind a dark scrim, a large
+   tabular clock, and one field to type into. Unlocking lifts the sheet away.
    ============================================================================= */
 
 .lock-screen {
@@ -8,7 +8,7 @@
   inset: 0;
   z-index: var(--z-lock);
   overflow: hidden;
-  background: oklch(0.10 0.02 var(--accent-h));
+  background: oklch(0.10 0.006 var(--accent-h));
 }
 
 .lock-screen.entering {
@@ -26,7 +26,7 @@
 
 @keyframes lock-out {
   from { opacity: 1; transform: none; }
-  to { opacity: 0; transform: scale(1.04); }
+  to { opacity: 0; transform: scale(1.02); }
 }
 
 .lock-bg {
@@ -34,15 +34,13 @@
   inset: -60px;
   background-size: cover;
   background-position: center;
-  filter: blur(46px) saturate(1.5) brightness(0.62);
+  filter: blur(46px) saturate(1.2) brightness(0.55);
 }
 
 .lock-scrim {
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(ellipse at 50% 100%, oklch(0.55 0.18 var(--accent-h) / 0.30) 0%, transparent 42%),
-    radial-gradient(ellipse at 50% 34%, transparent 20%, oklch(0.06 0.02 var(--accent-h) / 0.60) 80%);
+  background: rgb(0 0 0 / 0.30);
 }
 
 .lock-top {
@@ -53,20 +51,21 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0;
-  text-shadow: 0 4px 40px rgb(0 0 0 / 0.35);
+  gap: var(--s1);
 }
 
 .lock-date {
-  font-size: 13px;
+  font-size: var(--fs-title);
+  font-weight: 500;
+  letter-spacing: 0;
   color: var(--t2);
-  letter-spacing: 0.24em;
 }
 
 .lock-time {
   font-size: var(--fs-hero);
-  font-weight: 200;
-  letter-spacing: -0.045em;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
   line-height: 1.05;
   color: var(--t1);
 }
@@ -80,7 +79,7 @@
 }
 
 @keyframes rise {
-  from { opacity: 0; transform: translateY(26px); }
+  from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: none; }
 }
 
@@ -88,7 +87,7 @@
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 20%;
+  bottom: 22%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -96,21 +95,21 @@
 }
 
 .lock-avatar {
-  width: 84px;
-  height: 84px;
-  padding: 3px;
-  box-shadow: 0 10px 50px oklch(0.65 0.18 var(--accent-h) / 0.5);
+  width: 72px;
+  height: 72px;
+  background: var(--surface-float);
+  box-shadow: inset 0 0 0 1px var(--rim-strong), var(--depth-2);
 }
 
 .lock-avatar .avatar-in {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 600;
 }
 
 .lock-user {
-  font-size: 18px;
-  font-weight: 650;
-  margin-bottom: var(--s2);
+  font-size: var(--fs-head);
+  font-weight: 600;
+  margin-bottom: var(--s1);
 }
 
 .lock-form {
@@ -124,20 +123,20 @@
   display: flex;
   align-items: center;
   gap: var(--s2);
-  width: 340px;
-  height: 52px;
-  padding: 0 6px 0 var(--s4);
-  border-radius: var(--r-chip);
-  background: oklch(0.18 0.03 var(--accent-h) / 0.55);
-  backdrop-filter: var(--blur-island);
+  width: 320px;
+  height: 44px;
+  padding: 0 6px 0 var(--s3);
+  border-radius: var(--r-card);
+  background: var(--surface-modal);
+  backdrop-filter: var(--blur);
   border: 1px solid var(--rim-strong);
   box-shadow: var(--rim-top), var(--depth-1);
   transition: border-color var(--d-state) var(--ease-std), box-shadow var(--d-state) var(--ease-std);
 }
 
 .lock-field:focus-within {
-  border-color: oklch(0.72 0.16 var(--accent-h) / 0.8);
-  box-shadow: var(--rim-top), 0 0 0 4px var(--a1-soft), var(--depth-1);
+  border-color: var(--accent-line);
+  box-shadow: var(--rim-top), 0 0 0 3px var(--accent-faint), var(--depth-1);
 }
 
 .lock-field-glyph {
@@ -153,7 +152,7 @@
 .lock-entry {
   position: relative;
   flex: 1;
-  height: 40px;
+  height: 36px;
 }
 
 .lock-input {
@@ -163,20 +162,20 @@
   height: 100%;
   background: transparent;
   border: none;
-  font-size: 16px;
-  letter-spacing: 0.18em;
-  caret-color: var(--a1);
+  font-size: var(--fs-title);
+  letter-spacing: 0.12em;
+  caret-color: var(--accent);
 }
 
 .lock-ghost {
   position: absolute;
   left: 1px;
   top: 0;
-  height: 40px;
+  height: 36px;
   display: flex;
   align-items: center;
   color: var(--t3);
-  font-size: 14.5px;
+  font-size: var(--fs-title);
   pointer-events: none;
 }
 
@@ -185,21 +184,16 @@
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--r-chip);
-  background: var(--grad);
-  color: white;
-  box-shadow: var(--glow);
-  transition: transform var(--d-quick) var(--ease-std), box-shadow var(--d-state) var(--ease-std);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-ctl);
+  background: var(--accent);
+  color: var(--on-accent);
+  transition: background var(--d-quick) var(--ease-std), box-shadow var(--d-state) var(--ease-std);
 }
 
 .lock-go:hover {
-  box-shadow: var(--glow-strong);
-}
-
-.lock-go:active {
-  transform: scale(0.92);
+  background: var(--accent-hover);
 }
 
 .lock-go:focus-visible {
@@ -207,6 +201,8 @@
 }
 
 .lock-go .icon {
+  width: 17px;
+  height: 17px;
   stroke-width: 2.2;
 }
 
@@ -227,13 +223,12 @@
   display: flex;
   align-items: center;
   height: 28px;
-  padding: 0 14px;
-  border-radius: var(--r-chip);
-  background: oklch(0.55 0.20 22 / 0.28);
-  border: 1px solid oklch(0.66 0.20 22 / 0.5);
-  color: oklch(0.88 0.08 22);
+  padding: 0 var(--s3);
+  border-radius: var(--r-ctl);
+  background: var(--danger-soft);
+  color: var(--danger-text);
   font-size: var(--fs-cap);
-  font-weight: 600;
+  font-weight: 500;
   animation: rise 360ms var(--spring);
 }
 
@@ -257,7 +252,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--s2);
+  gap: 6px;
   color: var(--t3);
 }
 

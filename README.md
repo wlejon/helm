@@ -172,7 +172,7 @@ Or run the test script directly with `helm-headless`:
 ```bash
 BRO_TRUSTED_APP_DIR="$PWD/ui" ./build/helm-headless ui/ tests/test_shell_boot.js
 ```
-Use a scratch `XDG_CONFIG_HOME` and `HELM_CONFIG_DIR` when running by hand, so the run does not write your real settings (ctest sets both). Tests that drive Settings call `helm.settingsUi.stubWrites()` first, so they never change the real volume, network, Bluetooth, power state or default apps.
+Use a scratch `XDG_CONFIG_HOME` and `HELM_CONFIG_DIR` when running by hand, so the run does not write your real settings (ctest sets both). On Windows bro.conf lives under `%APPDATA%\bro`, so point `APPDATA` at a scratch dir too, or a run writes `[helm.shell]` into your real `settings.ini`. Tests that drive Settings call `helm.settingsUi.stubWrites()` first, so they never change the real volume, network, Bluetooth, power state or default apps.
 
 ### How an agent drives helm
 `helm --drm` serves bro's agent control socket (`$XDG_RUNTIME_DIR/bro-control/display.sock`, owner-only, never on the network), and `ninja -C build bro-ctl` builds its client. Everything works from another machine through ssh as the session's user; [bro's docs/agent-control.md](../bro/docs/agent-control.md) has the full command list.

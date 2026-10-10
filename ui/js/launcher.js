@@ -88,7 +88,7 @@ export class LauncherController {
     this.origin = origin && origin.getBoundingClientRect ? origin : null;
     const from = this.origin ? rectOf(this.origin) : null;
     if (from && from.width > 0) {
-      morphIn(this.window, from, { body: this.inner, fromRadius: from.height / 2, toRadius: 32, duration: 520 });
+      morphIn(this.window, from, { body: this.inner, duration: 520 });
     } else {
       animate(this.window, [{ opacity: 0, transform: 'scale(0.94) translateY(12px)' }, { opacity: 1, transform: 'none' }],
         { duration: 320, easing: EASE_OUT });

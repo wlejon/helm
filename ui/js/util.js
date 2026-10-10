@@ -199,7 +199,7 @@ export function windowIconUrl(w, size = 64) {
  */
 export function windowIcon(w, app, label, size = 64, cls = 'app-icon') {
   const url = windowIconUrl(w, size);
-  if (url) return h(`span.${cls}.app-icon-img`, h('img', { src: url, alt: '', draggable: 'false' }));
+  if (url) return iconImage(url, label || (w && w.appId), cls);
   return appIcon(app ? app.icon : w && w.appId, label, size, cls);
 }
 
@@ -209,12 +209,40 @@ export function appIcon(name, label, size = 64, cls = 'app-icon') {
     return h(`span.${cls}.app-icon-shell`, icon(name.slice(6)));
   }
   const path = appIconPath(name, size);
-  if (path) {
-    const img = h('img', { src: path, alt: '', draggable: 'false' });
-    return h(`span.${cls}.app-icon-img`, img);
-  }
-  const letter = String(label || name || '?').trim().charAt(0).toUpperCase() || '?';
-  let hash = 0;
-  for (const ch of String(label || name || '')) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
-  return h(`div.${cls}.app-icon-fallback`, { style: { '--fallback-h': String(hash % 360) } }, letter);
+  if (path) return iconImage(path, label || name, cls);
+  return letterTile(label || name, cls);
+}
+
+// The formats bro decodes. .ico and .xpm (common as Windows and old X11
+// app icons) are not among them.
+const IMAGE_EXT = /\.(png|svgz?|jpe?g|webp|gif|bmp)$/i;
+
+/** An app's initial on the neutral tile every icon-less app shares. */
+function letterTile(label, cls) {
+  const letter = String(label || '?').trim().charAt(0).toUpperCase() || '?';
+  return h(`div.${cls}.app-icon-fallback`, letter);
+}
+
+/**
+ * An icon file that resolved but may not draw (a format the engine cannot
+ * decode, a broken file): the image swaps itself for the lettered tile, so
+ * no app is ever shown as a blank space.
+ */
+function iconImage(url, label, cls) {
+  // A path that is not an image at all (a Windows .exe or .chm named as the
+  // icon) never draws, and the engine fires neither load nor error for it.
+  if (!url.startsWith('data:') && !IMAGE_EXT.test(url.split(/[?#]/)[0])) return letterTile(label, cls);
+  const img = h('img', { src: url, alt: '', draggable: 'false' });
+  const box = h(`span.${cls}.app-icon-img`, img);
+  const fail = () => {
+    if (!box.classList.contains('app-icon-img')) return;
+    box.classList.remove('app-icon-img');
+    box.classList.add('app-icon-fallback');
+    box.replaceChildren(letterTile(label, cls).textContent);
+  };
+  img.addEventListener('error', fail);
+  img.addEventListener('load', () => {
+    if (img.naturalWidth === 0) fail();
+  });
+  return box;
 }

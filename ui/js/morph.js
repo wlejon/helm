@@ -26,9 +26,17 @@ export const UNMORPH_MS = 300;
 
 const px = (v) => `${Math.round(v * 10) / 10}px`;
 
+/** The corner radius panels and modal surfaces settle at (--r-panel). */
+export const R_PANEL = 14;
+
+/** How far the bar's outer islands sit from the screen's sides (islands.css). */
+const EDGE = 4;
+
+/** An element's box, with its corner radius so a morph starts from its shape. */
 export function rectOf(el) {
   const r = el.getBoundingClientRect();
-  return { left: r.left, top: r.top, width: r.width, height: r.height };
+  const radius = parseFloat(attempt('getComputedStyle', () => getComputedStyle(el).borderTopLeftRadius, '')) || 0;
+  return { left: r.left, top: r.top, width: r.width, height: r.height, radius: Math.min(radius, r.height / 2) };
 }
 
 /** element.animate when the engine has it; a no-op stand-in otherwise. */
@@ -66,10 +74,10 @@ function boxFrame(r, radius) {
  * of the rect `from`. `body` is the content inside, faded in once the box
  * has cleared it.
  */
-export function morphIn(el, from, { body, align, fromRadius, toRadius = 30, duration = MORPH_MS } = {}) {
+export function morphIn(el, from, { body, align, fromRadius, toRadius = R_PANEL, duration = MORPH_MS } = {}) {
   const to = rectOf(el);
   pinBody(el, body, align, duration);
-  const anims = [animate(el, [boxFrame(from, fromRadius ?? from.height / 2), boxFrame(to, toRadius)],
+  const anims = [animate(el, [boxFrame(from, fromRadius ?? from.radius ?? 0), boxFrame(to, toRadius)],
     { duration, easing: SPRING })];
   if (body) {
     // The glass grows up out of the bar: the body rises with it.
@@ -86,8 +94,7 @@ export function morphIn(el, from, { body, align, fromRadius, toRadius = 30, dura
 export function morphOut(el, to, { body, align, toRadius, duration = UNMORPH_MS, done } = {}) {
   const from = rectOf(el);
   pinBody(el, body, align, duration + 40);
-  const fromRadius = parseFloat(getComputedStyle(el).borderTopLeftRadius) || 30;
-  const anims = [animate(el, [boxFrame(from, fromRadius), boxFrame(to, toRadius ?? to.height / 2)],
+  const anims = [animate(el, [boxFrame(from, from.radius || R_PANEL), boxFrame(to, toRadius ?? to.radius ?? 0)],
     { duration, easing: EASE_STD, fill: 'forwards' })];
   if (body) {
     anims.push(animate(body, [{ opacity: 1 }, { opacity: 0 }],
@@ -165,7 +172,7 @@ class PanelManager {
     const from = island ? rectOf(island) : null;
     if (island) island.classList.add('morphed');
     if (from && from.width > 0) {
-      morphIn(el, from, { body, align: panel.align, fromRadius: from.height / 2, toRadius: panel.radius ?? 30 });
+      morphIn(el, from, { body, align: panel.align, toRadius: panel.radius ?? R_PANEL });
     }
     window.dispatchEvent(new CustomEvent('helm:overlay'));
   }
@@ -189,7 +196,7 @@ class PanelManager {
       el.style.bottom = `${Math.round(window.innerHeight - r.bottom)}px`;
     }
     // Kept on screen, no closer to its edges than the bar's islands are.
-    left = Math.max(6, Math.min(vw - w - 6, left));
+    left = Math.max(EDGE, Math.min(vw - w - EDGE, left));
     el.style.left = `${Math.round(left)}px`;
     el.style.right = 'auto';
   }

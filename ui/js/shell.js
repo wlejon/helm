@@ -174,8 +174,6 @@ export class Shell {
     const hue = Number(settings.get('accentHue')) || 0;
     const root = document.documentElement.style;
     root.setProperty('--accent-h', String(hue));
-    // The gradient's second stop sits 48 degrees round the wheel.
-    root.setProperty('--accent-h2', String((hue + 48) % 360));
   }
 
   cycleAccent() {

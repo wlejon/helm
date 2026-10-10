@@ -180,7 +180,8 @@ export default {
     const hue = Number(b.pref('accentHue'));
     const swatches = h('div.st-swatches', ACCENTS.map((a) => {
       const s = h('button.st-swatch', { title: a.name, dataset: { hue: String(a.hue) } },
-        h('span.st-swatch-dot', { style: { background: `linear-gradient(135deg, oklch(0.70 0.18 ${a.hue}), oklch(0.68 0.20 ${(a.hue + 48) % 360}))` } },
+        // The accent exactly as it will draw: one solid colour (--accent).
+        h('span.st-swatch-dot', { style: { background: `oklch(0.70 0.15 ${a.hue})` } },
           a.hue === hue ? icon('check') : null),
         h('span.st-swatch-name', a.name));
       s.classList.toggle('on', a.hue === hue);
