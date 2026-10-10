@@ -213,9 +213,9 @@ export function appIcon(name, label, size = 64, cls = 'app-icon') {
   return letterTile(label || name, cls);
 }
 
-// The formats bro decodes. .ico and .xpm (common as Windows and old X11
-// app icons) are not among them.
-const IMAGE_EXT = /\.(png|svgz?|jpe?g|webp|gif|bmp)$/i;
+// The formats bro decodes. .xpm (old X11 app icons) is not among them, and
+// a Windows app whose icon lives inside its .exe gets the letter tile.
+const IMAGE_EXT = /\.(png|svgz?|jpe?g|webp|gif|bmp|ico)$/i;
 
 /** An app's initial on the neutral tile every icon-less app shares. */
 function letterTile(label, cls) {
