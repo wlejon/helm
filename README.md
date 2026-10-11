@@ -147,13 +147,13 @@ Launch bare-metal on Linux DRM/KMS:
 ./build/helm --drm
 ```
 
-Host the screen for a remote viewer (helmremote in
+Host the screen for a remote viewer (helmapps' remote app, in
 [helmapps](https://github.com/wlejon/helmapps); the host side is
 [broremote](https://github.com/wlejon/broremote), built into helm through bro's pin). `--remote=NAME` picks the socket name; the `remoteHost` setting
 (`helm.shell.remoteHost`) hosts without the flag:
 ```bash
 ./build/helm --drm --remote
-# then, from another machine: helmremote with Host = HOST, or headless
+# then, from another machine: helmapps' remote app with Host = HOST, or headless
 broremote probe --ssh HOST --stats
 ```
 

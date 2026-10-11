@@ -2,7 +2,7 @@
  * Remote sessions: helm hosts its screen for remote viewers through
  * bro.remote when started with `--remote[=NAME]` (main.cpp passes NAME in
  * HELM_REMOTE) or while the remoteHost setting is on. The socket is NAME,
- * else "default", which is what a viewer (helmremote) reaches with only a host
+ * else "default", which is what a viewer (helmapps' remote app) reaches with only a host
  * given. A viewer gets the whole screen and drives it with its
  * keyboard and mouse, exactly as the local devices do.
  */
