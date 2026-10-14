@@ -147,7 +147,7 @@ try {
   });
   assert(ssResponse && typeof ssResponse.uri === 'string' && ssResponse.uri.startsWith('file:///'),
     `onScreenshot responds with file:// URI: ${JSON.stringify(ssResponse)}`);
-  const shotPath = ssResponse.uri.slice(7);
+  const shotPath = ssResponse.uri.replace(/^file:\/\/\/([A-Za-z]:)/, '$1').replace(/^file:\/\//, '');
   assert(fs.existsSync(shotPath) && fs.statSync(shotPath).size > 0, `screenshot file written at ${shotPath}`);
 
   // Test onPickColor handler
