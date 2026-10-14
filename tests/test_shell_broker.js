@@ -51,30 +51,32 @@ bro.shellHook.on('windowCreated', testListener);
 bro.shellHook.on(testListener);
 bro.shellHook.off(testListener);
 
-// 6. Verify Taskbar integration with shell hook events
-assert(window.helm?.taskbar !== undefined, 'helm taskbar exists');
-const taskbarContainer = document.getElementById('panel-taskbar');
-assert(taskbarContainer !== null, 'panel-taskbar container rendered');
+// 6. Verify Islands shell & compositor window integration
+assert(window.helm !== undefined, 'window.helm shell instance exists');
+assert(window.helm.islands !== undefined, 'helm islands controller exists');
+assert(window.helm.windows !== undefined, 'helm windows store exists');
 
-// Test synthetic shell hook window created
-window.helm.taskbar.addWindow({
-  id: 2001,
-  title: 'Broker Shell Test App',
-  appId: 'test_app',
-  className: 'TestAppClass',
-  focused: true,
-  minimized: false
-});
-assert(taskbarContainer.children.length >= 1, 'taskbar added test app window');
-assert(window.helm.taskbar.windows.has(2001), 'taskbar tracks test window 2001');
+const bar = document.getElementById('bar');
+const islandLeft = document.getElementById('island-left');
+const islandCenter = document.getElementById('island-center');
+const islandRight = document.getElementById('island-right');
+const workspacesEl = document.getElementById('workspaces');
+const focusedEl = document.getElementById('isl-focused');
 
-// Test focus switch
-window.helm.taskbar.setFocus(2001);
-assert(window.helm.taskbar.activeWindowId === 2001, 'window 2001 has active focus');
+assert(bar !== null, 'bottom #bar container rendered');
+assert(islandLeft !== null, '#island-left rendered');
+assert(islandCenter !== null, '#island-center rendered');
+assert(islandRight !== null, '#island-right rendered');
+assert(workspacesEl !== null && workspacesEl.children.length >= 1, '#workspaces rendered with at least 1 workspace');
+assert(focusedEl !== null, '#isl-focused element exists');
 
-// Test window cleanup
-window.helm.taskbar.removeWindow(2001);
-assert(!window.helm.taskbar.windows.has(2001), 'window 2001 removed from taskbar');
+// Verify launcher modal toggles setModalActive without throwing
+window.helm.launcher.open();
+flush();
+assert(window.helm.launcher.isOpen === true, 'launcher opened');
+window.helm.launcher.close();
+flush();
+assert(window.helm.launcher.isOpen === false, 'launcher closed');
 
 console.log('test_shell_broker: all Windows Shell Broker assertions passed successfully!');
 }

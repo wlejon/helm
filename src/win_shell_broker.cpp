@@ -37,8 +37,6 @@ HWND s_hwnd = nullptr;
 bool s_subclassed = false;
 bool s_modalActive = false;
 
-HWND s_trayHwnd = nullptr;
-bool s_trayClassRegistered = false;
 UINT s_wmShellHook = 0;
 bool s_shellHookRegistered = false;
 
@@ -167,45 +165,16 @@ void WinShellBroker::init(int panelHeight) {
     if (GetMonitorInfoW(hMon, &mi)) {
         s_originalWorkArea = mi.rcWork;
         RECT newWork = mi.rcMonitor;
-        newWork.top += panelHeight;
+        newWork.bottom -= panelHeight;
         SystemParametersInfoW(SPI_SETWORKAREA, 0, &newWork, SPIF_SENDCHANGE);
         s_hasReserved = true;
-        LOG_INFO("WinShellBroker: reserved work area top +%d px", panelHeight);
+        LOG_INFO("WinShellBroker: reserved work area bottom -%d px", panelHeight);
     }
 
-    // Register Shell_TrayWnd message receiver window to fulfill Explorer contracts
-    if (!FindWindowW(L"Shell_TrayWnd", nullptr)) {
-        WNDCLASSEXW wc{};
-        wc.cbSize = sizeof(wc);
-        wc.lpfnWndProc = trayWndProc;
-        wc.hInstance = GetModuleHandleW(nullptr);
-        wc.lpszClassName = L"Shell_TrayWnd";
-        if (RegisterClassExW(&wc) || GetLastError() == ERROR_CLASS_ALREADY_EXISTS) {
-            s_trayClassRegistered = true;
-            s_trayHwnd = CreateWindowExW(
-                WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE,
-                L"Shell_TrayWnd",
-                L"",
-                WS_POPUP,
-                0, 0, 0, 0,
-                nullptr, nullptr,
-                GetModuleHandleW(nullptr),
-                nullptr
-            );
-            if (s_trayHwnd) {
-                LOG_INFO("WinShellBroker: created Shell_TrayWnd receiver window %p", (void*)s_trayHwnd);
-                UINT wmTaskbarCreated = RegisterWindowMessageW(L"TaskbarCreated");
-                if (wmTaskbarCreated != 0) {
-                    SendNotifyMessageW(HWND_BROADCAST, wmTaskbarCreated, 0, 0);
-                    LOG_INFO("WinShellBroker: broadcasted TaskbarCreated message (%u)", wmTaskbarCreated);
-                }
-            } else {
-                LOG_WARN("WinShellBroker: failed to create Shell_TrayWnd: error %lu", GetLastError());
-            }
-        }
-    } else {
-        LOG_INFO("WinShellBroker: Shell_TrayWnd already exists in session");
-    }
+    // Note: Do NOT create a dummy Shell_TrayWnd here. brosys's TrayHost
+    // (started via bro.sys.tray.start()) creates and owns Shell_TrayWnd on
+    // its dedicated tray thread and handles WM_COPYDATA (Shell_NotifyIcon)
+    // in TrayRole::Shell mode.
 
     s_wmShellHook = RegisterWindowMessageW(L"SHELLHOOK");
     LOG_INFO("WinShellBroker: registered WM_SHELLHOOK message ID (%u)", s_wmShellHook);
@@ -220,14 +189,6 @@ void WinShellBroker::restore() {
         RemoveWindowSubclass(s_hwnd, shellSubclassProc, 1);
         s_subclassed = false;
         s_hwnd = nullptr;
-    }
-    if (s_trayHwnd) {
-        DestroyWindow(s_trayHwnd);
-        s_trayHwnd = nullptr;
-    }
-    if (s_trayClassRegistered) {
-        UnregisterClassW(L"Shell_TrayWnd", GetModuleHandleW(nullptr));
-        s_trayClassRegistered = false;
     }
     if (s_hasReserved) {
         SystemParametersInfoW(SPI_SETWORKAREA, 0, &s_originalWorkArea, SPIF_SENDCHANGE);
@@ -311,7 +272,7 @@ HWND WinShellBroker::attachedWindow() {
 }
 
 HWND WinShellBroker::trayWindow() {
-    return s_trayHwnd;
+    return FindWindowW(L"Shell_TrayWnd", nullptr);
 }
 
 ShellWindowInfo WinShellBroker::queryWindowInfo(HWND hwnd) {
@@ -356,7 +317,7 @@ std::vector<ShellWindowInfo> WinShellBroker::enumerateWindows() {
     };
     Context ctx;
     ctx.shellHwnd = s_hwnd;
-    ctx.trayHwnd = s_trayHwnd;
+    ctx.trayHwnd = FindWindowW(L"Shell_TrayWnd", nullptr);
 
     EnumWindows([](HWND hwnd, LPARAM lParam) -> BOOL {
         auto* p = reinterpret_cast<Context*>(lParam);
@@ -437,7 +398,7 @@ void WinShellBroker::handleShellHook(WPARAM wParam, LPARAM lParam) {
     }
 
     // Filter out Helm's own window and tray window from being tracked as external apps
-    const bool isSelf = (target == s_hwnd || target == s_trayHwnd);
+    const bool isSelf = (target == s_hwnd || target == FindWindowW(L"Shell_TrayWnd", nullptr));
     if (isSelf && (wParam == HSHELL_WINDOWCREATED || wParam == HSHELL_WINDOWDESTROYED)) {
         return;
     }
@@ -511,16 +472,6 @@ LRESULT CALLBACK WinShellBroker::shellSubclassProc(
     }
 
     return DefSubclassProc(hWnd, uMsg, wParam, lParam);
-}
-
-LRESULT CALLBACK WinShellBroker::trayWndProc(
-    HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-    switch (uMsg) {
-        case WM_DESTROY:
-            return 0;
-        default:
-            return DefWindowProcW(hWnd, uMsg, wParam, lParam);
-    }
 }
 
 void WinShellBroker::tick() {

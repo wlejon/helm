@@ -41,11 +41,11 @@ struct ShellHookEvent {
 
 class WinShellBroker {
 public:
-    /// Initialize desktop work area reservation, resolve user32 shell APIs,
-    /// and create the Shell_TrayWnd receiver window.
-    static void init(int panelHeight = 40);
+    /// Initialize desktop work area reservation (bottom bar) and resolve user32 shell APIs.
+    /// Shell_TrayWnd is intentionally left to brosys (TrayHost) so it claims TrayRole::Shell.
+    static void init(int panelHeight = 48);
 
-    /// Restore work area reservation, unhook windows, destroy Shell_TrayWnd receiver window.
+    /// Restore work area reservation and unhook windows.
     static void restore();
 
     /// Attach and subclass Helm's main window in standalone shell mode.
@@ -65,7 +65,7 @@ public:
     /// Get current attached main HWND.
     static HWND attachedWindow();
 
-    /// Get the Shell_TrayWnd broker receiver HWND.
+    /// Get the current Shell_TrayWnd HWND (owned by brosys in standalone shell mode).
     static HWND trayWindow();
 
     /// Enumerate top-level application windows.
@@ -83,9 +83,6 @@ private:
         HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,
         UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
 
-    static LRESULT CALLBACK trayWndProc(
-        HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-
     static void handleShellHook(WPARAM wParam, LPARAM lParam);
     static ShellWindowInfo queryWindowInfo(HWND hwnd);
 };
@@ -95,7 +92,7 @@ private:
 // Fallback stubs for non-Windows platforms
 class WinShellBroker {
 public:
-    static void init(int /*panelHeight*/ = 40) {}
+    static void init(int /*panelHeight*/ = 48) {}
     static void restore() {}
     static void attachWindow(void* /*hwnd*/) {}
     static void setModalActive(bool /*active*/) {}

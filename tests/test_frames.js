@@ -5,16 +5,21 @@
 // the way libinput does, so presses on frames go through the same path as a
 // DRM session.
 
+(function () {
 if (typeof hostCompositorSocket !== 'function' || hostCompositorSocket() === ''
     || typeof bro === 'undefined' || !bro.compositor || !bro.compositor.available) {
   skipTest('needs BRO_HEADLESS_COMPOSITOR=1 and the Wayland server');
+  return;
 }
 
 const cp = require('child_process');
 const fs = require('fs');
 const clientDir = process.env.BC_TEST_CLIENT_DIR || '../brocompositor/build-release/tests';
 const clientBin = `${clientDir}/bc_wl_client`;
-if (!fs.existsSync(clientBin)) skipTest(`bc_wl_client not found in ${clientDir} (BC_TEST_CLIENT_DIR)`);
+if (!fs.existsSync(clientBin)) {
+  skipTest(`bc_wl_client not found in ${clientDir} (BC_TEST_CLIENT_DIR)`);
+  return;
+}
 
 const C = bro.compositor;
 const settle = (n = 10) => { for (let i = 0; i < n; ++i) { advanceTime(16); flush(); } };
@@ -263,3 +268,4 @@ try {
 }
 if (failed) throw new Error('test_frames failed');
 console.log('test_frames: all assertions passed');
+})();

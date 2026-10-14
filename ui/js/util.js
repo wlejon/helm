@@ -140,7 +140,7 @@ const iconCache = new Map();
 
 export function appIconPath(name, size = 64) {
   if (!name) return null;
-  if (name.startsWith('/')) return name;
+  if (name.startsWith('/') || (/^[a-zA-Z]:[\\/]/.test(name) && IMAGE_EXT.test(name.split(/[?#]/)[0]))) return name;
   const key = `${name}@${size}`;
   if (iconCache.has(key)) return iconCache.get(key);
   const apps = api('apps');

@@ -210,7 +210,7 @@ export class Islands {
     const items = attempt('tray.getItems', () => tray.getItems(), []) || [];
     this.trayEl.replaceChildren(...items.filter((it) => !it.hidden && it.status !== 'passive').map((it) => {
       const name = (it.status === 'needs-attention' && it.attentionIcon && it.attentionIcon.name)
-        || (it.icon && it.icon.name) || '';
+        || (it.icon && it.icon.name) || it.appId || '';
       let glyph = null;
       if (name.startsWith('/')) glyph = h('img', { src: name });
       else if (name) {

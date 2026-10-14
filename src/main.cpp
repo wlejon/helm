@@ -136,7 +136,7 @@ int main(int argc, char* argv[]) {
         config.graphics.borderless = true;
         config.graphics.resizable = false;
         config.graphics.alwaysOnTop = false;
-        helm::WinShellBroker::init(40);
+        helm::WinShellBroker::init(48);
         LOG_INFO("Configured standalone shell borderless window: %dx%d at (%d, %d)",
                  config.graphics.width, config.graphics.height,
                  config.graphics.windowX, config.graphics.windowY);
