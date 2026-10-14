@@ -64,6 +64,7 @@ set(BRO_WITH_CLIP ON CACHE BOOL "Clipboard history")
 set(BRO_WITH_MPRIS ON CACHE BOOL "Media player integration")
 set(BRO_WITH_PULSE ON CACHE BOOL "PipeWire audio policy")
 set(BRO_WITH_IME ON CACHE BOOL "Input method engine")
+set(BRO_WITH_PORTAL ON CACHE BOOL "Desktop portal backend (broportal)")
 # bro.remote: `helm --remote` hosts the screen for remote viewers (bro builds
 # broremote like its other dependencies).
 set(BRO_WITH_REMOTE ON CACHE BOOL "Remote session hosting (broremote)")

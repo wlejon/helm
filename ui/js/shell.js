@@ -28,11 +28,30 @@ import { Frames } from './frames.js';
 import { SettingsApp } from './settings/app.js';
 import { chordOf, hotkeyFor, nativeChords } from './hotkeys.js';
 import { remoteHost } from './remote.js';
+import { portal } from './portal.js';
+
+function createAppearanceProxy(shell) {
+  return {
+    get theme() { return shell.portal.appearanceState().theme; },
+    set theme(v) { settings.set('theme', v); },
+    get accent() { return shell.portal.appearanceState().accent; },
+    set accent(v) { settings.set('accent', v); },
+    get accentHue() { return shell.portal.appearanceState().accentHue; },
+    set accentHue(v) { settings.set('accentHue', Number(v)); },
+    get reducedMotion() { return shell.portal.appearanceState().reducedMotion; },
+    set reducedMotion(v) { settings.set('reducedMotion', !!v); },
+    get highContrast() { return shell.portal.appearanceState().highContrast; },
+    set highContrast(v) { settings.set('highContrast', !!v); },
+  };
+}
 
 export class Shell {
   constructor() {
     this.booted = false;
+    this.shell = this;
     this.prefs = settings;
+    this.portal = portal;
+    this.appearance = createAppearanceProxy(this);
     this.remote = remoteHost;
     this.system = system;
     this.windows = windows;
@@ -86,6 +105,7 @@ export class Shell {
       ['frames', () => this.frames.init()],
       ['activities', () => this.watchMedia()],
       ['edges', () => this.reserveEdges()],
+      ['portal', () => portal.init(this)],
       ['remote', () => remoteHost.init()],
     ];
     // One surface failing to start must not take the rest of the desktop with it.
@@ -358,6 +378,7 @@ export class Shell {
   destroy() {
     this.islands.destroy();
     this.lock.destroy();
+    this.portal.destroy();
     this.booted = false;
   }
 }

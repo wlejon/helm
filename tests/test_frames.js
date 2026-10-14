@@ -109,8 +109,8 @@ try {
   settle(20);
   assert(frame(a.id).hasAttribute('data-window-focused') && !frame(b.id).hasAttribute('data-window-focused'),
     'focused frame marked');
-  const seam = (id) => Number(getComputedStyle(frame(id).querySelector('.wf-seam')).opacity);
-  assert(seam(a.id) > 0.5 && seam(b.id) === 0, `focus seam lit on the focused frame only (${seam(a.id)}, ${seam(b.id)})`);
+  const chromeBg = (id) => getComputedStyle(frame(id).querySelector('.wf-chrome')).backgroundColor;
+  assert(chromeBg(a.id) !== chromeBg(b.id), `focused frame has raised surface (${chromeBg(a.id)} vs ${chromeBg(b.id)})`);
   const titleColor = (id) => getComputedStyle(frame(id).querySelector('.wf-title')).color;
   assert(titleColor(a.id) !== titleColor(b.id), 'unfocused title dimmed');
 
