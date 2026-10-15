@@ -213,6 +213,9 @@ assert(helm.lock.isLocked, 'Ctrl+Alt+L locks');
 const lockEl = document.getElementById('lock-screen');
 const errEl = document.getElementById('lock-error-msg');
 assert(!lockEl.classList.contains('hidden'), 'lock screen visible');
+// As the Windows shell the lock must raise the shell with the keyboard, or
+// the password field never sees a key.
+assert(helm.overlays.has('lock'), 'the lock holds the shell overlay');
 key({ key: ' ', ctrlKey: true });
 assert(!helm.launcher.isOpen, 'hotkeys are ignored while locked');
 
@@ -234,6 +237,7 @@ try {
   bro.cred.authenticate = async () => true;
   assert((await helm.lock.verify('right')) === true, 'valid password accepted');
   assert(!helm.lock.isLocked, 'unlocked');
+  assert(!helm.overlays.has('lock'), 'unlocking releases the shell overlay');
 } finally {
   bro.cred.authenticate = origAuth;
 }

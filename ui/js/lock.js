@@ -81,6 +81,10 @@ export class LockController {
     if (this.isLocked) return;
     this.isLocked = true;
     this.shell.closeTransient();
+    // The lock owns input: as the Windows shell this raises the shell over
+    // the applications' windows with the keyboard, or the password field
+    // never sees a key.
+    this.shell.setModalActive('lock', true);
     $('#lock-bg', this.el).style.backgroundImage = this.shell.wallpaper.css();
     this.renderClock();
     this.errorEl.classList.add('hidden');
@@ -99,6 +103,7 @@ export class LockController {
 
   unlock() {
     this.isLocked = false;
+    this.shell.setModalActive('lock', false);
     this.input.value = '';
     this.syncGhost();
     this.errorEl.classList.add('hidden');
