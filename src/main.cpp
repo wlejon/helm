@@ -136,6 +136,9 @@ int main(int argc, char* argv[]) {
         config.graphics.borderless = true;
         config.graphics.resizable = false;
         config.graphics.alwaysOnTop = false;
+        // Agent control serves "display" with whole-screen screenshots and
+        // OS-level input, as helm --drm does (bro docs/agent-control.md).
+        config.desktopShell = true;
         helm::WinShellBroker::init(48);
         LOG_INFO("Configured standalone shell borderless window: %dx%d at (%d, %d)",
                  config.graphics.width, config.graphics.height,
