@@ -108,17 +108,18 @@ export function hotkeyFor(chord) {
 }
 
 /**
- * The chords to register with the host. Under DRM the host matches every
- * key against them first, so all of them go (bar each entry's `local`
- * ones). Windowed, only chords the desktop around us would not already
- * own: Ctrl or Alt combinations without Super or Tab.
+ * The chords to register with the host. When the host matches every key
+ * against them first (`ownsKeyboard`: DRM, or helm as the Windows shell;
+ * bro.window.hotkeyRouting === 'keyboard'), all of them go (bar each
+ * entry's `local` ones). Otherwise only chords the desktop around us would
+ * not already own: Ctrl or Alt combinations without Super or Tab.
  */
-export function nativeChords(drm) {
+export function nativeChords(ownsKeyboard) {
   const out = [];
   for (const k of HOTKEYS) {
     if (k.native === false) continue;
     for (const chord of k.chords) {
-      if (drm) {
+      if (ownsKeyboard) {
         if ((k.local || []).includes(chord)) continue;
         out.push({ entry: k, chord, accel: chord });
       } else if (/^(Ctrl|Alt)\+/.test(chord) && !/Super|Tab/.test(chord)) {

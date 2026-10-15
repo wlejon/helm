@@ -129,14 +129,18 @@ export class Shell {
   }
 
   /**
-   * Track shell overlays that own input. Hosts that need to know (the Windows
-   * shell broker) get bro.setModalActive(anyOpen).
+   * Track shell overlays that own input. The compositor hears whether any is
+   * up (bro.compositor.setShellOverlay): as the Windows shell, that raises
+   * the shell over the applications' windows with the keyboard.
    */
   setModalActive(source, active) {
+    const wasOpen = this.overlays.size > 0;
     if (active) this.overlays.add(source);
     else this.overlays.delete(source);
-    if (typeof bro !== 'undefined' && bro && typeof bro.setModalActive === 'function') {
-      attempt('bro.setModalActive', () => bro.setModalActive(this.overlays.size > 0));
+    const open = this.overlays.size > 0;
+    const c = api('compositor');
+    if (open !== wasOpen && c && typeof c.setShellOverlay === 'function') {
+      attempt('compositor.setShellOverlay', () => c.setShellOverlay(open));
     }
   }
 
@@ -275,7 +279,10 @@ export class Shell {
     this.nativeHotkeys = [];
     this.nativeSuperTap = false;
     if (!win || typeof win.registerGlobalHotkey !== 'function') return;
-    for (const { entry, chord, accel } of nativeChords(win.displayMode === 'drm')) {
+    // 'keyboard': the host sees every key first (DRM, or helm as the Windows
+    // shell), so the whole table goes to it, the Super tap included.
+    const ownsKeyboard = win.hotkeyRouting === 'keyboard' || win.displayMode === 'drm';
+    for (const { entry, chord, accel } of nativeChords(ownsKeyboard)) {
       const options = entry.grab ? { grab: true } : undefined;
       const id = attempt(`registerGlobalHotkey ${accel}`, () => win.registerGlobalHotkey(accel, () => {
         if (!this.lock.isLocked) entry.run(this, chord);

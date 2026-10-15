@@ -20,10 +20,6 @@
 #if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-
-#include "win_shell_broker.h"
-#include "platform/desktop_platform.h"
-#include "bronze_host/host_runtime.h"
 #endif
 
 namespace {
@@ -136,18 +132,17 @@ int main(int argc, char* argv[]) {
         config.graphics.borderless = true;
         config.graphics.resizable = false;
         config.graphics.alwaysOnTop = false;
-        // Agent control serves "display" with whole-screen screenshots and
-        // OS-level input, as helm --drm does (bro docs/agent-control.md).
+        // The session's shell: bro registers the window as the shell window
+        // and keeps it beneath the applications (bro.compositor's
+        // setShellOverlay raises it), the bar's reserveEdge takes the OS
+        // work area, global hotkeys see every key first, and agent control
+        // serves "display" with whole-screen screenshots and OS-level input,
+        // as helm --drm does (bro docs/compositor-api.js, docs/agent-control.md).
         config.desktopShell = true;
-        helm::WinShellBroker::init(48);
         LOG_INFO("Configured standalone shell borderless window: %dx%d at (%d, %d)",
                  config.graphics.width, config.graphics.height,
                  config.graphics.windowX, config.graphics.windowY);
     }
-
-    config.installHostBindings = [](bro::engine::Engine& engine) {
-        helm::WinShellBroker::installHostBindings(engine);
-    };
 #endif
 
     const char* existingTrusted = std::getenv("BRO_TRUSTED_APP_DIR");
@@ -168,40 +163,12 @@ int main(int argc, char* argv[]) {
 
     try {
         bro::engine::Engine engine(config);
-#if defined(_WIN32)
-        if (isStandaloneShell) {
-            if (engine.window()) {
-                HWND hwnd = bro::platform::desktop::hwndOf(engine.window());
-                if (hwnd) {
-                    helm::WinShellBroker::attachWindow(hwnd);
-                }
-            }
-            engine.addFramePump([&engine]() {
-                static bool attached = false;
-                if (!attached && engine.window()) {
-                    HWND hwnd = bro::platform::desktop::hwndOf(engine.window());
-                    if (hwnd) {
-                        helm::WinShellBroker::attachWindow(hwnd);
-                        attached = true;
-                    }
-                }
-                helm::WinShellBroker::tick();
-            });
-        }
-#endif
         engine.run();
     } catch (const std::exception& e) {
         LOG_ERROR("helm: fatal: %s", e.what());
         std::fprintf(stderr, "Fatal error: %s\n", e.what());
-#if defined(_WIN32)
-        helm::WinShellBroker::restore();
-#endif
         return 1;
     }
-
-#if defined(_WIN32)
-    helm::WinShellBroker::restore();
-#endif
 
     bro::bronze_host::flushHostStorage();
     return 0;

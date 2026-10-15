@@ -106,7 +106,7 @@ helm/
     ├── test_bar.js             # The bar's islands, spaces, Alt+Tab over stand-in windows
     ├── test_frames.js          # Frames, borderless maximize and its corner controls, snapping, over real Wayland clients
     ├── test_settings.js        # Settings: open/close, navigation, search, launcher, missing APIs (writes stubbed)
-    └── test_shell_broker.js    # Windows shell broker bindings (skips elsewhere)
+    └── test_shell_role.js      # Overlays reach bro.compositor.setShellOverlay
 ```
 
 ### Trusted Desktop Permissions
@@ -146,6 +146,17 @@ Launch bare-metal on Linux DRM/KMS:
 ```bash
 ./build/helm --drm
 ```
+
+As the Windows shell (helm as an account's Winlogon shell in place of Explorer; `--shell`, or
+any start with no `Shell_TrayWnd` around), helm only sets bro's `EngineConfig::desktopShell`;
+everything the shell does natively is bro's and brocompositor's, through `bro.compositor` as on
+Linux. bro registers helm's window as the session's shell window and keeps it beneath the
+applications' windows, raised over them while a panel, the launcher or Settings is open
+(`bro.compositor.setShellOverlay`); the bar's `reserveEdge` reserves the OS work area, so
+maximized windows stop above it; bro.sys owns `Shell_TrayWnd` (the tray); and global hotkeys
+see every key first through a low-level keyboard hook (`bro.window.hotkeyRouting ===
+'keyboard'`), so the Super tap and the Win chords below work. `Win+L` is the exception: the
+secure desktop takes it before any hook, so it locks Windows itself, not helm.
 
 Host the screen for a remote viewer (helmapps' remote app, in
 [helmapps](https://github.com/wlejon/helmapps); the host side is
@@ -210,7 +221,7 @@ ssh HOST cat /tmp/rec/summary.txt                           # every frame, vblan
 | Volume, media and brightness keys | Adjust, with an on-screen display |
 | `Escape` | Close the open menu, Settings, launcher or panel |
 
-The table lives in `ui/js/hotkeys.js`; the Settings Keyboard page is drawn from it. Under DRM, bro routes only some of these chords to the shell today; the rest reach the focused window.
+The table lives in `ui/js/hotkeys.js`; the Settings Keyboard page is drawn from it. Under DRM and as the Windows shell the whole table goes to the host's global hotkeys, which see every key first; a chord helm binds never reaches the focused window, and Super combinations it does not bind pass through. In a windowed session only the Ctrl and Alt chords are registered with the system, and the rest work while helm has the keyboard.
 
 ---
 
