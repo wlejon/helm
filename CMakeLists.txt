@@ -69,8 +69,44 @@ set(BRO_WITH_PORTAL ON CACHE BOOL "Desktop portal backend (broportal)")
 # broremote like its other dependencies).
 set(BRO_WITH_REMOTE ON CACHE BOOL "Remote session hosting (broremote)")
 
-bro_dependency(bro GITHUB wlejon/bro TARGET bro_engine)
-set(BRO_DIR "${bro_SOURCE_DIR}")
+# How helm links the engine (bro BUILDING.md, "The engine library"):
+#
+#   * Linux and macOS: libbro, the engine as one shared library, so helm and
+#     every app it launches map one copy of the engine's code. With
+#     -Dbro_DIR=<a bro build tree> helm links THAT tree's libbro: the one the
+#     installed apps run on (their executables load it), which is what makes
+#     the sharing real. halo's live build is configured that way, against
+#     ~/projects/bro/build-release. Without it, bro is built here as a
+#     subproject and helm links that libbro.
+#   * Windows: libbro.dll exports only bro's C entry points, so helm links the
+#     engine's static libraries, as before.
+#   * -DHELM_STATIC_ENGINE=ON links the static libraries everywhere (a
+#     subproject build): one self-contained helm, and the baseline to compare
+#     the shared engine against.
+option(HELM_STATIC_ENGINE "Link the engine's static libraries instead of libbro" OFF)
+set(_helm_engine_features COMPOSITOR SYS DISPLAYS APPS CRED SEARCH KEYS THEMES CONF SEAT DECOR CLIP MPRIS
+    PULSE IME PORTAL REMOTE)
+if(NOT WIN32 AND bro_DIR AND NOT HELM_STATIC_ENGINE)
+    find_package(bro CONFIG REQUIRED)
+    foreach(_f IN LISTS _helm_engine_features)
+        if(NOT BRO_WITH_${_f})
+            message(FATAL_ERROR "helm: the bro build at ${BRO_BINARY_DIR} has BRO_WITH_${_f} off; helm needs it")
+        endif()
+    endforeach()
+    message(STATUS "helm: linking libbro of the bro build at ${BRO_BINARY_DIR}")
+    set(BRO_DIR "${BRO_SOURCE_DIR}")
+    set(HELM_ENGINE bro::libbro)
+    set(HELM_PREBUILT_BRO ON)
+else()
+    bro_dependency(bro GITHUB wlejon/bro TARGET bro_engine)
+    set(BRO_DIR "${bro_SOURCE_DIR}")
+    if(WIN32 OR HELM_STATIC_ENGINE)
+        set(HELM_ENGINE bro_engine bro_bronze_host bro_bronze_js bronze::runtime_shared)
+    else()
+        set(HELM_ENGINE bro::libbro)
+    endif()
+    set(HELM_PREBUILT_BRO OFF)
+endif()
 
 # ---- helm sources & executables ----------------------------------------------
 set(HELM_COMMON_SOURCES
@@ -84,8 +120,7 @@ add_executable(helm WIN32
 )
 target_include_directories(helm PRIVATE "${BRO_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_compile_definitions(helm PRIVATE HELM_VERSION="${PROJECT_VERSION}")
-target_link_libraries(helm PRIVATE bro_engine bro_bronze_host bro_bronze_js bronze::runtime_shared)
-bro_bronze_stage_runtime(helm)
+target_link_libraries(helm PRIVATE ${HELM_ENGINE})
 
 # Headless desktop application test driver executable
 add_executable(helm-headless
@@ -94,8 +129,14 @@ add_executable(helm-headless
 )
 target_include_directories(helm-headless PRIVATE "${BRO_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_compile_definitions(helm-headless PRIVATE HELM_VERSION="${PROJECT_VERSION}")
-target_link_libraries(helm-headless PRIVATE bro_engine bro_bronze_host bro_bronze_js bronze::runtime_shared)
-bro_bronze_stage_runtime(helm-headless)
+target_link_libraries(helm-headless PRIVATE ${HELM_ENGINE})
+if(NOT HELM_PREBUILT_BRO)
+    # bronze's runtime (and libbro) staged beside the executables, found
+    # through $ORIGIN. A prebuilt bro's libraries are found where they are:
+    # their absolute directory is in the build tree's rpath.
+    bro_bronze_stage_runtime(helm)
+    bro_bronze_stage_runtime(helm-headless)
+endif()
 
 if(MSVC)
     target_link_options(helm PRIVATE /STACK:33554432 /ENTRY:mainCRTStartup)
@@ -124,7 +165,12 @@ include(GNUInstallDirs)
 install(TARGETS helm RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 # system/ beside the executable is where bro trusts a shell app to live.
 install(DIRECTORY ui/ DESTINATION ${CMAKE_INSTALL_BINDIR}/system/helm)
-install(FILES $<TARGET_FILE:bronze_runtime_shared> DESTINATION ${CMAKE_INSTALL_BINDIR})
+if(NOT HELM_PREBUILT_BRO)
+    install(FILES $<TARGET_FILE:bronze_runtime_shared> DESTINATION ${CMAKE_INSTALL_BINDIR})
+    if(NOT WIN32 AND NOT HELM_STATIC_ENGINE)
+        install(FILES $<TARGET_FILE:libbro> DESTINATION ${CMAKE_INSTALL_BINDIR})
+    endif()
+endif()
 
 # ---- Tests --------------------------------------------------------------------
 enable_testing()
