@@ -258,6 +258,39 @@ try {
   assert(bindResponse.shortcuts[0].triggerDescription === 'Ctrl+Alt+K', 'XDG trigger normalized to Ctrl+Alt+K');
   assert(bindResponse.shortcuts[1].triggerDescription === '', 'collision with shell hotkey Super+S cleared');
 
+  // Verify normalizePortalTrigger and shortcutCollidesWithShell handle non-canonical modifier orders,
+  // '+'-delimited triggers, and XDG key tokens
+  assert(helm.portal.normalizePortalTrigger('<Alt><Control>v') === 'Ctrl+Alt+V', 'normalizes <Alt><Control>v -> Ctrl+Alt+V');
+  assert(helm.portal.normalizePortalTrigger('ctrl+shift+n') === 'Ctrl+Shift+N', 'normalizes ctrl+shift+n -> Ctrl+Shift+N');
+  assert(helm.portal.normalizePortalTrigger('<Super>space') === 'Super+Space', 'normalizes <Super>space -> Super+Space');
+  assert(helm.portal.normalizePortalTrigger('<Super>comma') === 'Super+,', 'normalizes <Super>comma -> Super+,');
+  assert(helm.portal.normalizePortalTrigger('<Super>period') === 'Super+.', 'normalizes <Super>period -> Super+.');
+  assert(helm.portal.normalizePortalTrigger('<Super>Left') === 'Super+ArrowLeft', 'normalizes <Super>Left -> Super+ArrowLeft');
+  assert(helm.portal.normalizePortalTrigger('<Super>Return') === 'Super+Enter', 'normalizes <Super>Return -> Super+Enter');
+  assert(helm.portal.normalizePortalTrigger('<Super>Escape') === 'Super+Escape', 'normalizes <Super>Escape -> Super+Escape');
+
+  for (const trig of ['<Alt><Control>v', 'ctrl+shift+n', '<Super>space', '<Super>comma', '<Super>Left']) {
+    assert(helm.portal.shortcutCollidesWithShell(trig) === true, `shortcutCollidesWithShell catches ${trig}`);
+  }
+  assert(helm.portal.shortcutCollidesWithShell('<Control><Alt>k') === false, 'non-colliding shortcut is allowed');
+
+  let collideBindResp = null;
+  handlers.bindShortcuts({
+    handle: '/org/freedesktop/portal/desktop/request/gs_bind_collisions',
+    sessionHandle: '/org/freedesktop/portal/desktop/session/gs_2',
+    appId: 'org.example.Collisions',
+    shortcuts: [
+      { id: 'c1', preferredTrigger: '<Alt><Control>v' },
+      { id: 'c2', preferredTrigger: 'ctrl+shift+n' },
+      { id: 'c3', preferredTrigger: '<Super>space' },
+      { id: 'c4', preferredTrigger: '<Super>comma' },
+      { id: 'c5', preferredTrigger: '<Super>Left' },
+    ],
+    respond(r) { collideBindResp = r; },
+  });
+  assert(collideBindResp && collideBindResp.shortcuts.every((s) => s.triggerDescription === ''),
+    'all colliding triggers cleared by handleBindShortcuts');
+
   let listResponse = null;
   handlers.listShortcuts({
     handle: '/org/freedesktop/portal/desktop/request/gs_list',

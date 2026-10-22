@@ -96,4 +96,41 @@ window.helm.calendar.toggle();
 settle(30);
 assert(!stack.classList.contains('suppressed'), 'toasts come back when the center closes');
 
+// Unread counter accuracy: same-ID replacement, remove(), D-Bus closed, toast activate(), and MAX_HISTORY truncation.
+notify.clearAll();
+settle(2);
+assert(notify.unread === 0 && notify.items.length === 0, 'clean baseline for unread counter tests');
+
+// 1. Same-ID replacement does not double-increment unread
+notify.receive({ id: 700, appName: 'Build', summary: 'Step 1', urgency: 'normal', actions: [] }, false);
+assert(notify.unread === 1, 'unread is 1 after first receive');
+notify.receive({ id: 700, appName: 'Build', summary: 'Step 2', urgency: 'normal', actions: [] }, false);
+assert(notify.unread === 1, 'same-ID replacement with replaced=false does not double-increment unread');
+notify.receive({ id: 700, appName: 'Build', summary: 'Step 3', urgency: 'normal', actions: [] }, true);
+assert(notify.unread === 1, 'same-ID replacement with replaced=true preserves unread');
+
+// 2. remove() and D-Bus closed signal decrement unread
+notify.receive({ id: 701, appName: 'Build', summary: 'Extra', urgency: 'normal', actions: [] }, false);
+assert(notify.unread === 2, 'unread is 2 with two unread notifications');
+notify.remove(700);
+assert(notify.unread === 1, 'remove() decrements unread');
+notify.remove(701, false); // D-Bus closed signal path
+assert(notify.unread === 0 && notify.items.length === 0, 'D-Bus closed remove(id, false) decrements unread to 0');
+assert(count.classList.contains('hidden'), 'clock island hides unread count when all unread items removed');
+
+// 3. Toast action activate() decrements unread
+notify.receive({ id: 702, appName: 'Chat', summary: 'Reply to me', actions: [{ key: 'reply', label: 'Reply' }] }, false);
+assert(notify.unread === 1, 'unread is 1 before toast action activate');
+notify.activate(notify.items[0], 'reply');
+assert(notify.unread === 0 && notify.items.length === 0, 'activate() removes non-resident item and decrements unread to 0');
+
+// 4. MAX_HISTORY truncation caps unread at MAX_HISTORY (50)
+for (let i = 0; i < 55; i++) {
+  notify.receive({ id: 800 + i, appName: 'Bulk', summary: `Msg ${i}`, urgency: 'normal', actions: [] }, false);
+}
+assert(notify.items.length === 50, 'history truncated at MAX_HISTORY (50)');
+assert(notify.unread === 50, 'unread count matches truncated history (50) rather than drifting to 55');
+notify.clearAll();
+settle(2);
+
 console.log('test_notifications: all assertions passed');

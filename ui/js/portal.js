@@ -105,24 +105,116 @@ export function parseAccentColor(accent, fallbackHue = 255) {
   return hueToRgb(fallbackHue);
 }
 
-/** Normalize an XDG portal shortcut trigger (`<Control><Alt>k`) to Helm's chord format. */
+const PORTAL_KEY_MAP = {
+  space: 'Space',
+  comma: ',',
+  period: '.',
+  dot: '.',
+  slash: '/',
+  left: 'ArrowLeft',
+  right: 'ArrowRight',
+  up: 'ArrowUp',
+  down: 'ArrowDown',
+  arrowleft: 'ArrowLeft',
+  arrowright: 'ArrowRight',
+  arrowup: 'ArrowUp',
+  arrowdown: 'ArrowDown',
+  return: 'Enter',
+  enter: 'Enter',
+  kp_enter: 'Enter',
+  escape: 'Escape',
+  esc: 'Escape',
+  tab: 'Tab',
+  iso_left_tab: 'Tab',
+  backspace: 'Backspace',
+  delete: 'Delete',
+  home: 'Home',
+  end: 'End',
+  page_up: 'PageUp',
+  pageup: 'PageUp',
+  prior: 'PageUp',
+  page_down: 'PageDown',
+  pagedown: 'PageDown',
+  next: 'PageDown',
+  xf86audiolowervolume: 'VolumeDown',
+  xf86audioraisevolume: 'VolumeUp',
+  xf86audiomute: 'VolumeMute',
+  xf86audioplay: 'MediaPlayPause',
+  xf86audionext: 'MediaNextTrack',
+  xf86audioprev: 'MediaPreviousTrack',
+  xf86monbrightnessup: 'BrightnessUp',
+  xf86monbrightnessdown: 'BrightnessDown',
+};
+
+/** Normalize an XDG portal shortcut trigger (`<Control><Alt>k`, `ctrl+shift+n`, `<Super>Left`) to Helm's chord format. */
 export function normalizePortalTrigger(trigger) {
   if (!trigger || typeof trigger !== 'string') return '';
   let s = trigger.trim();
-  const mods = [];
-  s = s.replace(/<([^>]+)>/g, (_, mod) => {
-    const m = mod.toLowerCase();
-    if (m === 'control' || m === 'ctrl' || m === 'primary') mods.push('Ctrl');
-    else if (m === 'alt') mods.push('Alt');
-    else if (m === 'shift') mods.push('Shift');
-    else if (m === 'super' || m === 'meta' || m === 'logo') mods.push('Super');
-    return '';
+  if (!s) return '';
+  const modSet = new Set();
+  const addMod = (raw) => {
+    const m = raw.trim().toLowerCase();
+    if (m === 'control' || m === 'ctrl' || m === 'primary' || m === 'commandorcontrol') {
+      modSet.add('Ctrl');
+      return true;
+    }
+    if (m === 'alt' || m === 'mod1' || m === 'option') {
+      modSet.add('Alt');
+      return true;
+    }
+    if (m === 'shift') {
+      modSet.add('Shift');
+      return true;
+    }
+    if (m === 'super' || m === 'meta' || m === 'logo' || m === 'mod4' || m === 'win' || m === 'cmd' || m === 'command') {
+      modSet.add('Super');
+      return true;
+    }
+    return false;
+  };
+
+  s = s.replace(/<([^>]+)>/g, (_, tok) => {
+    addMod(tok);
+    return '+';
   });
-  if (mods.length > 0) {
-    const key = s.length === 1 ? s.toUpperCase() : s;
-    return [...mods, key].filter(Boolean).join('+');
+
+  const parts = s.split('+').map((p) => p.trim()).filter(Boolean);
+  let keyToken = '';
+  for (const part of parts) {
+    if (addMod(part)) continue;
+    keyToken = part;
   }
-  return s;
+
+  let key = '';
+  if (keyToken) {
+    const lower = keyToken.toLowerCase();
+    if (Object.prototype.hasOwnProperty.call(PORTAL_KEY_MAP, lower)) {
+      key = PORTAL_KEY_MAP[lower];
+    } else if (keyToken.length === 1) {
+      key = keyToken.toUpperCase();
+    } else if (/^f\d{1,2}$/i.test(keyToken)) {
+      key = keyToken.toUpperCase();
+    } else {
+      key = keyToken;
+    }
+  }
+
+  const orderedMods = ['Ctrl', 'Alt', 'Shift', 'Super'].filter((m) => modSet.has(m));
+  if (orderedMods.length > 0) {
+    return key ? [...orderedMods, key].join('+') : orderedMods.join('+');
+  }
+  return key || trigger.trim();
+}
+
+/** Check whether a portal shortcut trigger collides with any reserved shell hotkey. */
+export function shortcutCollidesWithShell(trigger) {
+  const normalized = normalizePortalTrigger(trigger);
+  if (!normalized) return false;
+  if (normalized === 'Super+Space') return true;
+  for (const h of HOTKEYS) {
+    if (Array.isArray(h.chords) && h.chords.includes(normalized)) return true;
+  }
+  return false;
 }
 
 function toFileUri(filePath) {
@@ -520,13 +612,17 @@ export class PortalController {
 
   // -- GlobalShortcuts ----------------------------------------------------------
 
+  normalizePortalTrigger(trigger) {
+    return normalizePortalTrigger(trigger);
+  }
+
+  shortcutCollidesWithShell(trigger) {
+    return shortcutCollidesWithShell(trigger);
+  }
+
   handleBindShortcuts(req) {
     const session = (req && (req.sessionHandle || req.session_handle)) || 'default';
     const appId = (req && (req.appId || req.app_id)) || '';
-    const shellChords = new Set();
-    for (const h of HOTKEYS) {
-      for (const c of h.chords || []) shellChords.add(c);
-    }
 
     const requested = (req && Array.isArray(req.shortcuts)) ? req.shortcuts : [];
     const bound = requested.map((s) => {
@@ -534,7 +630,7 @@ export class PortalController {
       const description = s.description || '';
       const rawTrigger = s.triggerDescription || s.trigger_description || s.preferredTrigger || s.preferred_trigger || '';
       const normalized = normalizePortalTrigger(rawTrigger);
-      const triggerDescription = shellChords.has(normalized) ? '' : (normalized || rawTrigger);
+      const triggerDescription = shortcutCollidesWithShell(rawTrigger) ? '' : (normalized || rawTrigger);
       return { id, description, triggerDescription };
     });
 

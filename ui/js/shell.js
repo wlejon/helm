@@ -79,6 +79,7 @@ export class Shell {
     this.settingsUi = new SettingsApp(this);
     this.panels = panels;
     this.overlays = new Set();
+    this.overlayActive = false;
   }
 
   init() {
@@ -121,10 +122,12 @@ export class Shell {
     // launcher is up.
     window.addEventListener('helm:overlay', () => {
       const settingsOpen = !!(this.settingsApp && this.settingsApp.isOpen);
+      const switcherOpen = !!(this.switcher && this.switcher.isOpen);
       $('#toast-stack').classList.toggle('suppressed', this.calendar.isOpen || this.launcher.isOpen || settingsOpen);
       this.setModalActive('panel', panels.isOpen());
       this.setModalActive('launcher', this.launcher.isOpen);
       this.setModalActive('settings', settingsOpen);
+      this.setModalActive('switcher', switcherOpen);
     });
     this.booted = true;
     window.dispatchEvent(new CustomEvent('helm:ready', { detail: { shell: this } }));
@@ -140,6 +143,7 @@ export class Shell {
     if (active) this.overlays.add(source);
     else this.overlays.delete(source);
     const open = this.overlays.size > 0;
+    this.overlayActive = open;
     const c = api('compositor');
     if (open !== wasOpen && c && typeof c.setShellOverlay === 'function') {
       attempt('compositor.setShellOverlay', () => c.setShellOverlay(open));

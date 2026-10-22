@@ -37,7 +37,7 @@ export class Switcher {
     return wins.slice().sort((a, b) => rank(a) - rank(b));
   }
 
-  open(modifier, step) {
+  open(modifier = 'Alt', step = 1) {
     this.list = this.ordered();
     if (this.list.length === 0) return;
     this.shell.closeTransient();
@@ -46,6 +46,7 @@ export class Switcher {
     this.index = this.list.length > 1 ? (step > 0 ? 1 : this.list.length - 1) : 0;
     this.render();
     this.el.classList.remove('hidden');
+    window.dispatchEvent(new CustomEvent('helm:overlay'));
   }
 
   /**
@@ -91,6 +92,7 @@ export class Switcher {
   close() {
     this.isOpen = false;
     this.el.classList.add('hidden');
+    window.dispatchEvent(new CustomEvent('helm:overlay'));
   }
 
   onKeyDown(e) {

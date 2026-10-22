@@ -84,12 +84,13 @@ export class NotificationCenter {
     };
 
     const idx = this.items.findIndex((x) => x.id === item.id);
-    if (idx >= 0) this.items.splice(idx, 1);
+    const prev = idx >= 0 ? this.items.splice(idx, 1)[0] : null;
+    item.unread = !item.transient && (prev && replaced ? !!prev.unread : true);
     if (!item.transient) {
       this.items.unshift(item);
       if (this.items.length > MAX_HISTORY) this.items.length = MAX_HISTORY;
-      if (!replaced) this.unread++;
     }
+    this._syncUnread();
 
     this.remember(item);
     const critical = item.urgency === 'critical';
@@ -98,10 +99,15 @@ export class NotificationCenter {
     this.emit();
   }
 
+  _syncUnread() {
+    this.unread = this.items.reduce((n, x) => n + (x.unread ? 1 : 0), 0);
+  }
+
   remove(id, signal = true) {
     const idx = this.items.findIndex((x) => x.id === id);
     const item = idx >= 0 ? this.items[idx] : null;
     if (idx >= 0) this.items.splice(idx, 1);
+    this._syncUnread();
     this.dropToast(id);
     if (signal && item && !item.local) {
       const n = api('sys').notifications;
@@ -117,13 +123,14 @@ export class NotificationCenter {
       this.dropToast(it.id);
     }
     this.items = [];
-    this.unread = 0;
+    this._syncUnread();
     this.emit();
   }
 
   markRead() {
-    if (this.unread === 0) return;
-    this.unread = 0;
+    if (this.unread === 0 && !this.items.some((x) => x.unread)) return;
+    for (const it of this.items) it.unread = false;
+    this._syncUnread();
     this.emit();
   }
 
@@ -132,7 +139,12 @@ export class NotificationCenter {
       const n = api('sys').notifications;
       attempt('notifications.invokeAction', () => n.invokeAction(item.id, key));
     }
+    item.unread = false;
     if (!item.resident) this.remove(item.id, false);
+    else {
+      this._syncUnread();
+      this.emit();
+    }
     this.dropToast(item.id);
   }
 

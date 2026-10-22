@@ -32,8 +32,35 @@ assert(calls.join() === 'true', 'a second overlay changes nothing: ' + calls.joi
 helm.closeTransient();
 settle();
 assert(helm.launcher.isOpen === false, 'launcher closed');
+assert(helm.overlayActive === false, 'shell.overlayActive is false after closing transient overlays');
 assert(calls[calls.length - 1] === false, 'the last overlay going lowers the shell: ' + calls.join());
 assert(calls.filter((x) => x === false).length === 1, 'lowered once: ' + calls.join());
+
+// Switcher open() / close() updates shell.overlayActive and bro.compositor.setShellOverlay
+const origWindows = helm.windows.windows;
+const origWorkspaces = helm.windows.workspaces;
+helm.windows.windows = () => [
+  { id: 1, appId: 'firefox', title: 'Firefox', focused: true, workspaceId: 1 },
+  { id: 2, appId: 'helm.term', title: 'Terminal', focused: false, workspaceId: 1 },
+];
+helm.windows.workspaces = () => [{ id: 1, name: '1', active: true, windows: [1, 2], focusOrder: [1, 2], monitor: 1 }];
+try {
+  calls.length = 0;
+  helm.switcher.open('Alt', 1);
+  settle();
+  assert(helm.switcher.isOpen === true, 'switcher opened');
+  assert(helm.overlayActive === true, 'switcher.open() sets shell.overlayActive to true');
+  assert(calls.join() === 'true', 'switcher.open() calls bro.compositor.setShellOverlay(true): ' + calls.join());
+
+  helm.switcher.close();
+  settle();
+  assert(helm.switcher.isOpen === false, 'switcher closed');
+  assert(helm.overlayActive === false, 'switcher.close() sets shell.overlayActive to false');
+  assert(calls.join() === 'true,false', 'switcher.close() calls bro.compositor.setShellOverlay(false): ' + calls.join());
+} finally {
+  helm.windows.windows = origWindows;
+  helm.windows.workspaces = origWorkspaces;
+}
 
 c.setShellOverlay = real;
 console.log('test_shell_role: passed');
