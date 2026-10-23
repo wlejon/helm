@@ -201,3 +201,12 @@ foreach(_t IN LISTS _helm_tests)
         SKIP_RETURN_CODE 77
         TIMEOUT 180)
 endforeach()
+
+if(TARGET bronze)
+    add_test(NAME bronze-check
+             COMMAND $<TARGET_FILE:bronze> check "${CMAKE_CURRENT_SOURCE_DIR}/ui/js/main.js")
+elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../bronze/build/src/cli/bronze")
+    add_test(NAME bronze-check
+             COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/../bronze/build/src/cli/bronze" check
+                     "${CMAKE_CURRENT_SOURCE_DIR}/ui/js/main.js")
+endif()

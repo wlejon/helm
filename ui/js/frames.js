@@ -223,7 +223,7 @@ export class Frames {
     if (!c) return;
     this.controls = null;
     c.el.removeAttribute('data-shell-keyboard');
-    if (c.el.contains(document.activeElement)) document.activeElement.blur();
+    if (document.activeElement && c.el.contains(document.activeElement)) document.activeElement.blur();
     c.f.corner.classList.remove('open');
   }
 
