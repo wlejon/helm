@@ -111,6 +111,8 @@ settle(30);
 
 // Launcher
 assert(helm.apps.apps.length > 0, 'app catalog loaded');
+assert(typeof helm.apps.verifyCertificate === 'function', 'appdb exposes verifyCertificate');
+assert(helm.apps.apps.every((a) => typeof a.hasVerifiedCertificate === 'boolean'), 'app entries carry hasVerifiedCertificate');
 helm.launcher.open(document.getElementById('isl-launcher'));
 settle(2);
 assert(helm.launcher.isOpen, 'launcher opens');

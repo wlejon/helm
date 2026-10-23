@@ -220,9 +220,14 @@ export class LauncherController {
     return h('div.app-grid', apps.map((a, pos) => {
       const index = this.entries.length;
       const entry = { kind: 'app', app: a, sec, pos, run: () => this.launch(a) };
-      const tile = h('button.app-tile', { title: a.comment || a.name },
+      const tile = h('button.app-tile', {
+        title: a.hasVerifiedCertificate
+          ? `${a.comment || a.name} · Verified Applet`
+          : (a.comment || a.name),
+      },
         appIcon(a.icon, a.name, 64, 'app-tile-icon'),
         h('span.app-tile-name', a.name));
+      if (a.hasVerifiedCertificate) tile.classList.add('verified-applet');
       tile.addEventListener('click', () => this.runEntry(entry));
       tile.addEventListener('pointermove', () => this.selected !== index && this.select(index, false));
       tile.addEventListener('contextmenu', (e) => {
@@ -258,9 +263,13 @@ export class LauncherController {
     if (apps.length) {
       rows.push(h('div.launcher-section.micro', 'Applications'));
       for (const { a } of apps) {
+        const desc = a.comment || a.generic;
         rows.push(this.row({
           kind: 'app', app: a, glyph: appIcon(a.icon, a.name, 64, 'row-app-icon'),
-          title: a.name, desc: a.comment || a.generic, run: () => this.launch(a),
+          title: a.name,
+          desc: a.hasVerifiedCertificate ? (desc ? `${desc} · Verified` : 'Verified Applet') : desc,
+          badge: a.hasVerifiedCertificate ? 'Verified' : undefined,
+          run: () => this.launch(a),
         }));
       }
     }

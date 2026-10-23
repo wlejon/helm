@@ -323,10 +323,18 @@ export class Shell {
   }
 
   appMenu(app, x, y) {
-    this.menus.show([
+    const items = [
       { heading: app.name },
       { label: 'Open', icon: 'arrow-right', action: () => { this.launcher.close(); this.launcher.launch(app); } },
-    ], x, y);
+    ];
+    if (app.hasVerifiedCertificate) {
+      items.push({ separator: true });
+      items.push({ label: 'Verified Applet (Formal Proof)', icon: 'check', disabled: true });
+    } else if (app.certificateInfo && app.certificateInfo.present) {
+      items.push({ separator: true });
+      items.push({ label: 'Untrusted Applet Certificate', icon: 'alert', danger: true, disabled: true });
+    }
+    this.menus.show(items, x, y);
   }
 
   /**
