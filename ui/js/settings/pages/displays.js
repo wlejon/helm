@@ -29,7 +29,8 @@ function arrangement(list) {
   const minY = Math.min(...geo.map((g) => g.y));
   const w = Math.max(...geo.map((g) => g.x + g.width)) - minX;
   const ht = Math.max(...geo.map((g) => g.y + g.height)) - minY;
-  const scale = Math.min(520 / w, 150 / ht);
+  // An output that reports no size (switched off, no mode yet) draws no box.
+  const scale = w > 0 && ht > 0 ? Math.min(520 / w, 150 / ht) : 0;
   const stage = h('div.st-arrange', { style: { height: `${Math.round(ht * scale) + 48}px` } });
   const inner = h('div.st-arrange-inner', { style: { width: `${Math.round(w * scale)}px`, height: `${Math.round(ht * scale)}px` } });
   list.forEach((d, i) => {

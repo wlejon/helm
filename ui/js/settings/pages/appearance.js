@@ -45,9 +45,10 @@ export function findWallpapers(b) {
       if (!m || m[4]) continue;
       const w = Number(m[2]);
       const ht = Number(m[3]);
-      if (w < ht) continue;
-      if (!best || Math.abs(w / ht - 16 / 9) < Math.abs(best.w / best.h - 16 / 9) - 0.01 || (w > best.w && Math.abs(w / ht - best.w / best.h) < 0.01)) {
-        best = { file: f, w, h: ht, stem: m[1] };
+      if (!(ht > 0) || w < ht) continue;
+      const aspect = w / ht;
+      if (!best || Math.abs(aspect - 16 / 9) < Math.abs(best.aspect - 16 / 9) - 0.01 || (w > best.w && Math.abs(aspect - best.aspect) < 0.01)) {
+        best = { file: f, w, h: ht, aspect, stem: m[1] };
       }
     }
     return best;

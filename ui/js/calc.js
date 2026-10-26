@@ -79,8 +79,15 @@ export function evaluate(src) {
     let v = power();
     for (;;) {
       if (eat('*')) v *= power();
-      else if (eat('/')) v /= power();
-      else if (eat('%')) v %= power();
+      // A zero divisor has no answer: the input is rejected, as a result
+      // that is not finite is below.
+      else if (eat('/') || eat('%')) {
+        const op = toks[p - 1].v;
+        const d = power();
+        if (d === 0) throw new Error('division by zero');
+        if (op === '/') v /= d;
+        else v %= d;
+      }
       else if (peek() && (peek().t === 'num' || peek().v === '(' || peek().t === 'id')) v *= power();
       else return v;
     }
