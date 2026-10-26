@@ -10,6 +10,7 @@
 import { api, attempt } from '../util.js';
 import { system } from '../system.js';
 import { settings } from '../settings.js';
+import { permissions } from '../permissions.js';
 
 /** The methods below that change machine or session state. */
 export const WRITES = [
@@ -18,6 +19,7 @@ export const WRITES = [
   'setBluetoothPowered', 'startDiscovery', 'stopDiscovery', 'pairDevice', 'connectDevice', 'disconnectDevice',
   'forgetDevice', 'setNightLight', 'setBrightness', 'powerAction', 'lock', 'setIdleTimeout',
   'setDnd', 'setAppQuiet', 'clearNotifications', 'setDefaultApp',
+  'setPermission', 'resetPermissions', 'revokePermissions', 'removePicked', 'setDevMode',
 ];
 
 const fs = () => attempt('require fs', () => (typeof require === 'function' ? require('fs') : null));
@@ -290,6 +292,53 @@ export class Backend {
     let ok = true;
     for (const m of mimes) ok = attempt(`apps.setDefaultAppForMime ${m}`, () => a.setDefaultAppForMime(m, appId), false) && ok;
     return ok;
+  }
+
+  // -- App permissions (bro.permissions) -------------------------------------------
+  // The writes throw with bro's message, for the page to show.
+
+  hasPermissions() {
+    return this.has('permissions') && permissions.available();
+  }
+
+  /** Every installed and known app: AppPermissionsEntry[] (docs/permissions-api.js). */
+  permissionApps() {
+    return attempt('permissions.list', () => api('permissions').list(), []) || [];
+  }
+
+  /** The capability catalogue: [{ name, kind: 'ask'|'shell', summary }]. */
+  capabilityCatalog() {
+    return attempt('permissions.capabilities', () => api('permissions').capabilities(), []) || [];
+  }
+
+  devMode() {
+    return permissions.devMode();
+  }
+
+  /** decision: 'allow' | 'deny' | 'undecided' (asks again). */
+  setPermission(identity, cap, decision) {
+    api('permissions').set(identity, cap, decision);
+  }
+
+  resetPermissions(identity) {
+    api('permissions').reset(identity);
+  }
+
+  /** Deny every ask capability the app has and take back every picked path. */
+  revokePermissions(entry) {
+    const p = api('permissions');
+    for (const [cap, d] of Object.entries(entry.decisions || {})) {
+      if (d !== 'host' && d !== 'deny') p.set(entry.identity, cap, 'deny');
+    }
+    for (const path of entry.picked || []) p.removePicked(entry.identity, path);
+  }
+
+  removePicked(identity, path) {
+    api('permissions').removePicked(identity, path);
+  }
+
+  setDevMode(on) {
+    api('permissions').devMode = !!on;
   }
 
   // -- About -------------------------------------------------------------------------

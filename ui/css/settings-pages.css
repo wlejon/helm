@@ -462,3 +462,28 @@
   white-space: pre-line;
   line-height: 1.5;
 }
+
+/* App permissions: the chosen decision carries its meaning in colour. */
+.st-perm-choice.is-allow .st-seg-opt.on[data-value="allow"] {
+  background: oklch(0.76 0.14 155 / 0.22);
+  color: var(--ok);
+}
+
+.st-perm-choice.is-deny .st-seg-opt.on[data-value="deny"] {
+  background: var(--danger-soft);
+  color: var(--danger-text);
+}
+
+.st-perm-cap .st-row-title {
+  font-family: var(--font-mono, monospace);
+  font-size: var(--fs-cap);
+}
+
+.st-perm-changed {
+  background: oklch(0.82 0.13 80 / 0.08);
+}
+
+.st-perm-changed .st-row-glyph,
+.st-perm-changed .st-row-title {
+  color: var(--warn);
+}

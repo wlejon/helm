@@ -2,7 +2,8 @@
  * The bar's islands, along the bottom edge (#bar). Left: the launcher mark, workspaces and the focused
  * app. Center: the clock with the live activity and the notification
  * count; it grows into the calendar and notification center. Right: the
- * tray and the status glyphs; it grows into quick settings.
+ * dev mode indicator (while bro.permissions.devMode is on), the tray and the
+ * status glyphs; it grows into quick settings.
  */
 
 import { h, $, api, attempt, listen, everyMinute, fmtTime, appIcon, windowIcon } from './util.js';
@@ -12,6 +13,7 @@ import { system, volumeIcon, networkIcon } from './system.js';
 import { windows } from './windows.js';
 import { appdb } from './appdb.js';
 import { animateWidth } from './morph.js';
+import { permissions } from './permissions.js';
 import { fmtElapsed } from './activities.js';
 import { DAYS, MONTHS } from './util.js';
 
@@ -58,7 +60,12 @@ export class Islands {
     windows.on('focus', () => this.renderFocused());
     this.shell.activities.onChange(() => this.renderLive());
 
+    this.devEl = $('#isl-devmode');
+    this.devEl.addEventListener('click', () => this.shell.openSettings('permissions', { origin: this.devEl, anchor: 'dev-mode' }));
+    permissions.on(() => this.renderDevMode());
+
     this.renderStatus();
+    this.renderDevMode();
     this.renderWorkspaces();
     this.renderFocused();
     this.renderLive();
@@ -195,6 +202,13 @@ export class Islands {
     this.statusBtn.replaceChildren(...kids);
     this.statusBtn.title = [net.label, audio.available ? `Volume ${Math.round(audio.volume * 100)}%` : null,
       'Quick settings (Super+S)'].filter(Boolean).join(' · ');
+  }
+
+  /** Dev mode grants every app what it declares; the bar says so while it is on. */
+  renderDevMode() {
+    const on = permissions.devMode();
+    if (on === !this.devEl.classList.contains('hidden')) return;
+    animateWidth(this.right, () => this.devEl.classList.toggle('hidden', !on));
   }
 
   setupTray() {

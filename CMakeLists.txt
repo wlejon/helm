@@ -178,6 +178,16 @@ enable_testing()
 # test client from here; they skip when it is absent.
 set(BC_TEST_CLIENT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../brocompositor/build-release/tests"
     CACHE PATH "Directory holding brocompositor's bc_wl_client test client")
+# test_permissions.js changes the grant store from other processes with bro's
+# own executables from bro's build beside helm (`bro --revoke-app`,
+# `--dev-mode`, a fake app picking files in bro-headless); it skips without them.
+set(_bro_cli "")
+foreach(_c "${BRO_DIR}/build/Release/bro.exe" "${BRO_DIR}/build-release/bro" "${BRO_DIR}/build/bro")
+    if(NOT _bro_cli AND EXISTS "${_c}")
+        set(_bro_cli "${_c}")
+    endif()
+endforeach()
+set(HELM_BRO_CLI "${_bro_cli}" CACHE FILEPATH "bro executable test_permissions.js runs for its outside changes")
 file(GLOB _helm_tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_*.js")
 foreach(_t IN LISTS _helm_tests)
     get_filename_component(_name "${_t}" NAME_WE)
@@ -194,6 +204,8 @@ foreach(_t IN LISTS _helm_tests)
     if(_name STREQUAL "frames")
         # The DRM shell host's compositor and input router, headless.
         list(APPEND _env "BRO_HEADLESS_COMPOSITOR=1" "BC_TEST_CLIENT_DIR=${BC_TEST_CLIENT_DIR}")
+    elseif(_name STREQUAL "permissions" AND HELM_BRO_CLI)
+        list(APPEND _env "BRO_CLI=${HELM_BRO_CLI}")
     endif()
     set_tests_properties(ui-${_name} PROPERTIES
         ENVIRONMENT "${_env}"

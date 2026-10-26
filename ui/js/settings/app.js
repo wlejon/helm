@@ -15,6 +15,7 @@ import { h, $, initials, attempt } from '../util.js';
 import { icon } from '../icons.js';
 import { animate, morphIn, morphOut, rectOf, EASE_OUT, EASE_STD } from '../morph.js';
 import { system } from '../system.js';
+import { permissions } from '../permissions.js';
 import { Backend, stubWrites } from './backend.js';
 import { PAGES } from './pages/index.js';
 import { search } from './search.js';
@@ -79,6 +80,7 @@ export class SettingsApp {
     for (const key of ['wallpaper', 'accentHue', 'use24h', 'showSeconds', 'notifyQuiet', 'notifyApps']) {
       this.shell.prefs.watch(key, () => this.onTopic('prefs'));
     }
+    permissions.on(() => this.onTopic('permissions'));
     this.shell.notify.onDndChange(() => this.onTopic('notify'));
     this.shell.notify.onChange(() => this.onTopic('notify'));
     this.shell.registerSettingsApp(this);

@@ -70,7 +70,7 @@ export function switchRow(opts, on, onChange) {
 export function segmented(options, value, onChange, { anchor } = {}) {
   const el = h('div.st-seg', { role: 'radiogroup', dataset: anchor ? { anchor } : undefined });
   for (const o of options) {
-    const b = h('button.st-seg-opt', { role: 'radio' }, o.label);
+    const b = h('button.st-seg-opt', { role: 'radio', dataset: { value: String(o.value) } }, o.label);
     b.classList.toggle('on', o.value === value);
     b.addEventListener('click', () => {
       for (const x of el.children) x.classList.remove('on');

@@ -9,6 +9,7 @@ import notifications from './notifications.js';
 import power from './power.js';
 import keyboard from './keyboard.js';
 import apps from './apps.js';
+import permissions from './permissions.js';
 import about from './about.js';
 
-export const PAGES = [appearance, sound, network, bluetooth, displays, notifications, power, keyboard, apps, about];
+export const PAGES = [appearance, sound, network, bluetooth, displays, notifications, power, keyboard, apps, permissions, about];
