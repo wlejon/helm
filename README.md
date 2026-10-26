@@ -115,7 +115,7 @@ Helm is the desktop shell, and the `helm` executable is its host: `src/main.cpp`
 - `bro.sys`: every member, from power management, audio, network and Bluetooth to the notification server, the tray and the process table.
 - `bro.displays`: output topology, resolution, refresh rate and night light.
 - `bro.cred`: lock screen authentication and password verification.
-- `bro.permissions`: every app's grants, for an Apps settings page.
+- `bro.permissions`: every app's grants, for Settings > App Permissions (`ui/js/settings/pages/permissions.js`), and dev mode, shown in the bar while on.
 - files, network and processes: launching apps, reading the catalog, the terminal.
 
 The apps helm starts get none of this: each runs under its own grants, and asks for what its `bro.json` declares.
