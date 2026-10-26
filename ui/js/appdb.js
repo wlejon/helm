@@ -39,8 +39,6 @@ class AppDb {
         keywords: a.keywords || [],
         categories: a.categories || [],
         terminal: !!a.terminal,
-        hasVerifiedCertificate: !!a.hasVerifiedCertificate,
-        certificateInfo: a.certificateInfo || null,
       }))
       .sort((x, y) => x.name.localeCompare(y.name));
     this.byId = new Map(this.apps.map((a) => [a.id, a]));
@@ -54,16 +52,6 @@ class AppDb {
   get(id) {
     if (!id) return null;
     return this.byId.get(id) || this.byId.get(`${id}.desktop`) || null;
-  }
-
-  verifyCertificate(idOrPath) {
-    if (!idOrPath) return null;
-    const apps = api('apps');
-    if (apps && typeof apps.verifyCertificate === 'function') {
-      return attempt(`apps.verifyCertificate ${idOrPath}`, () => apps.verifyCertificate(idOrPath), null);
-    }
-    const existing = this.get(idOrPath);
-    return existing ? existing.certificateInfo : null;
   }
 
   /**
