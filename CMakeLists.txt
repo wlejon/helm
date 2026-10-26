@@ -189,10 +189,25 @@ foreach(_c "${BRO_DIR}/build/Release/bro.exe" "${BRO_DIR}/build-release/bro" "${
 endforeach()
 set(HELM_BRO_CLI "${_bro_cli}" CACHE FILEPATH "bro executable test_permissions.js runs for its outside changes")
 file(GLOB _helm_tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_*.js")
+# Each test's config and home live in the temp directory, not the build tree:
+# a single-config build puts helm-headless in the build directory itself, and
+# the folder bro runs from is bro's own, which no app writes (docs/apps.md,
+# Permissions), so a home under it could not be written.
+if(DEFINED ENV{TMPDIR})
+    set(_helm_tmp "$ENV{TMPDIR}")
+elseif(WIN32 AND DEFINED ENV{TEMP})
+    set(_helm_tmp "$ENV{TEMP}")
+else()
+    set(_helm_tmp "/tmp")
+endif()
+file(TO_CMAKE_PATH "${_helm_tmp}" _helm_tmp)
+string(MD5 _helm_build_hash "${CMAKE_CURRENT_BINARY_DIR}")
+string(SUBSTRING "${_helm_build_hash}" 0 10 _helm_build_hash)
+set(_helm_cfg_root "${_helm_tmp}/helm-test-config-${_helm_build_hash}")
 foreach(_t IN LISTS _helm_tests)
     get_filename_component(_name "${_t}" NAME_WE)
     string(REGEX REPLACE "^test_" "" _name "${_name}")
-    set(_cfg "${CMAKE_CURRENT_BINARY_DIR}/test-config/${_name}")
+    set(_cfg "${_helm_cfg_root}/${_name}")
     add_test(NAME clean-${_name} COMMAND "${CMAKE_COMMAND}" -E rm -rf "${_cfg}")
     set_tests_properties(clean-${_name} PROPERTIES FIXTURES_SETUP cfg-${_name})
     add_test(NAME ui-${_name}
