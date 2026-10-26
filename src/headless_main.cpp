@@ -1,6 +1,7 @@
 #include "paths.h"
 
 #include "bronze_host/host_storage.h"
+#include "engine/capabilities.h"
 #include "engine/headless_driver.h"
 #include "util/crash_handler.h"
 
@@ -10,5 +11,8 @@ int main(int argc, char* argv[]) {
     hooks.programName = "helm-headless";
     hooks.tagline = "the helm desktop environment UI, driven by a test script";
     hooks.beforeExit = [] { bro::bronze_host::flushHostStorage(); };
+    // What helm's own executable grants its UI (main.cpp), so the tests drive
+    // the UI as it runs.
+    hooks.hostGrants = bro::engine::allCapabilityNames();
     return bro::engine::runHeadless(argc, argv, hooks);
 }

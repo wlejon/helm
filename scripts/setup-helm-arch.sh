@@ -78,7 +78,6 @@ Conflicts=getty@tty1.service
 Type=simple
 User=helm
 WorkingDirectory=/home/helm
-Environment="BRO_TRUSTED_APP_DIR=/home/helm/helm/ui"
 Environment="WLR_RENDERER=pixman"
 Environment="LIBGL_ALWAYS_SOFTWARE=1"
 ExecStart=/usr/local/bin/helm --drm --no-gpu

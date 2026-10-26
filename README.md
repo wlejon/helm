@@ -53,7 +53,7 @@ helm/
 │   ├── paths.h             # Filesystem & config path resolution
 │   └── paths.cpp
 ├── ui/
-│   ├── bro.json            # Desktop shell manifest (asks for "shell": true)
+│   ├── bro.json            # The UI's manifest (its grants come from the helm executable)
 │   ├── index.html          # Shell DOM: wallpaper, window frames, the bar, panels, overlays
 │   ├── css/
 │   │   ├── tokens.css      # Deep glass: accent gradient, glass depths, type, space, motion
@@ -109,13 +109,16 @@ helm/
     └── test_shell_role.js      # Overlays reach bro.compositor.setShellOverlay
 ```
 
-### Trusted Desktop Permissions
-Helm is a privileged desktop shell. Its `ui/bro.json` asks for `"shell": true`, and bro grants it only because of where the UI is installed: `system/helm` beside the `helm` executable, a location bro trusts (see Permissions in bro's `docs/apps.md`). The manifest alone grants nothing. Run from a build tree, the UI is the source `ui/` folder, which you name in `BRO_TRUSTED_APP_DIR`; without it Helm boots with the privileged namespaces unavailable. With trust, Helm gets:
-- `bro.compositor`: Foreign toplevel management, window manipulation, and workspace policy.
-- `bro.sys`: Power management, audio control, network configuration, notification server, and system tray host.
-- `bro.displays`: Output topology, resolution, refresh rate, and night light.
-- `bro.apps`: Application catalog discovery, MIME handlers, and process launching.
-- `bro.cred`: Lock screen authentication and password verification.
+### Permissions
+Helm is the desktop shell, and the `helm` executable is its host: `src/main.cpp` grants the UI every capability in bro's catalogue (see Permissions in bro's `docs/apps.md`), including the shell capabilities that only a host executable can grant (`shell`, `compositor`, `seat`, `cred`, `portal`, `permissions`). `helm-headless` grants the same, so the tests drive the UI as it runs. Where the UI is installed, its `bro.json` and the environment decide nothing. The UI gets, among the rest:
+- `bro.compositor`: foreign toplevel management, window manipulation and workspace policy.
+- `bro.sys`: every member, from power management, audio, network and Bluetooth to the notification server, the tray and the process table.
+- `bro.displays`: output topology, resolution, refresh rate and night light.
+- `bro.cred`: lock screen authentication and password verification.
+- `bro.permissions`: every app's grants, for an Apps settings page.
+- files, network and processes: launching apps, reading the catalog, the terminal.
+
+The apps helm starts get none of this: each runs under its own grants, and asks for what its `bro.json` declares.
 
 ---
 
@@ -137,9 +140,9 @@ ninja -C build
 ```
 
 ### Run
-Launch in windowed mode (from a build tree, naming the source UI as trusted):
+Launch in windowed mode:
 ```bash
-BRO_TRUSTED_APP_DIR="$PWD/ui" ./build/helm --windowed
+./build/helm --windowed
 ```
 
 Launch bare-metal on Linux DRM/KMS:
@@ -181,7 +184,7 @@ ctest --test-dir build --output-on-failure
 
 Or run the test script directly with `helm-headless`:
 ```bash
-BRO_TRUSTED_APP_DIR="$PWD/ui" ./build/helm-headless ui/ tests/test_shell_boot.js
+./build/helm-headless ui/ tests/test_shell_boot.js
 ```
 Use a scratch `XDG_CONFIG_HOME` and `HELM_CONFIG_DIR` when running by hand, so the run does not write your real settings (ctest sets both). On Windows bro.conf lives under `%APPDATA%\bro`, so point `APPDATA` at a scratch dir too, or a run writes `[helm.shell]` into your real `settings.ini`. Tests that drive Settings call `helm.settingsUi.stubWrites()` first, so they never change the real volume, network, Bluetooth, power state or default apps.
 

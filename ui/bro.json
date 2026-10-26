@@ -1,7 +1,6 @@
 {
   "name": "helm",
   "title": "Helm Desktop",
-  "shell": true,
   "width": 1920,
   "height": 1080,
   "main": "index.html"

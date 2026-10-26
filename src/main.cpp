@@ -1,6 +1,7 @@
 #include "paths.h"
 
 #include "bronze_host/host_storage.h"
+#include "engine/capabilities.h"
 #include "engine/engine.h"
 #include "engine/launcher.h"
 #include "util/crash_handler.h"
@@ -88,7 +89,6 @@ int main(int argc, char* argv[]) {
     config.settingsPath = cfgDir + "/helm_settings.json";
     config.showSplash = false;
     config.watchSources = true;
-    config.isShellApp = true;
     if (noGpu) config.graphics.useGPU = false;
 
     if (!helm::locateUi(config)) {
@@ -99,7 +99,12 @@ int main(int argc, char* argv[]) {
 
     config.title = "Helm Desktop";
     config.showSplash = false;
-    config.isShellApp = true;
+    // helm is the desktop shell, and this executable its host: its UI gets
+    // the shell's role and namespaces, which only a host grants, and every
+    // capability a user could allow, since it is what manages the others
+    // (bro docs/apps.md, Permissions). The apps helm starts get only their
+    // own grants.
+    config.hostGrants = bro::engine::allCapabilityNames();
 #if defined(_WIN32)
     // Winlogon starts custom shells without a console attached.
     // Redirect stderr to helm.log so all diagnostics, errors, and crash reports are persisted.
@@ -145,20 +150,6 @@ int main(int argc, char* argv[]) {
     }
 #endif
 
-    const char* existingTrusted = std::getenv("BRO_TRUSTED_APP_DIR");
-    std::string trustedDirs = config.appDir;
-    if (existingTrusted && *existingTrusted) {
-#if defined(_WIN32)
-        trustedDirs += ";" + std::string(existingTrusted);
-#else
-        trustedDirs += ":" + std::string(existingTrusted);
-#endif
-    }
-#if defined(_WIN32)
-    _putenv_s("BRO_TRUSTED_APP_DIR", trustedDirs.c_str());
-#else
-    ::setenv("BRO_TRUSTED_APP_DIR", trustedDirs.c_str(), 1);
-#endif
     bro::engine::publishLaunchEnv(config);
 
     try {

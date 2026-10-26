@@ -76,9 +76,9 @@ std::string configDir() {
 
 bool locateUi(bro::engine::EngineConfig& config) {
     const std::string exe = bro::util::executableDir();
-    // Installed, the UI sits in system/helm beside the executable: a location
-    // bro trusts with the shell namespaces. Run from a build tree, it is the
-    // source ui/ folder, which a developer names in BRO_TRUSTED_APP_DIR.
+    // Installed, the UI sits in system/helm beside the executable; run from a
+    // build tree, it is the source ui/ folder. Either way what it may do is
+    // what main.cpp grants it, not where it is.
     for (const char* rel : { "/system/helm", "/../../ui", "/../ui" }) {
         if (bro::engine::resolveLaunchTarget(exe + rel, config)) return true;
     }
