@@ -109,6 +109,11 @@
   overflow-wrap: anywhere;
 }
 
+/* A long folder path wraps inside the card rather than widening its line. */
+.perm-prompt-meta > * {
+  min-width: 0;
+}
+
 .perm-prompt-capname {
   padding: 0 var(--s2);
   border-radius: var(--r-chip);
