@@ -171,11 +171,6 @@ Host the screen for a remote viewer (helmapps' remote app, in
 broremote probe --ssh HOST --stats
 ```
 
-Launch with software rendering (CPU only):
-```bash
-./build/helm --no-gpu
-```
-
 ### Testing
 Run headless UI integration tests:
 ```bash

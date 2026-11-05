@@ -35,7 +35,6 @@ const char* kUsage =
     "      --drm              Run bare-metal on Linux DRM/KMS display with seat\n"
     "      --windowed         Run inside a windowed desktop session (default)\n"
     "      --remote[=NAME]    Host the screen for remote viewers on socket NAME (default: default)\n"
-    "      --no-gpu           Render on the CPU (software rasterizer)\n"
     "  -h, --help             Show this help text\n"
     "  -v, --version          Print the version and exit\n"
     "\n"
@@ -45,7 +44,6 @@ const char* kUsage =
 
 int main(int argc, char* argv[]) {
     const std::string cfgDir = helm::configDir();
-    bool noGpu = false;
     bool drmMode = false;
     bool windowedMode = false;
     bool shellMode = false;
@@ -65,8 +63,6 @@ int main(int argc, char* argv[]) {
             windowedMode = true;
         } else if (std::strcmp(argv[i], "--shell") == 0) {
             shellMode = true;
-        } else if (std::strcmp(argv[i], "--no-gpu") == 0) {
-            noGpu = true;
         } else if (std::strcmp(argv[i], "--remote") == 0 || std::strncmp(argv[i], "--remote=", 9) == 0) {
             // The UI hosts (ui/js/remote.js, bro.remote); it reads the socket
             // name from HELM_REMOTE.
@@ -89,7 +85,6 @@ int main(int argc, char* argv[]) {
     config.settingsPath = cfgDir + "/helm_settings.json";
     config.showSplash = false;
     config.watchSources = true;
-    if (noGpu) config.graphics.useGPU = false;
 
     if (!helm::locateUi(config)) {
         LOG_ERROR("helm: cannot find the ui/ directory near the executable or cwd");

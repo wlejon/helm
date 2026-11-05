@@ -80,7 +80,7 @@ User=helm
 WorkingDirectory=/home/helm
 Environment="WLR_RENDERER=pixman"
 Environment="LIBGL_ALWAYS_SOFTWARE=1"
-ExecStart=/usr/local/bin/helm --drm --no-gpu
+ExecStart=/usr/local/bin/helm --drm
 Restart=on-failure
 RestartSec=2
 StandardInput=tty
