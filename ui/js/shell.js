@@ -30,6 +30,7 @@ import { chordOf, hotkeyFor, nativeChords } from './hotkeys.js';
 import { remoteHost } from './remote.js';
 import { agentTraffic } from './agents.js';
 import { portal } from './portal.js';
+import { permissionPrompts } from './permission_prompt.js';
 
 function createAppearanceProxy(shell) {
   return {
@@ -54,6 +55,7 @@ export class Shell {
     this.portal = portal;
     this.appearance = createAppearanceProxy(this);
     this.remote = remoteHost;
+    this.prompts = permissionPrompts;
     this.system = system;
     this.windows = windows;
     this.apps = appdb;
@@ -110,6 +112,7 @@ export class Shell {
       ['portal', () => portal.init(this)],
       ['remote', () => remoteHost.init()],
       ['agents', () => agentTraffic.init(this)],
+      ['permission prompts', () => permissionPrompts.init(this)],
     ];
     // One surface failing to start must not take the rest of the desktop with it.
     for (const [name, fn] of steps) attempt(`init ${name}`, fn);
@@ -392,6 +395,7 @@ export class Shell {
     this.islands.destroy();
     this.lock.destroy();
     this.portal.destroy();
+    this.prompts.destroy();
     this.booted = false;
   }
 }

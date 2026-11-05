@@ -146,5 +146,6 @@
   --z-launcher: 5000;
   --z-menu: 6000;
   --z-hint: 6500;
+  --z-prompt: 8000;
   --z-lock: 9000;
 }

@@ -64,6 +64,7 @@ helm/
 │   │   ├── launcher.css    # Launcher
 │   │   ├── switcher.css    # Alt+Tab window switcher
 │   │   ├── frames.css      # Window frames, borderless corner controls, snap preview
+│   │   ├── prompt.css      # The permission prompt
 │   │   ├── lock.css        # Lock screen
 │   │   ├── settings.css    # Settings window, sidebar, search and shared rows/widgets
 │   │   └── settings-pages.css # Settings: the parts one page draws
@@ -82,6 +83,7 @@ helm/
 │       ├── frames.js       # Window frames, borderless corner controls (Super+.), snap preview
 │       ├── switcher.js     # Alt+Tab window switcher
 │       ├── lock.js         # Lock screen and password auth (bro.cred)
+│       ├── permission_prompt.js # The system prompt for an app asking for a permission
 │       ├── util.js         # DOM builder, app icons, time formatting
 │       ├── icons.js        # Inline SVG icon set
 │       ├── settings.js     # Shell preferences (bro.conf, helm.shell.*)
@@ -106,6 +108,7 @@ helm/
     ├── test_bar.js             # The bar's islands, spaces, Alt+Tab over stand-in windows
     ├── test_frames.js          # Frames, borderless maximize and its corner controls, snapping, over real Wayland clients
     ├── test_settings.js        # Settings: open/close, navigation, search, launcher, missing APIs (writes stubbed)
+    ├── test_permission_prompt.js # The permission prompt: allow, deny, queueing, an asker quitting, Not now
     └── test_shell_role.js      # Overlays reach bro.compositor.setShellOverlay
 ```
 
@@ -119,6 +122,8 @@ Helm is the desktop shell, and the `helm` executable is its host: `src/main.cpp`
 - files, network and processes: launching apps, reading the catalog, the terminal.
 
 The apps helm starts get none of this: each runs under its own grants, and asks for what its `bro.json` declares.
+
+**The prompt.** When an app first uses a capability the user has not decided, helm asks (`ui/js/permission_prompt.js`): helm subscribes to `bro.permissions.on('request')`, which makes it the session's prompt (bro's `docs/apps.md`, "The shell's prompts"), so apps ask it instead of a native dialog (a Wayland-only session has none). The prompt is a modal card over a dimmed desk, above everything but the lock screen: the app's name, what it wants to do, what it was trying to do, its id and folder, and **Not now** / **Deny** / **Allow**. Focus starts on Deny; Tab and Shift+Tab move between the buttons, Enter or Space presses one, Escape is Not now. Allow and Deny are kept by the app for itself and appear in Settings > App Permissions; Not now keeps nothing, so the app asks again at its next use. Requests from several apps queue behind the one shown (the card says how many wait), and a request whose app quit or crashed is dismissed. helm only ever answers allow or deny: it never writes a grant for an app on that app's say-so.
 
 ---
 

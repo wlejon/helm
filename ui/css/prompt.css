@@ -1,0 +1,142 @@
+/* =============================================================================
+   PERMISSION PROMPT: an app asking for a capability (js/permission_prompt.js).
+   One modal card, centred over a dimmed desk, above every surface but the
+   lock screen: the app's tile with the capability's glyph on its corner, one
+   sentence saying what it wants, what it was trying to do, and the answer.
+   Allow is the one accent control; focus starts on Deny.
+   ============================================================================= */
+
+.perm-prompt-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-prompt);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.perm-prompt-scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim);
+  animation: fade-in var(--d-enter) var(--ease-out);
+}
+
+.perm-prompt {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  width: 420px;
+  max-width: calc(100vw - 2 * var(--s6));
+  padding: var(--s5);
+  border-radius: var(--r-panel);
+  background: var(--surface-modal);
+  backdrop-filter: var(--blur);
+  border: 1px solid var(--rim-strong);
+  box-shadow: var(--rim-top), var(--depth-3);
+}
+
+.perm-prompt-head {
+  position: relative;
+  width: 48px;
+  height: 48px;
+}
+
+.perm-prompt-icon {
+  width: 48px;
+  height: 48px;
+  font-size: 20px;
+}
+
+/* The capability, as a badge on the app's tile. */
+.perm-prompt-cap {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--r-chip);
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: 0 0 0 2px var(--surface-modal);
+}
+
+.perm-prompt-cap .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.perm-prompt-title {
+  color: var(--t1);
+  font-size: var(--fs-head);
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.perm-prompt-title b {
+  font-weight: 700;
+}
+
+.perm-prompt-what {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--s2) var(--s3);
+  border-radius: var(--r-card);
+  background: var(--sink);
+  color: var(--t2);
+  font-size: var(--fs-body);
+  overflow-wrap: anywhere;
+}
+
+.perm-prompt-label {
+  color: var(--t3);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--track-micro);
+  text-transform: uppercase;
+}
+
+.perm-prompt-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  color: var(--t3);
+  font-size: var(--fs-cap);
+  overflow-wrap: anywhere;
+}
+
+.perm-prompt-capname {
+  padding: 0 var(--s2);
+  border-radius: var(--r-chip);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.perm-prompt-note {
+  color: var(--t3);
+  font-size: var(--fs-cap);
+}
+
+.perm-prompt-count {
+  color: var(--warn);
+  font-size: var(--fs-cap);
+}
+
+.perm-prompt-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  margin-top: var(--s1);
+}
+
+.perm-prompt-spacer {
+  flex: 1;
+}
+
+.perm-prompt-actions .btn {
+  min-width: 84px;
+}

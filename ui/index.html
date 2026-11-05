@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="css/frames.css">
   <link rel="stylesheet" href="css/settings.css">
   <link rel="stylesheet" href="css/settings-pages.css">
+  <link rel="stylesheet" href="css/prompt.css">
   <link rel="stylesheet" href="css/lock.css">
 </head>
 <body class="desktop-root">
@@ -71,6 +72,10 @@
   <div class="settings-overlay hidden" id="settings-app" data-shell-keyboard></div>
 
   <div class="launcher-overlay hidden" id="launcher-modal" data-shell-keyboard></div>
+
+  <!-- An app asking for a permission (js/permission_prompt.js): over every
+       other surface but the lock screen. -->
+  <div class="perm-prompt-overlay hidden" id="permission-prompt" data-shell-keyboard></div>
 
   <div class="lock-screen hidden" id="lock-screen" data-shell-keyboard></div>
 
