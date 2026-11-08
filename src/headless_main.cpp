@@ -6,7 +6,7 @@
 #include "util/crash_handler.h"
 
 int main(int argc, char* argv[]) {
-    bro::util::installCrashHandler();
+    bro::util::installCrashHandler("helm-headless");
     bro::engine::HeadlessHooks hooks;
     hooks.programName = "helm-headless";
     hooks.tagline = "the helm desktop environment UI, driven by a test script";

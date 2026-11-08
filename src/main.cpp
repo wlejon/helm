@@ -75,7 +75,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    bro::util::installCrashHandler();
+    bro::util::installCrashHandler("helm", bro::util::CrashMode::System);
     bro::util::installSignalHandler();
 
     bro::engine::EngineConfig config;
