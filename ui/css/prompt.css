@@ -26,10 +26,10 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: var(--s3);
-  width: 420px;
+  gap: 14px;
+  width: 464px;
   max-width: calc(100vw - 2 * var(--s6));
-  padding: var(--s5);
+  padding: var(--s6);
   border-radius: var(--r-panel);
   background: var(--surface-modal);
   backdrop-filter: var(--blur);
@@ -84,10 +84,11 @@
 .perm-prompt-what {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: var(--s2) var(--s3);
+  gap: 3px;
+  padding: var(--s3) 14px;
   border-radius: var(--r-card);
-  background: var(--sink);
+  background: oklch(0.145 0.009 var(--accent-h));
+  border-left: 3px solid var(--accent);
   color: var(--t2);
   font-size: var(--fs-body);
   overflow-wrap: anywhere;
@@ -143,5 +144,6 @@
 }
 
 .perm-prompt-actions .btn {
-  min-width: 84px;
+  height: 36px;
+  min-width: 92px;
 }

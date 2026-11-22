@@ -80,6 +80,7 @@ export class LockController {
   lock({ fromSeat = false } = {}) {
     if (this.isLocked) return;
     this.isLocked = true;
+    document.body.classList.add('screen-locked');
     this.shell.closeTransient();
     // The lock owns input: as the Windows shell this raises the shell over
     // the applications' windows with the keyboard, or the password field
@@ -103,6 +104,7 @@ export class LockController {
 
   unlock() {
     this.isLocked = false;
+    document.body.classList.remove('screen-locked');
     this.shell.setModalActive('lock', false);
     this.input.value = '';
     this.syncGhost();

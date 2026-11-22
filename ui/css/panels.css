@@ -57,7 +57,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--s3);
-  padding: var(--s3);
+  padding: var(--s4);
 }
 
 /* A raised card inside a panel */
@@ -74,7 +74,7 @@
    ============================================================================= */
 
 .qs {
-  width: 380px;
+  width: 404px;
 }
 
 .qs-head {
@@ -84,14 +84,14 @@
   padding: 2px 2px 2px 4px;
 }
 
-/* Avatar: initials on a quiet disc */
+/* Avatar: accent-tinted monogram */
 .avatar {
   flex: none;
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: var(--r-chip);
-  background: var(--well-3);
-  box-shadow: inset 0 0 0 1px var(--rim);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
 }
 
 .avatar-in {
@@ -101,7 +101,7 @@
   width: 100%;
   height: 100%;
   border-radius: var(--r-chip);
-  color: var(--t1);
+  color: var(--accent-text);
   font-size: var(--fs-body);
   font-weight: 600;
 }
@@ -135,7 +135,7 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: var(--s2) var(--s2) 6px;
+  padding: var(--s3) 14px;
 }
 
 .qs-card-head {
@@ -178,12 +178,12 @@
   gap: var(--s2);
 }
 
-/* Tiles: a raised card; when on, its glyph is the accent. */
+/* Tiles: a raised card; when on, its surface glows subtly and its glyph fills with accent. */
 .tile {
   position: relative;
   display: flex;
   align-items: stretch;
-  height: 56px;
+  height: 62px;
   border-radius: var(--r-card);
   background: var(--surface-raised);
   box-shadow: inset 0 0 0 1px var(--hairline), var(--rim-top);
@@ -192,11 +192,12 @@
 }
 
 .tile:hover {
-  background: oklch(0.26 0.007 var(--accent-h));
+  background: oklch(0.265 0.012 var(--accent-h));
 }
 
 .tile.on {
-  box-shadow: inset 0 0 0 1px var(--rim-strong), var(--rim-top);
+  background: oklch(0.26 0.025 var(--accent-h));
+  box-shadow: inset 0 0 0 1px var(--accent-line), var(--rim-top);
 }
 
 .tile-main {
@@ -205,7 +206,7 @@
   gap: 10px;
   flex: 1;
   min-width: 0;
-  padding: 0 var(--s2) 0 10px;
+  padding: 0 var(--s2) 0 var(--s3);
   text-align: left;
   border-radius: var(--r-card);
 }
@@ -224,12 +225,13 @@
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: var(--r-chip);
   background: var(--well-3);
   color: var(--t2);
-  transition: background var(--d-state) var(--ease-std), color var(--d-state) var(--ease-std);
+  transition: background var(--d-state) var(--ease-std), color var(--d-state) var(--ease-std),
+    box-shadow var(--d-state) var(--ease-std);
 }
 
 .tile-glyph .icon {
@@ -240,6 +242,7 @@
 .tile.on .tile-glyph {
   background: var(--accent);
   color: var(--on-accent);
+  box-shadow: 0 2px 8px oklch(0.73 0.135 var(--accent-h) / 0.35);
 }
 
 .tile-text {
@@ -275,7 +278,7 @@
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 30px;
+  width: 32px;
   color: var(--t3);
   border-left: 1px solid var(--hairline);
   transition: background var(--d-quick) var(--ease-std), color var(--d-quick) var(--ease-std);
@@ -351,8 +354,8 @@
 .qs-power-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: var(--s1);
-  padding-top: var(--s2);
+  gap: 6px;
+  padding-top: var(--s3);
   border-top: 1px solid var(--hairline);
 }
 
@@ -362,7 +365,7 @@
   align-items: center;
   justify-content: center;
   gap: 4px;
-  height: 52px;
+  height: 56px;
   border-radius: var(--r-ctl);
   color: var(--t2);
   font-size: var(--fs-cap);
@@ -509,23 +512,25 @@
 .cp {
   flex-direction: row;
   align-items: stretch;
-  gap: var(--s4);
-  width: 720px;
-  padding: var(--s4);
+  gap: var(--s5);
+  width: 760px;
+  padding: var(--s5);
 }
 
 .cal-side {
   display: flex;
   flex-direction: column;
   gap: var(--s3);
-  width: 280px;
+  width: 296px;
+  padding-right: var(--s5);
+  border-right: 1px solid var(--hairline);
   flex: none;
 }
 
 .cal-today {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   padding: 2px 4px 0;
 }
 
@@ -534,9 +539,9 @@
 }
 
 .cal-today-date {
-  font-size: var(--fs-display);
+  font-size: 28px;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
   line-height: 1.15;
 }
 
@@ -569,12 +574,17 @@
 }
 
 .cal-month {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
   height: 28px;
   padding: 0 8px;
   margin-left: -4px;
   border-radius: var(--r-ctl);
   font-size: var(--fs-body);
   font-weight: 600;
+  white-space: nowrap;
+  flex: none;
 }
 
 .cal-month:hover {
@@ -607,7 +617,7 @@
   justify-content: center;
   font-size: var(--fs-micro);
   font-weight: 600;
-  color: var(--t4);
+  color: var(--t3);
 }
 
 .cal-day {
@@ -631,18 +641,18 @@
 }
 
 .cal-day.weekend {
-  color: var(--t3);
+  color: var(--t2);
 }
 
 .cal-day.other {
   color: var(--t4);
-  opacity: 0.6;
 }
 
 .cal-day.today span {
   background: var(--accent);
   color: var(--on-accent);
-  font-weight: 600;
+  font-weight: 700;
+  box-shadow: 0 2px 8px oklch(0.73 0.135 var(--accent-h) / 0.35);
 }
 
 .cal-side .media-card {
@@ -718,7 +728,7 @@
   display: flex;
   align-items: center;
   gap: var(--s3);
-  height: 44px;
+  height: 48px;
   padding: 0 var(--s3);
   font-size: var(--fs-body);
   font-weight: 500;
@@ -744,7 +754,7 @@
    ============================================================================= */
 
 .sp {
-  width: 460px;
+  width: 504px;
 }
 
 .sp-head {
@@ -756,7 +766,7 @@
 .sp-hint {
   font-size: var(--fs-micro);
   font-weight: 500;
-  color: var(--t4);
+  color: var(--t3);
 }
 
 .sp-cards {
@@ -769,7 +779,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 4px;
+  padding: 5px;
   border-radius: var(--r-card);
   background: var(--surface-raised);
   box-shadow: inset 0 0 0 1px var(--hairline);
@@ -778,7 +788,7 @@
 }
 
 .sp-card:hover {
-  background: oklch(0.26 0.007 var(--accent-h));
+  background: oklch(0.265 0.012 var(--accent-h));
 }
 
 .sp-card:focus-visible {
@@ -786,7 +796,7 @@
 }
 
 .sp-card.active {
-  box-shadow: inset 0 0 0 2px var(--accent);
+  box-shadow: inset 0 0 0 2px var(--accent), 0 0 0 2px oklch(0.73 0.135 var(--accent-h) / 0.15);
 }
 
 .sp-thumb {
@@ -794,7 +804,7 @@
   width: 100%;
   border-radius: var(--r-ctl);
   overflow: hidden;
-  background: var(--sink);
+  background: linear-gradient(155deg, oklch(0.24 0.025 var(--accent-h)), oklch(0.15 0.012 var(--accent-h)));
   box-shadow: inset 0 0 0 1px var(--hairline);
   display: flex;
   align-items: center;
@@ -866,7 +876,7 @@
 }
 
 .sp-row {
-  height: 44px;
+  height: 48px;
 }
 
 .sp-row-icon {
@@ -890,7 +900,7 @@
 
 .sp-row-app {
   font-size: var(--fs-cap);
-  color: var(--t3);
+  color: var(--t2);
 }
 
 .sp-close {

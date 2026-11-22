@@ -32,8 +32,9 @@
   box-shadow: var(--rim-top);
 }
 
-/* A focused fullscreen window covers it (shell.js syncFullscreen). */
-body.app-fullscreen .bar {
+/* A focused fullscreen window or the lock screen hides the bar. */
+body.app-fullscreen .bar,
+body.screen-locked .bar {
   visibility: hidden;
 }
 
@@ -43,11 +44,11 @@ body.app-fullscreen .bar {
   height: var(--island-h);
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 0 2px;
+  gap: 3px;
+  padding: 0 4px;
   border-radius: var(--r-card);
-  background: var(--well-2);
-  box-shadow: inset 0 0 0 1px var(--hairline), var(--rim-top);
+  background: oklch(0.22 0.011 var(--accent-h) / 0.72);
+  box-shadow: inset 0 0 0 1px var(--rim), var(--rim-top), 0 1px 4px rgb(0 0 0 / 0.25);
   color: var(--t1);
   white-space: nowrap;
   transition: background var(--d-state) var(--ease-std), opacity var(--d-state) var(--ease-std);
@@ -59,18 +60,18 @@ body.app-fullscreen .bar {
 }
 
 .island-left {
-  left: 4px;
+  left: 6px;
 }
 
 .island-right {
-  right: 4px;
+  right: 6px;
 }
 
 .island-center {
   left: 50%;
   transform: translateX(-50%);
-  gap: var(--s2);
-  padding: 0 var(--s3);
+  gap: 10px;
+  padding: 0 14px;
 }
 
 .island-center:hover {
@@ -96,8 +97,8 @@ body.app-fullscreen .bar {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 28px;
+  width: 30px;
+  height: 26px;
   border-radius: var(--r-ctl);
   color: var(--t1);
   transition: background var(--d-quick) var(--ease-std), color var(--d-quick) var(--ease-std);
@@ -136,12 +137,12 @@ body.app-fullscreen .bar {
   align-items: center;
   justify-content: center;
   width: 28px;
-  height: 28px;
+  height: 26px;
   border-radius: var(--r-ctl);
   font-size: var(--fs-cap);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: var(--t4);
+  color: var(--t3);
   transition: background var(--d-state) var(--ease-std), color var(--d-state) var(--ease-std);
 }
 
@@ -175,21 +176,22 @@ body.app-fullscreen .bar {
 }
 
 .ws.active {
-  background: var(--accent);
-  color: var(--on-accent);
+  background: var(--accent-soft);
+  color: var(--t1);
+  box-shadow: inset 0 0 0 1px var(--accent-line), inset 0 -2px 0 var(--accent);
 }
 
 .ws.active .ws-dot {
-  background: var(--on-accent);
+  background: var(--accent);
 }
 
 .isl-focused {
   display: flex;
   align-items: center;
   gap: var(--s2);
-  height: 28px;
+  height: 26px;
   max-width: 260px;
-  padding: 0 var(--s3) 0 6px;
+  padding: 0 10px 0 6px;
   border-radius: var(--r-ctl);
   color: var(--t2);
   font-size: var(--fs-body);
@@ -218,13 +220,14 @@ body.app-fullscreen .bar {
 
 .clock-date {
   font-size: var(--fs-body);
-  font-weight: 400;
-  color: var(--t3);
+  font-weight: 500;
+  color: var(--t2);
 }
 
 .clock-time {
   font-size: var(--fs-title);
   font-weight: 600;
+  letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
   color: var(--t1);
 }
@@ -263,7 +266,8 @@ body.app-fullscreen .bar {
   display: flex;
   align-items: center;
   gap: var(--s2);
-  max-width: 300px;
+  flex: none;
+  max-width: 440px;
   padding-left: var(--s2);
   border-left: 1px solid var(--hairline);
   animation: live-in var(--d-morph) var(--spring);
@@ -302,6 +306,8 @@ body.app-fullscreen .bar {
   font-size: var(--fs-cap);
   font-weight: 500;
   color: var(--t2);
+  max-width: 300px;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -430,7 +436,7 @@ body.app-fullscreen .bar {
   display: flex;
   align-items: center;
   gap: 10px;
-  height: 28px;
+  height: 26px;
   padding: 0 10px;
   border-radius: var(--r-ctl);
   color: var(--t2);

@@ -31,43 +31,44 @@
 
 .lock-bg {
   position: absolute;
-  inset: -60px;
+  inset: 0;
   background-size: cover;
   background-position: center;
-  filter: blur(46px) saturate(1.2) brightness(0.55);
+  filter: blur(46px) saturate(1.25) brightness(0.58);
 }
 
 .lock-scrim {
   position: absolute;
   inset: 0;
-  background: rgb(0 0 0 / 0.30);
+  background: rgb(0 0 0 / 0.34);
 }
 
 .lock-top {
   position: absolute;
   left: 0;
   right: 0;
-  top: 13%;
+  top: 15%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--s1);
+  gap: var(--s2);
 }
 
 .lock-date {
-  font-size: var(--fs-title);
+  font-size: 15px;
   font-weight: 500;
-  letter-spacing: 0;
+  letter-spacing: 0.02em;
   color: var(--t2);
 }
 
 .lock-time {
-  font-size: var(--fs-hero);
+  font-size: 104px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.04em;
-  line-height: 1.05;
+  letter-spacing: -0.045em;
+  line-height: 1.04;
   color: var(--t1);
+  text-shadow: 0 6px 32px rgb(0 0 0 / 0.40);
 }
 
 .lock-screen.entering .lock-top {
@@ -85,9 +86,16 @@
 
 .lock-auth {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 22%;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 18%;
+  width: 360px;
+  padding: 26px 24px 24px;
+  border-radius: 20px;
+  background: oklch(0.175 0.011 var(--accent-h) / 0.72);
+  backdrop-filter: var(--blur);
+  border: 1px solid var(--rim-strong);
+  box-shadow: var(--rim-top), var(--depth-3);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -97,8 +105,9 @@
 .lock-avatar {
   width: 72px;
   height: 72px;
-  background: var(--surface-float);
-  box-shadow: inset 0 0 0 1px var(--rim-strong), var(--depth-2);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  box-shadow: inset 0 0 0 1px var(--accent-line), var(--depth-1);
 }
 
 .lock-avatar .avatar-in {
@@ -116,6 +125,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 100%;
   gap: var(--s3);
 }
 
@@ -123,11 +133,11 @@
   display: flex;
   align-items: center;
   gap: var(--s2);
-  width: 320px;
-  height: 44px;
+  width: 100%;
+  height: 46px;
   padding: 0 6px 0 var(--s3);
   border-radius: var(--r-card);
-  background: var(--surface-modal);
+  background: oklch(0.13 0.009 var(--accent-h) / 0.85);
   backdrop-filter: var(--blur);
   border: 1px solid var(--rim-strong);
   box-shadow: var(--rim-top), var(--depth-1);
@@ -184,8 +194,8 @@
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: var(--r-ctl);
   background: var(--accent);
   color: var(--on-accent);
@@ -253,7 +263,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  color: var(--t3);
+  color: var(--t2);
 }
 
 .lock-foot .icon {

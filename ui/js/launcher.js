@@ -11,8 +11,8 @@ import { appdb } from './appdb.js';
 import { evaluate, formatNumber } from './calc.js';
 import { animate, morphIn, morphOut, rectOf, EASE_OUT } from './morph.js';
 
-const GRID_COLS = 6;
-const WIDTH = 776;
+const GRID_COLS = 5;
+const WIDTH = 780;
 const HEIGHT = 612;
 const PROMPT = 'Search apps and actions, or = to calculate';
 const CLIP_PROMPT = 'Search clipboard history';

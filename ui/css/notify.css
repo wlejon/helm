@@ -32,7 +32,7 @@
   position: relative;
   display: flex;
   gap: var(--s3);
-  padding: var(--s3);
+  padding: 14px;
   border-radius: var(--r-card);
   pointer-events: auto;
   transition: background var(--d-quick) var(--ease-std);
@@ -83,8 +83,8 @@
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--r-ctl);
   overflow: hidden;
 }
@@ -138,7 +138,7 @@
 
 .notif-time {
   font-size: var(--fs-micro);
-  color: var(--t4);
+  color: var(--t3);
   white-space: nowrap;
 }
 
@@ -222,13 +222,13 @@
   position: fixed;
   z-index: var(--z-osd);
   bottom: var(--island-gap);
-  right: 4px;
+  right: 6px;
   width: 300px;
   height: var(--island-h);
   display: flex;
   align-items: center;
   gap: var(--s3);
-  padding: 0 var(--s3) 0 6px;
+  padding: 0 var(--s3) 0 var(--s2);
   border-radius: var(--r-card);
   background: var(--surface-float);
   pointer-events: none;
@@ -253,7 +253,7 @@
 .osd-bar {
   position: relative;
   flex: 1;
-  height: 4px;
+  height: 6px;
   border-radius: var(--r-chip);
   background: var(--well-3);
   overflow: hidden;
