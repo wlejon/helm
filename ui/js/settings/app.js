@@ -13,7 +13,7 @@
 
 import { h, $, initials, attempt } from '../util.js';
 import { icon } from '../icons.js';
-import { animate, morphIn, morphOut, rectOf, EASE_OUT, EASE_STD } from '../morph.js';
+import { animate, cancelAnimations, morphIn, morphOut, rectOf, EASE_OUT, EASE_STD } from '../morph.js';
 import { system } from '../system.js';
 import { permissions } from '../permissions.js';
 import { Backend, stubWrites } from './backend.js';
@@ -36,6 +36,7 @@ export class SettingsApp {
     this.state = {};      // per-page scratch state that survives re-renders
     this.sliders = [];
     this.pending = [];
+    this.closeTimer = null;
   }
 
   init() {
@@ -109,6 +110,10 @@ export class SettingsApp {
       if (pageId) this.go(pageId, { anchor });
       return;
     }
+    clearTimeout(this.closeTimer);
+    this.closeTimer = null;
+    cancelAnimations(this.window);
+    cancelAnimations(this.inner);
     this.isOpen = true;
     this.query = '';
     this.input.value = '';
@@ -135,18 +140,27 @@ export class SettingsApp {
     this.isOpen = false;
     this.leavePage();
     this.input.blur();
+    clearTimeout(this.closeTimer);
+    this.closeTimer = null;
     this.el.classList.add('leaving');
     const done = () => {
-      if (!this.isOpen) this.el.classList.add('hidden');
+      this.closeTimer = null;
+      if (!this.isOpen) {
+        this.el.classList.add('hidden');
+        cancelAnimations(this.window);
+        cancelAnimations(this.inner);
+      }
       this.el.classList.remove('leaving');
     };
     const to = this.home && this.home.isConnected !== false ? rectOf(this.home) : null;
     if (to && to.width > 0) {
       morphOut(this.window, to, { body: this.inner, duration: 320, done });
     } else {
+      cancelAnimations(this.window);
+      cancelAnimations(this.inner);
       animate(this.window, [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(0.96) translateY(8px)' }],
         { duration: 180, easing: EASE_STD, fill: 'forwards' });
-      setTimeout(done, 180);
+      this.closeTimer = setTimeout(done, 180);
     }
     this.announce();
   }

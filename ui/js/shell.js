@@ -5,7 +5,7 @@
 
 import { h, $, api, attempt } from './util.js';
 import { icon } from './icons.js';
-import { panels, animate, rectOf, SPRING, EASE_STD } from './morph.js';
+import { panels, animate, cancelAnimations, rectOf, SPRING, EASE_STD } from './morph.js';
 import { Activities } from './activities.js';
 import { hydrateIcons } from './icons.js';
 import { settings } from './settings.js';
@@ -189,15 +189,20 @@ export class Shell {
   hint(text, sub = '', glyph = 'info') {
     const el = $('#hint');
     el.replaceChildren(...[h('span.hint-glyph', icon(glyph)), h('span', text), sub ? h('span.hint-sub', sub) : null].filter(Boolean));
+    cancelAnimations(el);
     el.classList.remove('hidden');
     animate(el, [{ opacity: 0, transform: 'translateX(-50%) translateY(14px) scale(0.9)' },
       { opacity: 1, transform: 'translateX(-50%)' }], { duration: 420, easing: SPRING });
     clearTimeout(this.hintTimer);
     this.hintTimer = setTimeout(() => {
+      cancelAnimations(el);
       animate(el, [{ opacity: 1, transform: 'translateX(-50%)' },
         { opacity: 0, transform: 'translateX(-50%) translateY(10px) scale(0.94)' }],
       { duration: 220, easing: EASE_STD, fill: 'forwards' });
-      this.hintTimer = setTimeout(() => el.classList.add('hidden'), 220);
+      this.hintTimer = setTimeout(() => {
+        el.classList.add('hidden');
+        cancelAnimations(el);
+      }, 220);
     }, 2400);
   }
 

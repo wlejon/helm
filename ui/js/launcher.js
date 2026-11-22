@@ -9,7 +9,7 @@ import { icon } from './icons.js';
 import { settings } from './settings.js';
 import { appdb } from './appdb.js';
 import { evaluate, formatNumber } from './calc.js';
-import { animate, morphIn, morphOut, rectOf, EASE_OUT } from './morph.js';
+import { animate, cancelAnimations, morphIn, morphOut, rectOf, EASE_OUT } from './morph.js';
 
 const GRID_COLS = 5;
 const WIDTH = 780;
@@ -25,6 +25,7 @@ export class LauncherController {
     this.entries = [];      // what Enter/arrows act on, in display order
     this.selected = 0;
     this.clipMode = false;
+    this.closeTimer = null;
   }
 
   init() {
@@ -78,6 +79,10 @@ export class LauncherController {
   open(origin) {
     if (this.isOpen) return;
     this.shell.closeTransient();
+    clearTimeout(this.closeTimer);
+    this.closeTimer = null;
+    cancelAnimations(this.window);
+    cancelAnimations(this.inner);
     this.isOpen = true;
     this.clipMode = false;
     this.input.value = '';
@@ -124,7 +129,11 @@ export class LauncherController {
     if (!this.isOpen) return;
     this.isOpen = false;
     this.input.blur();
+    clearTimeout(this.closeTimer);
+    this.closeTimer = null;
     if (instant) {
+      cancelAnimations(this.window);
+      cancelAnimations(this.inner);
       this.el.classList.add('hidden');
       this.el.classList.remove('leaving');
       window.dispatchEvent(new CustomEvent('helm:overlay'));
@@ -132,16 +141,23 @@ export class LauncherController {
     }
     this.el.classList.add('leaving');
     const done = () => {
-      if (!this.isOpen) this.el.classList.add('hidden');
+      this.closeTimer = null;
+      if (!this.isOpen) {
+        this.el.classList.add('hidden');
+        cancelAnimations(this.window);
+        cancelAnimations(this.inner);
+      }
       this.el.classList.remove('leaving');
     };
     const to = this.origin && this.origin.isConnected !== false ? rectOf(this.origin) : null;
     if (to && to.width > 0) {
       morphOut(this.window, to, { body: this.inner, duration: 300, done });
     } else {
+      cancelAnimations(this.window);
+      cancelAnimations(this.inner);
       animate(this.window, [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(0.96) translateY(8px)' }],
         { duration: 180, easing: 'ease-in', fill: 'forwards' });
-      setTimeout(done, 180);
+      this.closeTimer = setTimeout(done, 180);
     }
     window.dispatchEvent(new CustomEvent('helm:overlay'));
   }

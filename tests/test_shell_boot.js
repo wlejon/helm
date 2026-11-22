@@ -137,6 +137,14 @@ assert(!helm.launcher.isOpen, 'launcher closes');
 settle(30);
 assert(document.getElementById('launcher-modal').classList.contains('hidden'), 'launcher folds away');
 
+// Re-opening after a no-origin close must not stay hidden behind a stale fill:forwards close animation.
+helm.launcher.open();
+settle(40);
+assert(helm.launcher.isOpen && parseFloat(getComputedStyle(helm.launcher.window).opacity) === 1,
+  'launcher stays visible after re-opening without an origin');
+helm.launcher.close({ instant: true });
+settle(4);
+
 // Desktop substrates the shell builds on. Availability only: writing the
 // clipboard or the volume here would change the real machine.
 for (const ns of ['clip', 'pulse', 'mpris', 'ime', 'decor', 'compositor']) {

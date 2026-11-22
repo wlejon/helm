@@ -49,6 +49,12 @@ function cancel(a) {
   if (a && typeof a.cancel === 'function') attempt('animation.cancel', () => a.cancel());
 }
 
+/** Cancel any running or fill:forwards animations left on `el`. */
+export function cancelAnimations(el) {
+  if (!el || typeof el.getAnimations !== 'function') return;
+  for (const a of el.getAnimations()) cancel(a);
+}
+
 /**
  * While the box morphs, pin the body to the edge its island owns, so the
  * growing glass uncovers it from that side (flex alignment would clamp an
@@ -75,6 +81,10 @@ function boxFrame(r, radius) {
  * has cleared it.
  */
 export function morphIn(el, from, { body, align, fromRadius, toRadius = R_PANEL, duration = MORPH_MS } = {}) {
+  clearTimeout(el._morphOutTimer);
+  el._morphOutTimer = null;
+  cancelAnimations(el);
+  cancelAnimations(body);
   const to = rectOf(el);
   pinBody(el, body, align, duration);
   const anims = [animate(el, [boxFrame(from, fromRadius ?? from.radius ?? 0), boxFrame(to, toRadius)],
@@ -92,6 +102,10 @@ export function morphIn(el, from, { body, align, fromRadius, toRadius = R_PANEL,
 
 /** Shrink `el` back into the rect `to`; fn runs when it gets there. */
 export function morphOut(el, to, { body, align, toRadius, duration = UNMORPH_MS, done } = {}) {
+  clearTimeout(el._morphOutTimer);
+  el._morphOutTimer = null;
+  cancelAnimations(el);
+  cancelAnimations(body);
   const from = rectOf(el);
   pinBody(el, body, align, duration + 40);
   const anims = [animate(el, [boxFrame(from, from.radius || R_PANEL), boxFrame(to, toRadius ?? to.radius ?? 0)],
@@ -100,7 +114,8 @@ export function morphOut(el, to, { body, align, toRadius, duration = UNMORPH_MS,
     anims.push(animate(body, [{ opacity: 1 }, { opacity: 0 }],
       { duration: duration * 0.45, easing: EASE_STD, fill: 'forwards' }));
   }
-  setTimeout(() => {
+  el._morphOutTimer = setTimeout(() => {
+    el._morphOutTimer = null;
     for (const a of anims) cancel(a);
     if (done) done();
   }, duration);
