@@ -10,6 +10,7 @@ import { settings } from './settings.js';
 import { appdb } from './appdb.js';
 import { evaluate, formatNumber } from './calc.js';
 import { animate, cancelAnimations, morphIn, morphOut, rectOf, EASE_OUT } from './morph.js';
+import { FileCatalogIndex } from './file_catalog.js';
 
 const GRID_COLS = 5;
 const WIDTH = 780;
@@ -26,6 +27,7 @@ export class LauncherController {
     this.selected = 0;
     this.clipMode = false;
     this.closeTimer = null;
+    this.fileCatalog = new FileCatalogIndex();
   }
 
   init() {
@@ -309,6 +311,23 @@ export class LauncherController {
       }
     }
 
+    if (q.length >= 2 && this.fileCatalog && this.fileCatalog.rowCount() > 0) {
+      const fileHits = this.fileCatalog.search(q, { limit: 6 });
+      if (fileHits.length) {
+        rows.push(h('div.launcher-section.micro', 'Files'));
+        for (const f of fileHits) {
+          rows.push(this.row({
+            kind: 'file',
+            glyph: h('span.row-glyph', icon(f.isDir ? 'folder' : 'file')),
+            title: f.name,
+            desc: f.dir ? `${f.dir} · ${f.sizeText}` : f.sizeText,
+            badge: 'Open',
+            run: () => this.openCatalogFile(f),
+          }));
+        }
+      }
+    }
+
     if (this.entries.length === 0) {
       rows.push(emptyState('search', `Nothing matches “${q}”`, 'Try another word, or start with = to calculate'));
     }
@@ -431,6 +450,19 @@ export class LauncherController {
   launch(app) {
     this.bump(app.id);
     appdb.launch(app.id);
+  }
+
+  openCatalogFile(file) {
+    if (!file || !file.path) return;
+    const apps = api('apps');
+    if (apps && typeof apps.launch === 'function') {
+      attempt(`catalog open ${file.path}`, () => apps.launch('helm.files.desktop', { files: [file.path] }));
+      return;
+    }
+    const app = typeof bro !== 'undefined' && bro.app;
+    if (app && typeof app.open === 'function') {
+      attempt(`catalog open ${file.path}`, () => app.open('helm.files', [file.path]));
+    }
   }
 
   copy(text) {
