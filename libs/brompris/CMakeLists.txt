@@ -1,0 +1,113 @@
+cmake_minimum_required(VERSION 3.24)
+
+project(brompris VERSION 0.1.0 LANGUAGES CXX)
+
+# Dependencies (cmake/bro_deps.cmake): an outer project's target wins (under bro
+# these are all bro's), else the ../<name> working tree beside the top-level
+# project, else the head of its main, fetched at configure.
+if(NOT COMMAND bro_dependency)
+    include(${CMAKE_CURRENT_LIST_DIR}/../../cmake/bro_deps.cmake)
+endif()
+
+if(MSVC)
+    # The DLL CRT, so the tests share one heap with bronze_runtime_shared.
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+endif()
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+set(_brompris_top_level OFF)
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    set(_brompris_top_level ON)
+endif()
+
+option(BROMPRIS_BUILD_TESTS "Build the brompris tests" ${_brompris_top_level})
+
+function(brompris_warnings target)
+    if(MSVC)
+        target_compile_options(${target} PRIVATE /W4 /permissive- /utf-8 /MP)
+        target_compile_definitions(${target} PRIVATE _CRT_SECURE_NO_WARNINGS NOMINMAX)
+    else()
+        target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+endfunction()
+
+find_package(Threads REQUIRED)
+
+set(BROMPRIS_SOURCES
+    src/metadata.cpp
+    src/player_model.cpp
+    src/media_player.cpp
+    src/media_manager.cpp
+    src/player_service.cpp)
+
+set(BROMPRIS_LINUX OFF)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(BROMPRIS_LINUX ON)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(SYSTEMD REQUIRED IMPORTED_TARGET libsystemd)
+
+    bro_dependency(brodbus GITHUB wlejon/brodbus TARGET brodbus::brodbus
+                   OPTIONS BRODBUS_BUILD_TESTS=OFF)
+
+    list(APPEND BROMPRIS_SOURCES
+        src/linux/mpris_client.cpp
+        src/linux/mpris_service.cpp
+        src/win/smtc.cpp)
+elseif(WIN32)
+    list(APPEND BROMPRIS_SOURCES src/win/smtc.cpp)
+elseif(APPLE)
+    enable_language(OBJCXX)
+    list(APPEND BROMPRIS_SOURCES src/mac/now_playing.mm)
+endif()
+
+add_library(brompris STATIC ${BROMPRIS_SOURCES})
+add_library(brompris::brompris ALIAS brompris)
+
+target_include_directories(brompris
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR})
+
+brompris_warnings(brompris)
+
+target_link_libraries(brompris PUBLIC Threads::Threads)
+if(BROMPRIS_LINUX)
+    target_link_libraries(brompris PUBLIC brodbus::brodbus PRIVATE PkgConfig::SYSTEMD)
+elseif(WIN32)
+    target_link_libraries(brompris PRIVATE windowsapp)
+    # One C++/WinRT per binary: its base.h stamps its version on every object
+    # (/FAILIFMISMATCH), so a host that also links libremidi, which projects
+    # the SDK with the newest C++/WinRT into <build>/cppwinrt, fails to link
+    # against objects built on the SDK's own older headers. Those headers come
+    # first where they exist; a missing directory is ignored, and the SDK's
+    # are used.
+    target_include_directories(brompris BEFORE PRIVATE ${CMAKE_BINARY_DIR}/cppwinrt)
+elseif(APPLE)
+    target_compile_options(brompris PRIVATE $<$<COMPILE_LANGUAGE:OBJCXX>:-fobjc-arc>)
+    target_link_libraries(brompris PRIVATE
+        "-framework MediaPlayer"
+        "-framework Foundation"
+        "-framework AppKit")
+endif()
+
+# --- Standalone Bronze JavaScript API ---
+option(BROMPRIS_ENABLE_API "Build Bronze JavaScript API" ${PROJECT_IS_TOP_LEVEL})
+if(BROMPRIS_ENABLE_API)
+    # bronze, the JavaScript runtime the api binds (it brings its code
+    # generator, brass).
+    bro_dependency(bronze GITHUB wlejon/bronze TARGET bronze_runtime_shared
+                   OPTIONS BRONZE_BUILD_SHARED_RUNTIME=ON BRONZE_BUILD_TESTS=OFF)
+
+    add_subdirectory(src/api)
+endif()
+
+if(BROMPRIS_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()

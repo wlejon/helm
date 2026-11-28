@@ -1,10 +1,13 @@
+#include "desktop/desktop_host.h"
 #include "paths.h"
 
 #include "bronze_host/host_storage.h"
 #include "engine/capabilities.h"
 #include "engine/engine.h"
 #include "engine/launcher.h"
+#include "runtime/runtime_mains.h"
 #include "util/crash_handler.h"
+#include "util/exe_dir.h"
 #include "util/interrupt.h"
 #include "util/log.h"
 
@@ -12,11 +15,8 @@
 #include <cstring>
 #include <filesystem>
 #include <string>
+#include <string_view>
 #include <vector>
-
-#ifndef HELM_VERSION
-#define HELM_VERSION "0.1.0"
-#endif
 
 #if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
@@ -26,11 +26,15 @@
 namespace {
 
 const char* kUsage =
-    "helm %s -- Desktop Environment Shell\n"
+    "helm %s -- Desktop Environment Shell & App Runtime\n"
     "\n"
-    "Usage: helm [options]\n"
+    "Usage: helm [--shell | --drm | --windowed] [--remote[=NAME]]\n"
+    "       helm [flags] <app-directory | app-id> [app arguments...]\n"
+    "       helm --install <app-directory> [--link] [--system] [--exec <helm>] [--no-exe]\n"
+    "       helm --uninstall <app-id> | --list-apps | --desktop-entry <dir>\n"
+    "       helm --permissions [<app-id | app-dir>] | --grant-app | --revoke-app | --dev-mode\n"
     "\n"
-    "Options:\n"
+    "Shell options:\n"
     "      --shell            Run as primary OS desktop shell (reserves work area, borderless)\n"
     "      --drm              Run bare-metal on Linux DRM/KMS display with seat\n"
     "      --windowed         Run inside a windowed desktop session (default)\n"
@@ -40,9 +44,69 @@ const char* kUsage =
     "\n"
     "Config: %s\n";
 
+bool isAppManagementCmd(std::string_view cmd) {
+    return cmd == "--install" || cmd == "--uninstall" || cmd == "--list-apps" ||
+           cmd == "--desktop-entry" || cmd == "--build-exe" || cmd == "--exe-info" ||
+           cmd == "--permissions" || cmd == "--grant-app" || cmd == "--revoke-app" ||
+           cmd == "--reset-app" || cmd == "--dev-mode";
+}
+
+bool isShellFlagWithValue(std::string_view a) {
+    return a == "--grant" || a == "--notification" || a == "--scheduled";
+}
+
+bool isShellOnlyOrCommonFlag(std::string_view a) {
+    return a == "--drm" || a == "--windowed" || a == "--shell" || a == "--remote" ||
+           a.rfind("--remote=", 0) == 0 || a == "--no-splash" || a == "--splash" ||
+           a == "--new-instance" || a == "--notification-activated" ||
+           a == "-h" || a == "--help" || a == "-v" || a == "--version";
+}
+
+bool hasAppLaunchTarget(int argc, char* argv[]) {
+    if (argc > 1 && isAppManagementCmd(argv[1])) return true;
+    bool expectValue = false;
+    for (int i = 1; i < argc; ++i) {
+        std::string_view a(argv[i]);
+        if (expectValue) { expectValue = false; continue; }
+        if (a == "--") break;
+        if (isShellFlagWithValue(a)) { expectValue = true; continue; }
+        if (isShellOnlyOrCommonFlag(a)) continue;
+        if (!a.empty() && a.front() != '-') return true;
+    }
+    return false;
+}
+
+std::string helmExecutablePath() {
+#if defined(_WIN32)
+    return (std::filesystem::path(bro::util::executableDir()) / "helm.exe").string();
+#else
+    return (std::filesystem::path(bro::util::executableDir()) / "helm").string();
+#endif
+}
+
+bro::runtime::WindowedHooks desktopWindowedHooks() {
+    bro::runtime::WindowedHooks hooks;
+    hooks.programName = "helm";
+    hooks.defaultExecPath = helmExecutablePath();
+    hooks.installHostRootApis = helm::desktop::installDesktopRootApis;
+    hooks.installWorkerHostBindings = helm::desktop::installDesktopWorkerApis;
+    hooks.onDropCompartment = helm::desktop::dropDesktopCompartment;
+    hooks.onShutdownForReload = helm::desktop::shutdownDesktopForReload;
+    return hooks;
+}
+
 } // namespace
 
 int main(int argc, char* argv[]) {
+    // App management (`--install`, `--permissions`, ...) and launching a sandboxed
+    // desktop app (`helm <app-dir | app-id>`) delegate to bro's windowed runner
+    // with helm's desktop APIs mounted, and WITHOUT granting shell capabilities.
+    if (hasAppLaunchTarget(argc, argv)) {
+        const int rc = bro::runtime::runWindowed(argc, argv, nullptr, desktopWindowedHooks());
+        helm::desktop::flushDesktopForExit();
+        return rc;
+    }
+
     const std::string cfgDir = helm::configDir();
     bool drmMode = false;
     bool windowedMode = false;
@@ -100,6 +164,10 @@ int main(int argc, char* argv[]) {
     // (bro docs/apps.md, Permissions). The apps helm starts get only their
     // own grants.
     config.hostGrants = bro::engine::allCapabilityNames();
+    config.installHostRootApis = helm::desktop::installDesktopRootApis;
+    config.installWorkerHostBindings = helm::desktop::installDesktopWorkerApis;
+    config.onDropCompartment = helm::desktop::dropDesktopCompartment;
+    config.onShutdownForReload = helm::desktop::shutdownDesktopForReload;
 #if defined(_WIN32)
     // Winlogon starts custom shells without a console attached.
     // Redirect stderr to helm.log so all diagnostics, errors, and crash reports are persisted.
@@ -132,12 +200,6 @@ int main(int argc, char* argv[]) {
         config.graphics.borderless = true;
         config.graphics.resizable = false;
         config.graphics.alwaysOnTop = false;
-        // The session's shell: bro registers the window as the shell window
-        // and keeps it beneath the applications (bro.compositor's
-        // setShellOverlay raises it), the bar's reserveEdge takes the OS
-        // work area, global hotkeys see every key first, and agent control
-        // serves "display" with whole-screen screenshots and OS-level input,
-        // as helm --drm does (bro docs/compositor-api.js, docs/agent-control.md).
         config.desktopShell = true;
         LOG_INFO("Configured standalone shell borderless window: %dx%d at (%d, %d)",
                  config.graphics.width, config.graphics.height,
@@ -153,9 +215,11 @@ int main(int argc, char* argv[]) {
     } catch (const std::exception& e) {
         LOG_ERROR("helm: fatal: %s", e.what());
         std::fprintf(stderr, "Fatal error: %s\n", e.what());
+        helm::desktop::flushDesktopForExit();
         return 1;
     }
 
+    helm::desktop::flushDesktopForExit();
     bro::bronze_host::flushHostStorage();
     return 0;
 }

@@ -1,0 +1,41 @@
+// The helpers bro.thumb's natives use to ask the host's access gate
+// (embed/embed_access.h; what each native asks is in api.h, "Access").
+
+#include "host_thumb_internal.h"
+#include "embed/embed_access.h"
+
+namespace brothumb::api {
+
+namespace {
+
+std::string absoluteUtf8(const std::filesystem::path& p) {
+    std::error_code ec;
+    std::filesystem::path abs = std::filesystem::absolute(p, ec);
+    if (ec) abs = p;
+    std::u8string u = abs.lexically_normal().u8string();
+    return std::string(u.begin(), u.end());
+}
+
+} // namespace
+
+PathRefusal checkPath(const std::filesystem::path& p, PathAccess access) {
+    if (!ev::accessGateActive()) return {};
+    PathRefusal r;
+    r.path = absoluteUtf8(p);
+    r.message = ev::checkAccess(access == PathAccess::Write ? ev::AccessKind::Write : ev::AccessKind::Read, r.path);
+    return r;
+}
+
+void grantDerivedRead(const std::filesystem::path& p) {
+    if (ev::accessGateActive()) ev::checkAccess(ev::AccessKind::ReadDerived, absoluteUtf8(p));
+}
+
+Value newAccessError(const PathRefusal& refusal) {
+    return ev::newAccessError(refusal.message, "EACCES", refusal.path);
+}
+
+Value throwAccessError(const PathRefusal& refusal) {
+    return ev::throwAccessError(refusal.message, "EACCES", refusal.path);
+}
+
+} // namespace brothumb::api

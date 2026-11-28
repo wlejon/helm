@@ -39,10 +39,12 @@ function makeApp(folder, id, name, permissions) {
 }
 const recDir = makeApp('recorder', 'org.example.Recorder', 'Recorder', ['mic', 'net', 'files', 'compositor']);
 const notesDir = makeApp('notes', 'org.example.Notes', 'Notes', ['files', 'spawn']);
-const pickedDir = `${home}/picked/Documents`;
-const pickedFile = `${home}/picked/todo.txt`;
-fs.mkdirSync(pickedDir, { recursive: true });
-fs.writeFileSync(pickedFile, 'milk\n');
+const pickedDirRaw = `${home}/picked/Documents`;
+const pickedFileRaw = `${home}/picked/todo.txt`;
+fs.mkdirSync(pickedDirRaw, { recursive: true });
+fs.writeFileSync(pickedFileRaw, 'milk\n');
+const pickedDir = fs.realpathSync(pickedDirRaw);
+const pickedFile = fs.realpathSync(pickedFileRaw);
 
 let changes = 0;
 const onChange = () => { ++changes; };

@@ -50,21 +50,10 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/bro_deps.cmake)
 # Feature profile: desktop
 set(BRO_PROFILE "desktop" CACHE STRING "bro feature profile")
 set(BRO_WITH_COMPOSITOR ON CACHE BOOL "Window compositor")
-set(BRO_WITH_SYS ON CACHE BOOL "System services")
 set(BRO_WITH_DISPLAYS ON CACHE BOOL "Display configuration")
-set(BRO_WITH_APPS ON CACHE BOOL "App catalog and launcher")
-set(BRO_WITH_CRED ON CACHE BOOL "Credentials and verification")
 set(BRO_WITH_SEARCH ON CACHE BOOL "Fuzzy search")
-set(BRO_WITH_KEYS ON CACHE BOOL "Keybindings")
 set(BRO_WITH_THEMES ON CACHE BOOL "Themes")
-set(BRO_WITH_CONF ON CACHE BOOL "Config store")
 set(BRO_WITH_SEAT ON CACHE BOOL "Session seat")
-set(BRO_WITH_DECOR ON CACHE BOOL "Window decorations")
-set(BRO_WITH_CLIP ON CACHE BOOL "Clipboard history")
-set(BRO_WITH_MPRIS ON CACHE BOOL "Media player integration")
-set(BRO_WITH_PULSE ON CACHE BOOL "PipeWire audio policy")
-set(BRO_WITH_IME ON CACHE BOOL "Input method engine")
-set(BRO_WITH_PORTAL ON CACHE BOOL "Desktop portal backend (broportal)")
 # bro.remote: `helm --remote` hosts the screen for remote viewers (bro builds
 # broremote like its other dependencies).
 set(BRO_WITH_REMOTE ON CACHE BOOL "Remote session hosting (broremote)")
@@ -84,8 +73,12 @@ set(BRO_WITH_REMOTE ON CACHE BOOL "Remote session hosting (broremote)")
 #     subproject build): one self-contained helm, and the baseline to compare
 #     the shared engine against.
 option(HELM_STATIC_ENGINE "Link the engine's static libraries instead of libbro" OFF)
-set(_helm_engine_features COMPOSITOR SYS DISPLAYS APPS CRED SEARCH KEYS THEMES CONF SEAT DECOR CLIP MPRIS
-    PULSE IME PORTAL REMOTE)
+set(_helm_engine_features COMPOSITOR DISPLAYS SEARCH THEMES)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    list(APPEND _helm_engine_features SEAT REMOTE)
+elseif(WIN32)
+    list(APPEND _helm_engine_features REMOTE)
+endif()
 if(NOT WIN32 AND bro_DIR AND NOT HELM_STATIC_ENGINE)
     find_package(bro CONFIG REQUIRED)
     foreach(_f IN LISTS _helm_engine_features)
@@ -108,6 +101,9 @@ else()
     set(HELM_PREBUILT_BRO OFF)
 endif()
 
+# ---- desktop host layer (desktop APIs + Bronze JS desktop modules) -----------
+add_subdirectory(src/desktop)
+
 # ---- helm sources & executables ----------------------------------------------
 set(HELM_COMMON_SOURCES
     src/paths.cpp
@@ -120,7 +116,7 @@ add_executable(helm WIN32
 )
 target_include_directories(helm PRIVATE "${BRO_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_compile_definitions(helm PRIVATE HELM_VERSION="${PROJECT_VERSION}")
-target_link_libraries(helm PRIVATE ${HELM_ENGINE})
+target_link_libraries(helm PRIVATE helm_desktop ${HELM_ENGINE})
 
 # Headless desktop application test driver executable
 add_executable(helm-headless
@@ -128,8 +124,11 @@ add_executable(helm-headless
     ${HELM_COMMON_SOURCES}
 )
 target_include_directories(helm-headless PRIVATE "${BRO_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/src")
-target_compile_definitions(helm-headless PRIVATE HELM_VERSION="${PROJECT_VERSION}")
-target_link_libraries(helm-headless PRIVATE ${HELM_ENGINE})
+target_compile_definitions(helm-headless PRIVATE
+    HELM_VERSION="${PROJECT_VERSION}"
+    HELM_SOURCE_UI_DIR="${CMAKE_CURRENT_SOURCE_DIR}/ui"
+)
+target_link_libraries(helm-headless PRIVATE helm_desktop ${HELM_ENGINE})
 if(NOT HELM_PREBUILT_BRO)
     # bronze's runtime (and libbro) staged beside the executables, found
     # through $ORIGIN. A prebuilt bro's libraries are found where they are:
@@ -184,12 +183,13 @@ set(BC_TEST_CLIENT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../brocompositor/build-relea
 # test_permission_prompt.js runs fake apps in bro-headless that ask helm's
 # prompt; each skips without them.
 set(_bro_cli "")
-foreach(_c "${BRO_DIR}/build/Release/bro.exe" "${BRO_DIR}/build-release/bro" "${BRO_DIR}/build/bro")
+foreach(_c "${BRO_BINARY_DIR}/Release/bro.exe" "${BRO_BINARY_DIR}/bro.exe" "${BRO_BINARY_DIR}/bro"
+           "${BRO_DIR}/build/Release/bro.exe" "${BRO_DIR}/build-release/bro" "${BRO_DIR}/build/bro")
     if(NOT _bro_cli AND EXISTS "${_c}")
         set(_bro_cli "${_c}")
     endif()
 endforeach()
-set(HELM_BRO_CLI "${_bro_cli}" CACHE FILEPATH "bro executable test_permissions.js runs for its outside changes")
+set(HELM_BRO_CLI "${_bro_cli}" CACHE FILEPATH "bro executable test_permissions.js runs for its outside changes" FORCE)
 file(GLOB _helm_tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_*.js")
 # Each test's config and home live in the temp directory, not the build tree:
 # a single-config build puts helm-headless in the build directory itself, and
@@ -229,6 +229,30 @@ foreach(_t IN LISTS _helm_tests)
         FIXTURES_REQUIRED cfg-${_name}
         SKIP_RETURN_CODE 77
         TIMEOUT 180)
+endforeach()
+
+# Desktop API & module tests (migrated from bro into helm).
+set(_helm_desktop_grants "declared,files,net,spawn,mic,env,mpris,wl,displays,clip,pulse,remote,screen,schedule,sys.power,sys.audio,sys.network,sys.bluetooth,sys.notifications,sys.tray,sys.processes,sys.journal,sys.disks,shell,compositor,seat,cred,portal,permissions")
+file(GLOB_RECURSE _helm_desktop_tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/desktop/*/test_*.js")
+foreach(_dt IN LISTS _helm_desktop_tests)
+    get_filename_component(_dt_dir "${_dt}" DIRECTORY)
+    get_filename_component(_dt_group "${_dt_dir}" NAME)
+    get_filename_component(_dt_name "${_dt}" NAME_WE)
+    string(REGEX REPLACE "^test_" "" _dt_name "${_dt_name}")
+    set(_dt_id "desktop-${_dt_group}-${_dt_name}")
+    set(_dt_cfg "${_helm_cfg_root}/${_dt_id}")
+    add_test(NAME clean-${_dt_id} COMMAND "${CMAKE_COMMAND}" -E rm -rf "${_dt_cfg}")
+    set_tests_properties(clean-${_dt_id} PROPERTIES FIXTURES_SETUP cfg-${_dt_id})
+    add_test(NAME ${_dt_id}
+             COMMAND helm-headless --width 1280 --height 800
+                     --grant "${_helm_desktop_grants}"
+                     "${CMAKE_CURRENT_SOURCE_DIR}/tests/desktop/test_app" "${_dt}"
+             WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+    set_tests_properties(${_dt_id} PROPERTIES
+        ENVIRONMENT "BRO_APP_HOME=${_dt_cfg}/home;XDG_DATA_HOME=${_dt_cfg}/xdg-data;XDG_CONFIG_HOME=${_dt_cfg}/xdg;APPDATA=${_dt_cfg}/appdata;HELM_HEADLESS=$<TARGET_FILE:helm-headless>;BRO_HEADLESS=$<TARGET_FILE:helm-headless>;HELM_TEST=1"
+        FIXTURES_REQUIRED cfg-${_dt_id}
+        SKIP_RETURN_CODE 77
+        TIMEOUT 120)
 endforeach()
 
 if(TARGET bronze)

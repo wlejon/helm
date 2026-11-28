@@ -1,0 +1,72 @@
+#pragma once
+
+#include "embed/embed.h"
+#include "broapps/broapps.h"
+
+#include <filesystem>
+#include <memory>
+#include <string>
+#include <vector>
+
+namespace broapps::api {
+
+namespace ev = bronze::embed;
+using Value = bronze::Value;
+
+// Service accessors
+std::shared_ptr<broapps::AppCatalog> activeCatalog();
+std::shared_ptr<broapps::AppLauncher> activeLauncher();
+std::shared_ptr<broapps::IconResolver> activeIconResolver();
+std::shared_ptr<broapps::MimeService> activeMimeService();
+std::shared_ptr<broapps::RecentService> activeRecentService();
+std::shared_ptr<broapps::CatalogWatcher> activeCatalogWatcher();
+// The catalog watcher if one exists, else null: never builds a catalog. For
+// the per-frame drain and teardown, which run in every app whether or not it
+// uses bro.apps (building the catalog walks the Start Menu or the desktop
+// entry dirs, hundreds of ms on the page's thread).
+std::shared_ptr<broapps::CatalogWatcher> existingCatalogWatcher();
+
+// The default catalog is built on a thread of its own (api.cpp).
+// catalogReady() -> Promise<void> that resolves once it is (bro.apps.ready);
+// catalogIsReady() says whether a call would answer without waiting;
+// drainCatalogReady() resolves the waiting promises, on the page's thread.
+Value catalogReady();
+bool catalogIsReady();
+void drainCatalogReady();
+
+// Asking the host's access gate (access_gate.cpp; embed/embed_access.h; what
+// each native asks is in api.h, "Access"). Each answers "" when allowed.
+/// Spawn: `what` is the program and its arguments as one line.
+std::string spawnRefusal(const std::string& what);
+/// DesktopRead: `what` describes the desktop configuration read.
+std::string desktopReadRefusal(const std::string& what);
+/// DesktopWrite: `what` describes the change.
+std::string desktopWriteRefusal(const std::string& what);
+/// A UTF-8 string as a path.
+std::filesystem::path utf8Path(const std::string& s);
+/// Read of `path`, made absolute and lexically normal into `*absolute`.
+std::string pathReadRefusal(const std::string& path, std::string* absolute);
+/// "<id or path>" and the arguments, as Spawn is asked.
+std::string launchDescription(const std::string& id, const std::vector<std::string>& args);
+/// The refusal as an Error: message, code "EACCES", `path` when not empty. Fresh: root it.
+Value newAccessError(const std::string& refusal, const std::string& path = {});
+/// Throws newAccessError into the running program.
+Value throwAccessError(const std::string& refusal, const std::string& path = {});
+
+// Conversions
+Value makeError(const std::string& msg);
+Value appInfoToJs(const broapps::AppInfo& app);
+Value recentItemToJs(const broapps::RecentItem& item);
+
+// ProcessHandle wrapping
+void installProcessOnto(Value appsObj);
+Value wrapProcessHandle(std::shared_ptr<broapps::ProcessHandle> handle);
+
+// Apps installation onto bro.apps
+void installAppsOnto(Value appsObj);
+void drainWatcherEvents();
+void clearWatchers();
+void drainLaunchJobs();
+void clearLaunchJobs();
+
+} // namespace broapps::api

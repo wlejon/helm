@@ -201,7 +201,7 @@ try {
   assert(typeof handlers.inhibit === 'function', 'onInhibit handler registered');
   const seatInhibits = [];
   const seatUninhibits = [];
-  const seat = bro.seat;
+  const seat = bro.seat && bro.seat.available !== false ? bro.seat : null;
   const origInhibit = seat ? seat.inhibit : null;
   const origUninhibit = seat ? seat.uninhibit : null;
   if (seat) {

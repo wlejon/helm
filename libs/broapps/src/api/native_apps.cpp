@@ -1,0 +1,779 @@
+#include "host_apps_internal.h"
+#include "arg_reader.h"
+#include "object_builder.h"
+
+#include <atomic>
+#include <chrono>
+#include <filesystem>
+#include <mutex>
+#include <thread>
+#include <unordered_map>
+#include <vector>
+
+namespace broapps::api {
+
+namespace {
+
+struct ActiveWatcher {
+    uint64_t token = 0;
+    std::shared_ptr<ev::Persistent> callback;
+};
+
+std::mutex g_watcher_mu;
+uint64_t g_next_watch_token = 1;
+std::unordered_map<uint64_t, ActiveWatcher> g_watchers;
+
+struct LaunchJob {
+    std::shared_ptr<ev::Persistent> promise;
+    std::shared_ptr<broapps::ProcessHandle> handle;
+    std::string error;
+    std::atomic<bool> done{false};
+    std::thread worker;
+};
+
+std::mutex g_launch_mu;
+std::vector<std::shared_ptr<LaunchJob>> g_launch_jobs;
+
+Value makeStringArray(const std::vector<std::string>& vec) {
+    ev::Persistent arr(ev::makeArray(static_cast<uint32_t>(vec.size())));
+    for (uint32_t i = 0; i < vec.size(); ++i) {
+        ev::Persistent str(ev::fromUtf8(vec[i]));
+        ev::setElement(arr.get(), i, str.get());
+    }
+    return arr.get();
+}
+
+std::vector<std::string> getObjectKeys(Value objVal) {
+    std::vector<std::string> keys;
+    if (!ev::isObject(objVal)) return keys;
+    ev::Persistent obj(objVal);
+    auto gObject = ev::globalValue("Object");
+    if (!gObject.found || !ev::isObject(gObject.value)) return keys;
+    ev::Persistent objCtor(gObject.value);
+    ev::Persistent keysFn(ev::getProperty(objCtor.get(), "keys"));
+    if (!ev::isFunction(keysFn.get())) return keys;
+    Value arg = obj.get();
+    auto kres = ev::call(keysFn.get(), objCtor.get(), std::span<const Value>(&arg, 1));
+    if (kres.thrown || !ev::isObject(kres.value)) return keys;
+    ev::Persistent keysArr(kres.value);
+    Value lenVal = ev::getProperty(keysArr.get(), "length");
+    uint32_t len = ev::isNumber(lenVal) ? static_cast<uint32_t>(ev::toDouble(lenVal)) : 0;
+    for (uint32_t i = 0; i < len; ++i) {
+        keys.push_back(ev::toUtf8(ev::getElement(keysArr.get(), i)));
+    }
+    return keys;
+}
+
+bool unwatchInternal(uint64_t token) {
+    std::lock_guard lock(g_watcher_mu);
+    auto it = g_watchers.find(token);
+    if (it == g_watchers.end()) return false;
+    g_watchers.erase(it);
+
+    if (g_watchers.empty()) {
+        auto w = existingCatalogWatcher();
+        if (w && w->is_watching()) {
+            w->stop();
+        }
+    }
+    return true;
+}
+
+// setDefaultApp / setDefaultAppForMime: a change to the user's desktop
+// configuration, so DesktopWrite is asked first.
+// getDefaultApp / getAppsForMime take a MIME type or a file's path. A path is
+// read (its type is sniffed), so it asks Read; a MIME type reads nothing of the
+// program's. Something shaped "type/subtype" is a MIME type unless a file of that
+// relative name exists.
+bool looksLikeMime(const std::string& s) {
+    const size_t slash = s.find('/');
+    return slash != std::string::npos && slash != 0 && slash + 1 < s.size() &&
+           s.find('/', slash + 1) == std::string::npos && s.find_first_of("\\:") == std::string::npos &&
+           s[0] != '.';
+}
+
+// Whether `arg` is to be looked up as a file; *refused is the gate's refusal
+// (and *absolute its path) when it is and may not be read.
+bool fileArgument(const std::string& arg, std::string* refused, std::string* absolute) {
+    std::error_code ec;
+    if (looksLikeMime(arg) && !std::filesystem::exists(utf8Path(arg), ec)) return false;
+    *refused = pathReadRefusal(arg, absolute);
+    return true;
+}
+
+Value setDefaultAppFor(const std::string& mimeType, const std::string& appId) {
+    std::string what = "set the default app for " + mimeType + " to " + appId;
+    if (std::string refused = desktopWriteRefusal(what); !refused.empty()) return throwAccessError(refused);
+    auto mimeService = activeMimeService();
+    if (!mimeService) return ev::fromBool(false);
+    return ev::fromBool(mimeService->set_default_app_for_mime(mimeType, appId));
+}
+
+} // namespace
+
+Value makeError(const std::string& msg) {
+    ev::Persistent text(ev::fromUtf8(msg));
+    auto ctor = ev::globalValue("Error");
+    if (ctor.found && ev::isFunction(ctor.value)) {
+        ev::Persistent c(ctor.value);
+        const Value arg = text.get();
+        auto r = ev::construct(c.get(), std::span<const Value>(&arg, 1));
+        if (!r.thrown) return r.value;
+    }
+    return text.get();
+}
+
+Value appInfoToJs(const broapps::AppInfo& app) {
+    ObjectBuilder b;
+    b.set("id", app.id);
+    b.set("name", app.name);
+    b.set("generic_name", app.generic_name);
+    b.set("genericName", app.generic_name);
+    b.set("comment", app.comment);
+    b.set("icon", app.icon_name_or_path);
+    b.set("icon_name_or_path", app.icon_name_or_path);
+    b.set("exec", app.executable_path);
+    b.set("executable_path", app.executable_path);
+    b.set("working_directory", app.working_directory);
+    b.set("workingDirectory", app.working_directory);
+
+    b.set("categories", makeStringArray(app.categories));
+    b.set("keywords", makeStringArray(app.keywords));
+    b.set("mime_types", makeStringArray(app.supported_mime_types));
+    b.set("mimeTypes", makeStringArray(app.supported_mime_types));
+    b.set("supported_protocols", makeStringArray(app.supported_protocols));
+
+    b.set("terminal", app.is_terminal);
+    b.set("is_terminal", app.is_terminal);
+    b.set("nodisplay", app.is_nodisplay);
+    b.set("is_nodisplay", app.is_nodisplay);
+    b.set("packaged", app.is_packaged);
+    b.set("is_packaged", app.is_packaged);
+    if (!app.app_dir.empty()) {
+        b.set("appDir", app.app_dir);
+        b.set("app_dir", app.app_dir);
+    }
+
+    if (!app.actions.empty()) {
+        ev::Persistent actArr(ev::makeArray(static_cast<uint32_t>(app.actions.size())));
+        for (uint32_t i = 0; i < app.actions.size(); ++i) {
+            ObjectBuilder act;
+            act.set("id", app.actions[i].id);
+            act.set("name", app.actions[i].name);
+            act.set("exec", app.actions[i].exec);
+            act.set("icon", app.actions[i].icon);
+            ev::setElement(actArr.get(), i, act.build());
+        }
+        b.set("actions", actArr.get());
+    } else {
+        b.set("actions", ev::makeArray(0));
+    }
+
+    if (!app.desktop_file_path.empty()) b.set("desktop_file_path", app.desktop_file_path);
+    if (!app.exec_raw.empty()) b.set("exec_raw", app.exec_raw);
+    if (!app.try_exec.empty()) b.set("try_exec", app.try_exec);
+    if (!app.aumid.empty()) b.set("aumid", app.aumid);
+    if (!app.shortcut_path.empty()) b.set("shortcut_path", app.shortcut_path);
+    if (!app.arguments.empty()) b.set("arguments", app.arguments);
+    if (!app.bundle_id.empty()) b.set("bundle_id", app.bundle_id);
+    if (!app.bundle_path.empty()) b.set("bundle_path", app.bundle_path);
+
+    return b.build();
+}
+
+Value recentItemToJs(const broapps::RecentItem& item) {
+    ObjectBuilder b;
+    b.set("filePath", item.file_path.string());
+    b.set("file_path", item.file_path.string());
+    b.set("uri", item.uri);
+    b.set("displayName", item.display_name);
+    b.set("display_name", item.display_name);
+    b.set("mimeType", item.mime_type);
+    b.set("mime_type", item.mime_type);
+    b.set("appId", item.app_id);
+    b.set("app_id", item.app_id);
+
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        item.timestamp.time_since_epoch()).count();
+    b.set("timestamp", static_cast<double>(ms));
+    return b.build();
+}
+
+void drainWatcherEvents() {
+    auto watcher = existingCatalogWatcher();
+    if (!watcher) return;
+
+    auto events = watcher->events().drain();
+    if (events.empty()) return;
+
+    std::vector<std::shared_ptr<ev::Persistent>> callbacks;
+    {
+        std::lock_guard lock(g_watcher_mu);
+        if (g_watchers.empty()) return;
+        for (const auto& [token, w] : g_watchers) {
+            callbacks.push_back(w.callback);
+        }
+    }
+
+    for (const auto& evItem : events) {
+        std::string type;
+        std::string appId;
+        std::chrono::system_clock::time_point tp;
+
+        std::visit([&](const auto& e) {
+            using T = std::decay_t<decltype(e)>;
+            if constexpr (std::is_same_v<T, AppAdded>) {
+                type = "added";
+                appId = e.app_id;
+                tp = e.timestamp;
+            } else if constexpr (std::is_same_v<T, AppRemoved>) {
+                type = "removed";
+                appId = e.app_id;
+                tp = e.timestamp;
+            } else if constexpr (std::is_same_v<T, AppModified>) {
+                type = "modified";
+                appId = e.app_id;
+                tp = e.timestamp;
+            } else if constexpr (std::is_same_v<T, CatalogRefreshed>) {
+                type = "refreshed";
+                tp = e.timestamp;
+            }
+        }, evItem);
+
+        ObjectBuilder eventObj;
+        eventObj.set("type", type);
+        eventObj.set("appId", appId);
+        eventObj.set("app_id", appId);
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(tp.time_since_epoch()).count();
+        eventObj.set("timestamp", static_cast<double>(ms));
+
+        ev::Persistent jsEvent(eventObj.build());
+
+        for (const auto& cb : callbacks) {
+            if (cb && ev::isFunction(cb->get())) {
+                Value arg = jsEvent.get();
+                ev::call(cb->get(), ev::undefined(), std::span<const Value>(&arg, 1));
+            }
+        }
+    }
+}
+
+void clearWatchers() {
+    std::lock_guard lock(g_watcher_mu);
+    g_watchers.clear();
+    auto w = existingCatalogWatcher();
+    if (w && w->is_watching()) {
+        w->stop();
+    }
+}
+
+void trackLaunchJob(std::shared_ptr<LaunchJob> job) {
+    std::lock_guard lock(g_launch_mu);
+    g_launch_jobs.push_back(std::move(job));
+}
+
+void drainLaunchJobs() {
+    std::vector<std::shared_ptr<LaunchJob>> completed;
+    {
+        std::lock_guard lock(g_launch_mu);
+        if (g_launch_jobs.empty()) return;
+        std::vector<std::shared_ptr<LaunchJob>> remaining;
+        for (auto& j : g_launch_jobs) {
+            if (j->done.load(std::memory_order_acquire)) {
+                completed.push_back(std::move(j));
+            } else {
+                remaining.push_back(std::move(j));
+            }
+        }
+        g_launch_jobs = std::move(remaining);
+    }
+
+    for (auto& job : completed) {
+        if (job->worker.joinable()) {
+            job->worker.join();
+        }
+        if (!job->error.empty()) {
+            ev::Persistent err(makeError(job->error));
+            ev::rejectPromise(job->promise->get(), err.get());
+        } else if (job->handle) {
+            ev::Persistent handleVal(wrapProcessHandle(std::move(job->handle)));
+            ev::resolvePromise(job->promise->get(), handleVal.get());
+        } else {
+            ev::Persistent err(makeError("Launch failed: process handle unavailable"));
+            ev::rejectPromise(job->promise->get(), err.get());
+        }
+    }
+}
+
+void clearLaunchJobs() {
+    std::vector<std::shared_ptr<LaunchJob>> jobs;
+    {
+        std::lock_guard lock(g_launch_mu);
+        jobs = std::move(g_launch_jobs);
+    }
+    for (auto& j : jobs) {
+        if (j->worker.joinable()) {
+            j->worker.join();
+        }
+    }
+}
+
+void installAppsOnto(Value appsObj) {
+    ObjectBuilder apps(appsObj);
+
+    // bro.apps.ready() -> Promise<void>: builds the catalog (and the MIME
+    // associations) on a thread of its own and resolves once it is built;
+    // after that every call answers at once. A call made before waits for
+    // the build instead.
+    apps.def("ready", 0, [](Value, std::span<const Value>) -> Value { return catalogReady(); });
+    // bro.apps.isReady -> boolean: whether calls answer without waiting.
+    apps.accessor("isReady", [](Value, std::span<const Value>) -> Value { return ev::fromBool(catalogIsReady()); });
+
+    // bro.apps.list() -> AppInfo[]
+    apps.def("list", 0, [](Value, std::span<const Value>) -> Value {
+        auto catalog = activeCatalog();
+        if (!catalog) return ev::makeArray(0);
+
+        const auto& appList = catalog->apps();
+        ev::Persistent arr(ev::makeArray(static_cast<uint32_t>(appList.size())));
+        for (uint32_t i = 0; i < appList.size(); ++i) {
+            ev::Persistent item(appInfoToJs(appList[i]));
+            ev::setElement(arr.get(), i, item.get());
+        }
+        return arr.get();
+    });
+
+    // bro.apps.get(appId) -> AppInfo | null
+    apps.def("get", 1, [](Value, std::span<const Value> args) -> Value {
+        if (args.empty() || !ev::isString(args[0])) return ev::null();
+        std::string id = ev::toUtf8(args[0]);
+        auto catalog = activeCatalog();
+        if (!catalog) return ev::null();
+
+        auto app = catalog->find_by_id(id);
+        if (app) {
+            return appInfoToJs(*app);
+        }
+        return ev::null();
+    });
+
+    // bro.apps.search(query) -> AppInfo[]
+    apps.def("search", 1, [](Value, std::span<const Value> args) -> Value {
+        if (args.empty() || !ev::isString(args[0])) return ev::makeArray(0);
+        std::string q = ev::toUtf8(args[0]);
+        auto catalog = activeCatalog();
+        if (!catalog) return ev::makeArray(0);
+
+        auto results = catalog->search(q);
+        ev::Persistent arr(ev::makeArray(static_cast<uint32_t>(results.size())));
+        for (uint32_t i = 0; i < results.size(); ++i) {
+            ev::Persistent item(appInfoToJs(results[i]));
+            ev::setElement(arr.get(), i, item.get());
+        }
+        return arr.get();
+    });
+
+    // bro.apps.launch(appId, options?) -> Promise<ProcessHandle>
+    apps.def("launch", 1, [](Value, std::span<const Value> args) -> Value {
+        ev::Persistent promiseP(ev::createPromise());
+
+        if (args.empty() || (!ev::isString(args[0]) && !ev::isObject(args[0]))) {
+            ev::Persistent err(makeError("bro.apps.launch requires an app id or AppInfo"));
+            ev::rejectPromise(promiseP.get(), err.get());
+            return promiseP.get();
+        }
+
+        std::string id;
+        if (ev::isString(args[0])) {
+            id = ev::toUtf8(args[0]);
+        } else if (ev::isObject(args[0])) {
+            Value idVal = ev::getProperty(args[0], "id");
+            if (ev::isString(idVal)) {
+                id = ev::toUtf8(idVal);
+            } else {
+                Value execVal = ev::getProperty(args[0], "exec");
+                if (ev::isString(execVal)) {
+                    id = ev::toUtf8(execVal);
+                }
+            }
+        }
+
+        if (id.empty()) {
+            ev::Persistent err(makeError("bro.apps.launch requires a valid app id"));
+            ev::rejectPromise(promiseP.get(), err.get());
+            return promiseP.get();
+        }
+
+        LaunchScope scope;
+        if (args.size() > 1 && ev::isObject(args[1])) {
+            ev::Persistent optObj(args[1]);
+
+            // cwd
+            Value cwdVal = ev::getProperty(optObj.get(), "cwd");
+            if (ev::isString(cwdVal)) {
+                scope.working_directory = ev::toUtf8(cwdVal);
+            }
+
+            // args
+            Value argsVal = ev::getProperty(optObj.get(), "args");
+            if (ev::isObject(argsVal)) {
+                ev::Persistent argsArr(argsVal);
+                Value lenVal = ev::getProperty(argsArr.get(), "length");
+                if (ev::isNumber(lenVal)) {
+                    uint32_t len = static_cast<uint32_t>(ev::toDouble(lenVal));
+                    for (uint32_t i = 0; i < len; ++i) {
+                        scope.arguments.push_back(ev::toUtf8(ev::getElement(argsArr.get(), i)));
+                    }
+                }
+            }
+
+            // files
+            Value filesVal = ev::getProperty(optObj.get(), "files");
+            if (ev::isObject(filesVal)) {
+                ev::Persistent filesArr(filesVal);
+                Value lenVal = ev::getProperty(filesArr.get(), "length");
+                if (ev::isNumber(lenVal)) {
+                    uint32_t len = static_cast<uint32_t>(ev::toDouble(lenVal));
+                    for (uint32_t i = 0; i < len; ++i) {
+                        scope.files_to_open.push_back(ev::toUtf8(ev::getElement(filesArr.get(), i)));
+                    }
+                }
+            }
+
+            // env
+            Value envVal = ev::getProperty(optObj.get(), "env");
+            if (ev::isObject(envVal)) {
+                std::vector<std::string> keys = getObjectKeys(envVal);
+                ev::Persistent envObj(envVal);
+                for (const auto& k : keys) {
+                    Value v = ev::getProperty(envObj.get(), k);
+                    scope.environment.emplace_back(k, ev::toUtf8(v));
+                }
+            }
+
+            // terminal
+            Value termVal = ev::getProperty(optObj.get(), "terminal");
+            if (ev::isBool(termVal)) {
+                scope.terminal = ev::toBool(termVal);
+            }
+
+            // action / actionId
+            Value actVal = ev::getProperty(optObj.get(), "action");
+            if (ev::isString(actVal)) {
+                scope.action_id = ev::toUtf8(actVal);
+            } else {
+                Value actIdVal = ev::getProperty(optObj.get(), "actionId");
+                if (ev::isString(actIdVal)) scope.action_id = ev::toUtf8(actIdVal);
+            }
+        }
+
+        // Asked here, on the page's thread, before the launch is queued: the
+        // gate may block to ask the user, and the worker must not run unasked.
+        if (std::string refused = spawnRefusal(launchDescription(id, scope.arguments)); !refused.empty()) {
+            ev::Persistent err(newAccessError(refused));
+            ev::rejectPromise(promiseP.get(), err.get());
+            return promiseP.get();
+        }
+
+        try {
+            auto launcher = activeLauncher();
+            if (!launcher) {
+                ev::Persistent err(makeError("App launcher unavailable"));
+                ev::rejectPromise(promiseP.get(), err.get());
+                return promiseP.get();
+            }
+
+            auto job = std::make_shared<LaunchJob>();
+            job->promise = std::make_shared<ev::Persistent>(promiseP.get());
+
+            // The id is looked up on the launch's own thread: the first
+            // lookup may wait for the catalog to be built, and the page's
+            // thread must not.
+            job->worker = std::thread([job, launcher, id, scope]() {
+                try {
+                    std::optional<AppInfo> appOpt;
+                    if (auto catalog = activeCatalog()) appOpt = catalog->find_by_id(id);
+                    std::error_code ec;
+                    const bool isPathOrExe = !appOpt && (std::filesystem::exists(id, ec) ||
+                                                         id.find('/') != std::string::npos ||
+                                                         id.find('\\') != std::string::npos);
+                    if (appOpt) {
+                        job->handle = launcher->launch(*appOpt, scope);
+                    } else if (isPathOrExe) {
+                        job->handle = launcher->launch_executable(id, scope);
+                    } else {
+                        job->error = "App not found: " + id;
+                    }
+                    if (!job->handle && job->error.empty()) {
+                        job->error = "App launch returned null handle: " + id;
+                    }
+                } catch (const std::exception& ex) {
+                    job->error = std::string("Launch failed: ") + ex.what();
+                } catch (...) {
+                    job->error = "Launch failed with unknown exception";
+                }
+                job->done.store(true, std::memory_order_release);
+            });
+
+            trackLaunchJob(job);
+        } catch (const std::exception& ex) {
+            ev::Persistent err(makeError(std::string("Launch failed: ") + ex.what()));
+            ev::rejectPromise(promiseP.get(), err.get());
+        }
+
+        return promiseP.get();
+    });
+
+    // bro.apps.resolveIcon(iconName, options?) -> string | null
+    // options: a size number, or { size, scale, theme }.
+    apps.def("resolveIcon", 1, [](Value, std::span<const Value> args) -> Value {
+        if (args.empty() || !ev::isString(args[0])) return ev::null();
+        std::string iconName = ev::toUtf8(args[0]);
+        if (iconName.empty()) return ev::null();
+
+        broapps::IconLookupOptions options;
+        auto positive = [](Value v, uint32_t& out) {
+            if (!ev::isNumber(v)) return;
+            double d = ev::toDouble(v);
+            if (d >= 1 && d <= 65536) out = static_cast<uint32_t>(d);
+        };
+        if (args.size() > 1) {
+            if (ev::isNumber(args[1])) {
+                positive(args[1], options.size);
+            } else if (ev::isObject(args[1])) {
+                positive(ev::getProperty(args[1], "size"), options.size);
+                positive(ev::getProperty(args[1], "scale"), options.scale);
+                Value themeVal = ev::getProperty(args[1], "theme");
+                if (ev::isString(themeVal)) options.theme = ev::toUtf8(themeVal);
+            }
+        }
+
+        auto resolver = activeIconResolver();
+        if (!resolver) return ev::null();
+
+        auto path = resolver->resolve_icon(iconName, options);
+        if (path) {
+            return ev::fromUtf8(path->string());
+        }
+        return ev::null();
+    });
+
+    // bro.apps.getDefaultApp(mimeType) -> AppInfo | null
+    apps.def("getDefaultApp", 1, [](Value, std::span<const Value> args) -> Value {
+        if (args.empty() || !ev::isString(args[0])) return ev::null();
+        std::string mimeType = ev::toUtf8(args[0]);
+        if (std::string refused = desktopReadRefusal("read the default app for " + mimeType); !refused.empty()) {
+            return throwAccessError(refused);
+        }
+        std::string refusedPath, absolute;
+        const bool isFile = fileArgument(mimeType, &refusedPath, &absolute);
+        if (!refusedPath.empty()) return throwAccessError(refusedPath, absolute);
+        auto mimeService = activeMimeService();
+        if (!mimeService) return ev::null();
+
+        auto app = mimeService->get_default_app_for_mime(mimeType);
+        if (!app && isFile) app = mimeService->get_default_app_for_file(mimeType);
+        if (app) {
+            return appInfoToJs(*app);
+        }
+        return ev::null();
+    });
+
+    // bro.apps.setDefaultAppForMime(mimeType, appId) -> boolean
+    apps.def("setDefaultAppForMime", 2, [](Value, std::span<const Value> args) -> Value {
+        if (args.size() < 2 || !ev::isString(args[0]) || !ev::isString(args[1])) {
+            return ev::fromBool(false);
+        }
+        return setDefaultAppFor(ev::toUtf8(args[0]), ev::toUtf8(args[1]));
+    });
+
+    // bro.apps.setDefaultApp(mimeType, appId) -> boolean (alias)
+    apps.def("setDefaultApp", 2, [](Value, std::span<const Value> args) -> Value {
+        if (args.size() < 2 || !ev::isString(args[0]) || !ev::isString(args[1])) {
+            return ev::fromBool(false);
+        }
+        return setDefaultAppFor(ev::toUtf8(args[0]), ev::toUtf8(args[1]));
+    });
+
+    // bro.apps.getAppsForMime(mimeType) -> AppInfo[]
+    apps.def("getAppsForMime", 1, [](Value, std::span<const Value> args) -> Value {
+        if (args.empty() || !ev::isString(args[0])) return ev::makeArray(0);
+        std::string mimeType = ev::toUtf8(args[0]);
+        std::string refusedPath, absolute;
+        const bool isFile = fileArgument(mimeType, &refusedPath, &absolute);
+        if (!refusedPath.empty()) return throwAccessError(refusedPath, absolute);
+        auto mimeService = activeMimeService();
+        if (!mimeService) return ev::makeArray(0);
+
+        auto appsList = mimeService->get_candidates_for_mime(mimeType);
+        if (appsList.empty() && isFile) appsList = mimeService->get_candidates_for_file(mimeType);
+
+        ev::Persistent arr(ev::makeArray(static_cast<uint32_t>(appsList.size())));
+        for (uint32_t i = 0; i < appsList.size(); ++i) {
+            ev::Persistent item(appInfoToJs(appsList[i]));
+            ev::setElement(arr.get(), i, item.get());
+        }
+        return arr.get();
+    });
+
+    // bro.apps.getRecent(limit?) -> RecentItem[]
+    apps.def("getRecent", 0, [](Value, std::span<const Value> args) -> Value {
+        size_t limit = 50;
+        if (!args.empty() && ev::isNumber(args[0])) {
+            double d = ev::toDouble(args[0]);
+            if (d > 0) limit = static_cast<size_t>(d);
+        }
+        if (std::string refused = desktopReadRefusal("read the recent files"); !refused.empty()) {
+            return throwAccessError(refused);
+        }
+
+        auto recentService = activeRecentService();
+        if (!recentService) return ev::makeArray(0);
+
+        auto items = recentService->get_recent_items(limit);
+        ev::Persistent arr(ev::makeArray(static_cast<uint32_t>(items.size())));
+        for (uint32_t i = 0; i < items.size(); ++i) {
+            ev::Persistent item(recentItemToJs(items[i]));
+            ev::setElement(arr.get(), i, item.get());
+        }
+        return arr.get();
+    });
+
+    // bro.apps.addRecent(filePath, appId?) -> boolean
+    apps.def("addRecent", 1, [](Value, std::span<const Value> args) -> Value {
+        if (args.empty() || !ev::isString(args[0])) return ev::fromBool(false);
+        std::string path = ev::toUtf8(args[0]);
+        std::string appId;
+        if (args.size() > 1 && ev::isString(args[1])) {
+            appId = ev::toUtf8(args[1]);
+        }
+        if (std::string refused = desktopWriteRefusal("add " + path + " to the recent files"); !refused.empty()) {
+            return throwAccessError(refused);
+        }
+        auto recentService = activeRecentService();
+        if (!recentService) return ev::fromBool(false);
+        return ev::fromBool(recentService->add_recent_item(path, appId));
+    });
+
+    // bro.apps.clearRecent() -> boolean
+    apps.def("clearRecent", 0, [](Value, std::span<const Value>) -> Value {
+        if (std::string refused = desktopWriteRefusal("clear the recent files"); !refused.empty()) {
+            return throwAccessError(refused);
+        }
+        auto recentService = activeRecentService();
+        if (!recentService) return ev::fromBool(false);
+        return ev::fromBool(recentService->clear_recent_items());
+    });
+
+    // bro.apps.watch(callback) -> WatchHandle
+    apps.def("watch", 1, [](Value, std::span<const Value> args) -> Value {
+        if (args.empty() || !ev::isFunction(args[0])) {
+            return ev::throwTypeError("bro.apps.watch requires a callback function");
+        }
+
+        uint64_t token = 0;
+        {
+            std::lock_guard lock(g_watcher_mu);
+            token = g_next_watch_token++;
+            ActiveWatcher watcher;
+            watcher.token = token;
+            watcher.callback = std::make_shared<ev::Persistent>(args[0]);
+            g_watchers.emplace(token, std::move(watcher));
+        }
+
+        auto w = activeCatalogWatcher();
+        if (w && !w->is_watching()) {
+            w->start();
+        }
+
+        ObjectBuilder handle;
+        handle.set("token", static_cast<double>(token));
+        handle.def("unwatch", 0, [token](Value, std::span<const Value>) -> Value {
+            bool ok = unwatchInternal(token);
+            return ev::fromBool(ok);
+        });
+        return handle.build();
+    });
+
+    // bro.apps.unwatch(handleOrToken) -> boolean
+    apps.def("unwatch", 1, [](Value, std::span<const Value> args) -> Value {
+        if (args.empty()) return ev::fromBool(false);
+        uint64_t token = 0;
+        if (ev::isObject(args[0])) {
+            Value tokVal = ev::getProperty(args[0], "token");
+            if (ev::isNumber(tokVal)) {
+                token = static_cast<uint64_t>(ev::toDouble(tokVal));
+            }
+        } else if (ev::isNumber(args[0])) {
+            token = static_cast<uint64_t>(ev::toDouble(args[0]));
+        }
+        if (token == 0) return ev::fromBool(false);
+        return ev::fromBool(unwatchInternal(token));
+    });
+
+    // bro.apps.refresh()
+    apps.def("refresh", 0, [](Value, std::span<const Value>) -> Value {
+        auto catalog = activeCatalog();
+        if (catalog) catalog->refresh();
+        return ev::undefined();
+    });
+
+    // bro.apps.findByCategory(category) -> AppInfo[]
+    apps.def("findByCategory", 1, [](Value, std::span<const Value> args) -> Value {
+        if (args.empty() || !ev::isString(args[0])) return ev::makeArray(0);
+        std::string cat = ev::toUtf8(args[0]);
+        auto catalog = activeCatalog();
+        if (!catalog) return ev::makeArray(0);
+
+        auto results = catalog->find_by_category(cat);
+        ev::Persistent arr(ev::makeArray(static_cast<uint32_t>(results.size())));
+        for (uint32_t i = 0; i < results.size(); ++i) {
+            ev::Persistent item(appInfoToJs(results[i]));
+            ev::setElement(arr.get(), i, item.get());
+        }
+        return arr.get();
+    });
+
+    // bro.apps.findByMimeType(mimeType) -> AppInfo[]
+    apps.def("findByMimeType", 1, [](Value, std::span<const Value> args) -> Value {
+        if (args.empty() || !ev::isString(args[0])) return ev::makeArray(0);
+        std::string mime = ev::toUtf8(args[0]);
+        auto catalog = activeCatalog();
+        if (!catalog) return ev::makeArray(0);
+
+        auto results = catalog->find_by_mime_type(mime);
+        ev::Persistent arr(ev::makeArray(static_cast<uint32_t>(results.size())));
+        for (uint32_t i = 0; i < results.size(); ++i) {
+            ev::Persistent item(appInfoToJs(results[i]));
+            ev::setElement(arr.get(), i, item.get());
+        }
+        return arr.get();
+    });
+
+    // bro.apps.getCapabilities() -> { launcher, catalog }
+    apps.def("getCapabilities", 0, [](Value, std::span<const Value>) -> Value {
+        auto lcaps = query_launcher_capabilities();
+        auto ccaps = query_catalog_capabilities();
+
+        ObjectBuilder b;
+        ObjectBuilder launcher;
+        launcher.set("hasScopedIsolation", lcaps.has_scoped_isolation);
+        launcher.set("hasPackagedAppLaunch", lcaps.has_packaged_app_launch);
+        launcher.set("hasTerminalLaunch", lcaps.has_terminal_launch);
+        launcher.set("hasJobObjectKill", lcaps.has_job_object_kill);
+        launcher.set("hasSystemdCgroup", lcaps.has_systemd_cgroup);
+        b.set("launcher", launcher.build());
+
+        ObjectBuilder catalog;
+        catalog.set("supportsCategories", ccaps.supports_categories);
+        catalog.set("supportsKeywords", ccaps.supports_keywords);
+        catalog.set("supportsMimeTypes", ccaps.supports_mime_types);
+        catalog.set("supportsActions", ccaps.supports_actions);
+        catalog.set("supportsPackagedApps", ccaps.supports_packaged_apps);
+        b.set("catalog", catalog.build());
+
+        return b.build();
+    });
+}
+
+} // namespace broapps::api

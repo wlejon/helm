@@ -4,7 +4,7 @@
 
 **Helm** is the standalone desktop environment shell application for the [bro ecosystem](https://github.com/wlejon/bro).
 
-Built on top of `bro_engine`, `bro_bronze_host`, and `bronze`, Helm provides the primary human interface to the desktop operating system:
+Helm is the standalone desktop environment shell and desktop app runtime (`helm <app-dir | app-id>`), built on top of `libbro` (`bro_engine`, `bro_bronze_host`, `bronze`) and owning the desktop substrate APIs (`bro.{apps,vfs,thumb,cred,sys,portal,clip,mpris,pulse,conf,keys,decor,ime}`). It launches both the desktop shell and `helmapps`:
 one slim bar along the bottom edge, and nothing else between you and your windows. The bar holds three islands, each growing up into its panel. The left island holds the launcher mark, the workspaces and the focused app, and grows into **Spaces** (a miniature of every workspace and the windows on this one). The center island holds the clock, the unread count and a **live activity** (what is playing, or a recording and its running time), and grows into the calendar and notification center. The right island holds the tray and status, grows into quick settings (volume and outputs, brightness, network and Wi-Fi, Bluetooth, night light, Focus / Do Not Disturb, now playing, power with confirm), and stretches into the volume and brightness OSD. Toasts rise out of the clock island. There is a launcher with app grid, search, calculator, actions and clipboard history that grows out of whatever opened it, an Alt+Tab window switcher, and a lock screen with credential verification.
 
 ### Windows
@@ -48,10 +48,13 @@ helm/
 ├── README.md               # Architecture and usage documentation
 ├── .gitignore              # Git ignore patterns
 ├── src/
-│   ├── main.cpp            # Windowed/DRM application entry point and CLI parser
-│   ├── headless_main.cpp   # Headless test runner driver
+│   ├── main.cpp            # Shell & desktop app runtime entry point and CLI parser
+│   ├── headless_main.cpp   # Headless desktop shell & app test runner driver
+│   ├── desktop/            # Desktop host layer (4 Bronze JS modules + host hooks)
 │   ├── paths.h             # Filesystem & config path resolution
 │   └── paths.cpp
+├── libs/                   # Embedded desktop C++ libraries (brovfs, brosys, broapps,
+│                           # brothumb, brocred, broportal, broclip, brompris, bropulse)
 ├── ui/
 │   ├── bro.json            # The UI's manifest (its grants come from the helm executable)
 │   ├── index.html          # Shell DOM: wallpaper, window frames, the bar, panels, overlays
